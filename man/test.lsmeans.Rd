@@ -1,0 +1,71 @@
+\name{test.lsmeans}
+\alias{test.lsmeans}
+\title{Perform t-Tests for Linear Contrasts on LS Means.}
+\usage{
+test.lsmeans(obj, L, ddfm = c("contain", "residual", "satterthwaite"))
+}
+\arguments{
+  \item{obj}{(VCA) object}
+
+  \item{L}{(matrix) specifying one or multiple custom
+  hypothesis tests as linear contrasts of LS Means.  Which
+  LS Means have to be used is inferred from the column
+  names of matrix \eqn{L}, which need to be in line with
+  the naming of LS Means in function
+  \code{\link{lsmeans}}.}
+
+  \item{ddfm}{(character) string specifying the method used
+  for computing the denominator degrees of freedom of
+  t-tests of LS Means. Available methods are "contain",
+  "residual", and "satterthwaite".}
+}
+\description{
+Perform custom hypothesis tests on Least Squares Means (LS
+Means) of fixed effect.
+}
+\details{
+This function is similar to function
+\code{\link{test.fixef}} and represents a convenient way of
+specifying linear contrasts of LS Means.
+}
+\examples{
+data(dataEP05A2_2)
+ub.dat <- dataEP05A2_2[-c(11,12,23,32,40,41,42),]
+fit <- anovaMM(y~day/(run), ub.dat)
+lsm <- lsmeans(fit)
+lsm
+lc.mat <- getL(fit, c("day1-day2", "day3-day6"), "lsm")
+lc.mat[1,c(1,2)] <- c(1,-1)
+lc.mat[2,c(3,6)] <- c(1,-1)
+lc.mat
+test.lsmeans(fit, lc.mat)
+
+# fit mixed model from the 'nlme' package
+\dontrun{
+
+library(nlme)
+data(Orthodont)
+fit.lme <- lme(distance~Sex*I(age-11), random=~I(age-11)|Subject, Orthodont)
+
+# re-organize data for using 'anovaMM'
+Ortho <- Orthodont
+Ortho$age2 <- Ortho$age - 11
+Ortho$Subject <- factor(as.character(Ortho$Subject))
+
+# model without intercept
+fit.anovaMM <- anovaMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2-1, Ortho)
+lsm <- lsmeans(fit.anovaMM)
+lsm
+lc.mat <- matrix(c(1,-1), nrow=1, dimnames=list("int.Male-int.Female", c("SexMale", "SexFemale")))
+lc.mat
+test.lsmeans(fit.anovaMM, lc.mat)
+}
+}
+\author{
+Andre Schuetzenmeister
+\email{andre.schuetzenmeister@roche.com}
+}
+\seealso{
+\code{\link{test.fixef}}, \code{\link{lsmeans}}
+}
+

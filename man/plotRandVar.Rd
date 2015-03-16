@@ -1,0 +1,86 @@
+\name{plotRandVar}
+\alias{plotRandVar}
+\title{Plot Random Variates of a Mixed Model ('VCA' Object).}
+\usage{
+plotRandVar(obj, term = NULL, mode = c("raw", "student", "standard",
+  "pearson"), main = NULL, Xlabels = list(), Points = list(),
+  Vlines = list(), pick = FALSE)
+}
+\arguments{
+  \item{obj}{(VCA) object}
+
+  \item{term}{(character, integer) specifying a type of
+  residuals if one of c("conditional", "marginal"), or, the
+  name of a random term (one of obj$re.assign$terms). If
+  'term' is a integer, it is interpreted as the i-th random
+  term in 'obj$re.assign$terms'.}
+
+  \item{mode}{(character) string specifying a possible
+  transformation of random effects or residuals (see
+  \code{\link{residuals.VCA}} and
+  \code{\link{ranef.VCA}}for details)}
+
+  \item{main}{(character) string used as main title of the
+  plot, if NULL, it will be automatically generated}
+
+  \item{Xlabels}{(list) passed to function
+  \code{\link{text}} adding labels to the bottom margin at
+  x-coordinates 1:N, where N is the number of random
+  variates. Useful for customization.}
+
+  \item{Points}{(list) passed to function
+  \code{\link{points}} for customization of plotting
+  symbols}
+
+  \item{Vlines}{(list) passed to function (abline) adding
+  vertical lines, separating random variates for better
+  visual separation, set to NULL for omitting vertical
+  lines.}
+
+  \item{pick}{(logical) TRUE = lets the user identify
+  single points using the mouse, useful, when many, points
+  were drawn where the X-labels are not readable.}
+}
+\description{
+Plots, possibly transformed, random variates of a linear
+mixed model (random effects, contitional or marginal
+residuals).
+}
+\details{
+Function plots either random effects of a 'VCA' object or
+residuals. Parameter 'term' is used to specify either one.
+If 'term' is one of c("conditional", "marginal")
+corresponding residuals will be plotted (see
+\code{\link{resid}} for details). If 'term' is either the
+name of a random term in the formula of the 'VCA' object or
+an integer specifying the i-th random term, corresponding
+random effects will be plotted. Both types of random
+variates (random effects, residuals) can be plotted
+untransformed ("raw"), "studentized" or "standardized". In
+case of residuals, one can also use the "Pearson"-type
+transformation.
+}
+\examples{
+data(dataEP05A2_1)
+fit <- anovaVCA(y~day/run, dataEP05A2_1)
+plotRandVar(fit, "cond", "stand")
+plotRandVar(fit, 1, "stud")						# 1st random term 'day'
+plotRandVar(fit, "day", "stud")					# equivalent to the above
+
+# for larger datasets residuals can hardly be identified
+# pick out interesting points with the mouse
+\dontrun{
+plotRandVar(fit, "marg", "stud", pick=TRUE)
+}
+
+# customize the appearance
+plotRandVar( fit, 1, "stud", Vlines=list(col=c("red", "darkgreen")),
+	Xlabels=list(offset=.5, srt=60, cex=1, col="blue"),
+	Points=list(col=c("black", "red", rep("black", 18)),
+	pch=c(3,17,rep(3,18)), cex=c(1,2,rep(1,18))))
+}
+\author{
+Andre Schuetzenmeister
+\email{andre.schuetzenmeister@roche.com}
+}
+

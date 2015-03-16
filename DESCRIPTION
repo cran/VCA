@@ -1,0 +1,21 @@
+Package: VCA
+Version: 1.1
+Date: 2015-03-16
+Title: Variance Component Analysis
+Author: Andre Schuetzenmeister <andre.schuetzenmeister@roche.com>
+Maintainer: Andre Schuetzenmeister <andre.schuetzenmeister@roche.com>
+Depends: R (>= 3.0.0), stats
+Imports: Matrix, numDeriv
+Description: ANOVA-type estimation (prediction) of random effects and variance components in linear mixed models,
+    is implemented. Random models, a sub-set of mixed models, can be fit applying a Variance Component Analysis (VCA).
+    This is a special type of analysis frequently used in verifying the precision performance of diagnostics. 
+    The Satterthwaite approximation of the total degrees of freedom is implemented. There are several functions 
+    for extracting, random effects, fixed effects, variance-covariance matrices of random and fixed effects. 
+    Residuals can be extracted as raw, standardized and studentized residuals. Additionally, a variability chart 
+    is implemented for visualizing the variability in sub-classes emerging from an experimental design ('varPlot').
+License: GPL (>= 3)
+Collate: 'plot.R' 'vca.R'
+Packaged: 2015-03-16 07:51:45 UTC; schueta6
+NeedsCompilation: yes
+Repository: CRAN
+Date/Publication: 2015-03-16 10:29:47

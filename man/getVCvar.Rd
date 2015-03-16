@@ -1,0 +1,62 @@
+\name{getVCvar}
+\alias{getVCvar}
+\title{Covariance-Matrix of Variance Components.}
+\usage{
+getVCvar(Ci, A, Z, VC)
+}
+\arguments{
+  \item{Ci}{(matrix) inverted C-matrix of coefficients
+  equating observed Sum of Squares (SS) to expected
+  values.}
+
+  \item{A}{(list) of A-matrices representing quadratic
+  forms of ANOVA-Type I sums of squares}
+
+  \item{Z}{(list) of Z-matrices, the design matrices
+  assigning random effects to observations for each
+  variance component.}
+
+  \item{VC}{(numeric) vector of variance components, i.e.
+  sigma^2.}
+}
+\value{
+(matrix) covariance matrix of estimated variance components
+}
+\description{
+Function \code{getVCvar} determines the covariance matrix
+of ANOVA-type estimates of variance components (VC)
+according to the method given in the reference.
+}
+\details{
+This function implements the (exact) method for computing
+the variance-covariance matrix of variance components
+obtained emplyoing ANOVA-type estimation of unbalance data,
+described in Searle et al. (1992) "Variance Components",
+Wiley, p.176. One feature of this method is that the
+asymptotic covariance matrix of VCs produced by SAS PROC
+MIXED (method=type1) (inverse of the Fisher-Information
+matrix) is equal to the one computed here, in case of
+balanced designs (data). For unbalanced designs, both
+matrices are likely to differ.
+
+It is for internal use only, thus, not exported.
+}
+\examples{
+\dontrun{
+data(dataEP05A2_3)
+res <- anovaVCA(y~day/run, dataEP05A2_3)
+res
+mat <- res$Matrices
+Var <- VCA:::getVCvar(Ci=mat$Ci.SS, A=mat$A, Z=mat$Z, VC=res$aov.tab[-1,"VC"])
+round(Var, 12)
+}
+}
+\author{
+Andre Schuetzenmeister
+\email{andre.schuetzenmeister@roche.com}
+}
+\references{
+Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance
+Components, Wiley New York
+}
+

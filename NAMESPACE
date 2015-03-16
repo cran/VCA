@@ -1,0 +1,64 @@
+### Generics and functions defined in this package
+
+export(	
+	"anovaVCA",
+	"anovaMM",
+	"as.matrix.VCA",
+	"coef.VCA",
+	"getCmatrix",
+	"fixef",
+	"fixef.VCA",
+	"getDF",
+	"getL",
+	"getMM",
+	"getV",
+	"getMat",
+	"isBalanced",
+	"lsmeans",
+	"MPinv",
+	"plotRandVar",
+	"print.VCA",
+	"print.VCAinference",
+	"ranef",
+	"ranef.VCA",
+	"residuals.VCA",
+	"stepwiseVCA",
+	"test.lsmeans",
+	"test.fixef",
+	"varPlot",
+	"vcov.VCA",
+	"vcovVC",		
+	"VCAinference"
+)
+
+
+### Packages which are imported (appearing in the Description->Imports enumeration)
+
+import( 
+	"numDeriv", 
+	"Matrix"
+)
+
+
+### exported classes
+
+exportClasses( 	"VCA",
+		"VCAinference"
+	     )
+
+
+### S3-method registration
+
+S3method(as.matrix, VCA)
+S3method(coef, VCA)
+S3method(fixef, VCA)
+S3method(print, VCA)
+S3method(print, VCAinference)
+S3method(ranef, VCA)
+S3method(residuals, VCA)
+S3method(vcov, VCA)  
+
+   
+### shared-object registration
+	     
+useDynLib(VCA)

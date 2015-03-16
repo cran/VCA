@@ -1,0 +1,99 @@
+\name{residuals.VCA}
+\alias{resid}
+\alias{residuals.VCA}
+\title{Extract Residuals of a 'VCA' Object.}
+\usage{
+\method{residuals}{VCA}(object, type = c("conditional", "marginal"),
+  mode = c("raw", "student", "standard", "pearson"), ...)
+}
+\arguments{
+  \item{object}{(VCA) object}
+
+  \item{type}{(character) string specifying the type of
+  residuals to be returned, valid options are "marginal"
+  and "conditional" or abbreviations}
+
+  \item{mode}{(character) string or abbreviation specifying
+  the specific transformation applied to a certain type of
+  residuals. There are "raw" (untransformed),
+  "standardized", "studentized" and "pearson" (see details)
+  residuals.}
+
+  \item{...}{additional parameters}
+}
+\description{
+Function extracts marginal or conditional residuals from a
+'VCA' object, representing a linear mixed model.
+}
+\details{
+There are two types of residuals which can be extraced from
+a 'VCA' object. Marginal residuals correspond to \eqn{e_m =
+y - \hat{y}}{e_m = y - y_hat}, where \eqn{\hat{y} =
+Xb}{y_hat = Xb} with \eqn{X} being the design matrix of
+fixed effects and \eqn{b} being the column vector of fixed
+effects parameter estimates. Conditional residuals are
+defined as \eqn{e_c = y - Xb - Zg}, where \eqn{Z}
+corresponds to the designs matrix of random effects
+\eqn{g}. Whenever 'obj' is a pure-error model, e.g. 'y~1'
+both options will return the same values \eqn{y - Xb} and
+\eqn{b} corresponds to the intercept. Each type of
+residuals can be standardized, studentized, or transformed
+to pearson-type residuals. The former corresponds to a
+transformation of residuals to have mean 0 and variance
+equal to 1 (\eqn{(r - \bar{r})/\sigma_{r}}{[r -
+mean(r)]/sd(r)]}). Studentized residuals emerge from
+dividing raw residuals by the square-root of diagonal
+elements of the corresponding variance-covariance matrix.
+For conditional residuals, this is \eqn{Var(c) = P = RQR},
+with \eqn{Q = V^{-1}(I - H)}{Q = V"(I - H)}, \eqn{H = XT}
+being the hat-matrix, and \eqn{T =
+(X^{T}V^{-1}X)^{-1}X^{T}V^{-1}}{T = (X'V"X)"X'V"}. For
+marginal residuals, this matrix is \eqn{Var(m) = O = V -
+Q}. Here, >\eqn{^{T}}{'}< denotes the matrix transpose
+operator, and >\eqn{^{-1}}{"}< the regular matrix inverse.
+Pearson-type residuals are computed in the same manner as
+studentized, only the variance-covariance matrices differ.
+For marginal residuals this is equal to \eqn{Var(y) = V},
+for conditional residuals this is \eqn{Var(c) = R} (see
+\code{\link{getV}} for details).
+}
+\examples{
+data(VCAdata1)
+datS1 <- VCAdata1[VCAdata1$sample==1,]
+fit1  <- anovaVCA(y~(lot+device)/(day)/(run), datS1)
+
+# default is conditional (raw) residuals
+resid(fit1)
+resid(fit1, "m")
+
+# get standardized version
+resid(fit1, mode="stand")		# conditional residuals (default)
+resid(fit1, "marg", "stand")		# marginal residuals
+
+# get studentized version, taking their
+# covariances into account
+resid(fit1, mode="stud")		# conditional residuals (default)
+resid(fit1, "marg", "stud")		# marginal residuals
+}
+\author{
+Andre Schuetzenmeister
+\email{andre.schuetzenmeister@roche.com}
+}
+\references{
+Hilden-Minton, J. A. (1995). Multilevel diagnostics for
+mixed and hierarchical linear models. Dissertation,
+University of California, Los Angeles.
+
+Nobre, J. S. & Singer, J. M. (2007). Residual analysis for
+linear mixed models. Biometrical Journal, 49, 863-875.
+
+Schuetzenmeister, A. and Piepho, H.P. (2012). Residual
+analysis of linear mixed models using a simulation
+approach. Computational Statistics and Data Analysis, 56,
+1405-1416
+}
+\seealso{
+\code{\link{ranef}}, \code{\link{anovaVCA}},
+\code{\link{anovaMM}}
+}
+

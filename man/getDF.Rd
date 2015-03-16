@@ -1,0 +1,50 @@
+\name{getDF}
+\alias{getDF}
+\title{Extract Degrees of Freedom from Linear Hypotheses of Fixed Effects or LS Means.}
+\usage{
+getDF(obj, L, method = c("contain", "residual", "satterthwaite"), ...)
+}
+\arguments{
+  \item{obj}{(VCA) object}
+
+  \item{L}{(matrix) specifying one or multiple linear
+  hypothese, as returned by function \code{\link{getL}}}
+
+  \item{method}{(character) the method to be used to
+  determine the degrees of freedom for a linear hypothesis}
+
+  \item{...}{additional parameters}
+}
+\value{
+(numeric) vector with the DFs for each row of 'L'
+}
+\description{
+Determine degrees of freedom for custom linear hypotheses
+of fixed effects or LS Means using one of three possible
+approximation methods.
+}
+\details{
+This is a convenience function to determine the DFs for
+linear hypotheses in the same way as function
+\code{\link{test.fixef}}. Only the "DF" part is returned
+here which can be passed to other functions expecting DFs
+as input.
+}
+\examples{
+data(VCAdata1)
+tmpDat <- VCAdata1[VCAdata1$sample==1,]
+tmpDat <- tmpDat[-c(11,51,73:76),]
+fitMM <- anovaMM(y~(lot+device)/(day)/(run), tmpDat)
+fitMM
+L <- getL(fitMM, c("lot1-lot2", "device1-device2"))
+getDF(fitMM, L)						# method="contain" is Default
+getDF(fitMM, L, method="res")
+\dontrun{
+getDF(fitMM, L, method="satt")		# takes quite long for this model
+}
+}
+\author{
+Andre Schuetzenmeister
+\email{andre.schuetzenmeister@roche.com}
+}
+

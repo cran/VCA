@@ -1,0 +1,89 @@
+\name{getCmatrix}
+\alias{getCmatrix}
+\title{Coefficient Matrix for (V)ariance (C)omponent (A)nalysis.}
+\usage{
+getCmatrix(form, Data, DF = NULL, type = c("MS", "SS"), digits = 8L)
+}
+\arguments{
+  \item{form}{(formula) object specifying the random model}
+
+  \item{Data}{(data.frame) containing all variables in
+  'form'}
+
+  \item{DF}{(numeric) vector with the degrees of freedom
+  for each VC, if not specified it will be determined
+  automatically by refitting 'form' to 'Data'}
+
+  \item{type}{(character) "MS" = mean squares coefficient
+  matrix "SS" = sum of squares coefficient matrix}
+
+  \item{digits}{(integer) numeric tolerance expressed in
+  number of digits. This is used for testing whether a
+  value is equal to zero (round(x,digits) == 0).}
+}
+\description{
+Function \code{getCmatrix} computes the coefficient matrix
+used in equating observed ANOVA sum of squares (or mean
+squares) to their expected values as linear combination of
+the unobservable, true variance components. This "can be
+viewed in some sense as a special form of the method of
+moments" approach (Searle et al. 1992, "Variance
+Components", p. 173).
+}
+\details{
+Functions implements the algorithm for finding
+coefficient-matrix \eqn{C} of a method of moments approach
+to ANOVA-estimation of variance components (VC), given in
+the first reference. Matrix \eqn{C} corresponds to the
+coefficient matrix equating expected ANOVA mean squares
+(MS) to observed values as linear combinations of the
+unknown VCs to be estimated. The most computationally
+expensive parts of the algorithm were implemented in
+\code{C}, speeding up things a significantly.
+
+Consider formulas: \eqn{m_{MS} = Cs}{ms = C * s} and
+\eqn{m_{SS} = Ds}{ss = D * s}, where \eqn{m_{MS}}{ms} and
+\eqn{m_{SS}}{ss} are a column-vectors of observed ANOVA
+MS-, respectively, ANOVA SS-values, \eqn{C} and \eqn{D} are
+coefficient matrices, equating \eqn{m_{MS}}{ms},
+respectively, \eqn{m_{SS}}{ss} to linear combinations of
+VCs \eqn{s}, which are to be estimated. Once matrix \eqn{C}
+or \eqn{D} is found, pre-multiplying \eqn{s} with its
+inverse gives ANOVA-estimators of VCs. This function
+implements the algorithm described in the first reference,
+the "Abbreviated Doolittle and Square Root Methods". One
+can convert matrices \eqn{C} and \eqn{D} into the other by
+multiplying/dividing each element by the respective degrees
+of freedom (DF) associated with the corresponding factor in
+the model. If \eqn{\diamond}{~} denotes the operator for
+element-wise multiplication of two matrices of the same
+order (Hadamard-product), \eqn{d} is the column vector of
+DFs, and \eqn{M} is a \eqn{r \times r}{(r x r)} quadratic
+matrix with \eqn{M = d1_r^{T}}{M = d 1_r'},
+\eqn{1_r^{T}}{1_r'} being the transpose of a column-vector
+of ones with \eqn{r} elements, then holds: \eqn{M = D
+\diamond M}{C = D ~ M}.
+}
+\examples{
+data(dataEP05A2_1)
+C_ms <- getCmatrix(y~day/run, dataEP05A2_1, type="MS")
+C_ms
+C_ss <- getCmatrix(y~day/run, dataEP05A2_1, type="SS")
+C_ss
+aov.tab <- anova(lm(y~day+day:run, dataEP05A2_1))
+aov.tab
+apply(C_ss, 2, function(x) x/aov.tab[,"Df"])
+}
+\author{
+Andre Schuetzenmeister
+\email{andre.schuetzenmeister@roche.com}
+}
+\references{
+Gaylor,D.W., Lucas,H.L., Anderson,R.L. (1970), Calculation
+of Expected Mean Squares by the Abbreviated Doolittle and
+Square Root Methods. Biometrics 26(4):641-655
+}
+\seealso{
+\code{\link{anovaVCA}}, \code{\link{getMM}}
+}
+

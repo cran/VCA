@@ -1,0 +1,52 @@
+\name{lsmMat}
+\alias{lsmMat}
+\title{Contrast Matrix for LS Means.}
+\usage{
+lsmMat(obj, var = NULL)
+}
+\arguments{
+  \item{obj}{(VCA) object}
+
+  \item{var}{(character) string specifyig the fixed effects
+  variable for which the LS Means generating matrices
+  should be computed}
+}
+\value{
+(matrix) where each row corresponds to a LS Means
+generating contrast for each factor level of one or
+multiple fixed effects variable(s)
+}
+\description{
+Function determines appropriate contrast matrix for
+computing the LS Means of each factor level of one or
+multiple fixed effects variables. This functions implements
+the 5 rules given in the documentation of SAS PROC GLM for
+computing the LS Means.
+}
+\details{
+The LS Means correspond to marginal means adjusted for bias
+introduced by unbalancedness.
+}
+\examples{
+\dontrun{
+data(dataEP05A2_1)
+fit1 <- anovaMM(y~day/run, dataEP05A2_1)
+
+VCA:::lsmMat(fit1, "day")	# function not exported
+VCA:::lsmMat(fit1, "run")
+VCA:::lsmMat(fit1)			# is equal to listing all fixed terms
+
+# a more complex and unbalanced model
+data(VCAdata1)
+datS1 <- VCAdata1[VCAdata1$sample == 1, ]
+set.seed(42)
+datS1ub <- datS1[-sample(1:nrow(datS1))[1:25],]
+fit2 <- anovaMM(y~(lot+device)/day/(run), datS1ub)
+VCA:::lsmMat(fit2, c("lot", "device"))
+}
+}
+\author{
+Andre Schutzenmeister
+\email{andre.schuetzenmeister@roche.com}
+}
+

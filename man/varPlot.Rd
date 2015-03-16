@@ -1,0 +1,294 @@
+\name{varPlot}
+\alias{varPlot}
+\title{Variability Chart for Hierarchical Models.}
+\usage{
+varPlot(form, Data, keep.order = TRUE, type = c(1L, 2L, 3L)[1],
+  VARtype = "SD", htab = 0.5, Title = NULL, VSpace = NULL,
+  VarLab = list(cex = 0.75, adj = c(0.5, 0.5)), YLabel = list(text =
+  "Value", side = 2, line = 2.5), SDYLabel = list(side = 2, line = 2.5),
+  Points = list(pch = 16, cex = 0.5, col = "black"), SDs = list(pch = 16,
+  col = "blue", cex = 0.75), SDline = list(lwd = 1, lty = 1, col = "blue"),
+  BG = list(border = "lightgray", col.table = FALSE), Join = list(lty = 1,
+  lwd = 1, col = "gray"), Mean = list(pch = 3, col = "red", cex = 0.5),
+  MeanLine = NULL, VCnam = list(cex = 0.75, col = "black", line = 0.25),
+  useVarNam = FALSE, ylim = NULL, ...)
+}
+\arguments{
+  \item{Data}{(data.frame) with the data}
+
+  \item{form}{(formula) object specifying the model, NOTE:
+  any crossed factors are reduced to last term of the
+  crossing structure, i.e.  "a:b" is reduced to "b",
+  "a:b:c" is reduced to "c".}
+
+  \item{Title}{(list) specifying all parameters applicable
+  to function 'title' for printing main- or sub-titles to
+  plots. If 'type==3', these settings will apply to each
+  plot. For individual settings specify a list with two
+  elements, where each element is a list itself specifying
+  all parameters of function 'title'. The first one is used
+  for the variability chart, the second one for the SD or
+  CV plot. Set to NULL to omit any titles.}
+
+  \item{keep.order}{(logical) TRUE = the ordering of
+  factor-levels is kept as provided by 'Data', FALSE =
+  factor-levels are sorted on and within each level of
+  nesting.}
+
+  \item{type}{(integer) specifying the type of plot to be
+  used, options are 1 = regular scatterplot, 2 = plot of
+  the standard deviation, 3 = both type of plots.}
+
+  \item{VSpace}{(numeric) vector of the same length as
+  there are variance components, specifying the proportion
+  of vertical space assigned to each variance component in
+  the tabular indicating the model structure. These
+  elements have to sum to 1, otherwise equal sizes will be
+  used for each VC.}
+
+  \item{VARtype}{(character) either "SD" (standard
+  deviation) or "CV" (coefficient of variation), controls
+  which type of measures is used to report variability in
+  plots when 'type' is set to either 2 or (see 'type'
+  above). Note that all parameters which apply to the
+  SD-plot will be used for the CV-plot in case
+  'VARtype="CV"'.}
+
+  \item{htab}{(numeric) value 0 < htab < 1 specifying the
+  height of the table representing the experimental design.
+  This value represents the proportion in relation to the
+  actual plotting area, i.e. htab=1 mean 50\% of the
+  vertical space is reserved for the table.}
+
+  \item{VarLab}{(list) specifying all parameters applicable
+  to function 'text', used to add labels within the table
+  environment refering to the nesting structure. This can
+  be a list of lists, where the i-th list corresponds to
+  the i-th variance component, counted in bottom-up
+  direction, i.e. starting from the most general variance
+  component ('day' in the 1st example).}
+
+  \item{YLabel}{(list) specifying all parameters applicable
+  to function 'mtext', used for labelling the Y-axis.}
+
+  \item{SDYLabel}{(list) specifying all parameters
+  applicable to function 'mtext', used for labelling the
+  Y-axis.}
+
+  \item{Points}{(list) specifying all parameters applicable
+  to function 'points', used to specify scatterplots per
+  lower-end factor-level (e.g. 'run' in formula run/day).
+  If list-elements "col" and "pch" are lists themselves
+  with elements "var" and "col"/"pch", where the former
+  specifies a variable used for assigning
+  colors/plotting-symbols ("col"/"pch") according to the
+  class-level of variable "var",
+  point-colors/plotting-symbols can be used for indicating
+  specific sub-classes not addressed by the model/design
+  (see examples).  Note the i-th element of 'col'/'pch'
+  refers of the i-th element of unique(Data$var), even if
+  'var' is an integer variable.}
+
+  \item{SDs}{(list) specifying all parameters applicable to
+  function 'points', used to specify the appearance of
+  SD-plots.}
+
+  \item{SDline}{(list) specifying all parameters applicable
+  to function 'lines', used to specify the (optional) line
+  joining individual SDs, Set to NULL to omit.}
+
+  \item{BG}{(list) specifying the background for
+  factor-levels of a nested factor. This list is passed on
+  to function 'rect' after element 'var', which identifies
+  the factor to be used for coloring, has been removed. If
+  not set to NULL and no factor has been specified by the
+  user, the top-level factor is selected by default. If
+  this list contains element 'col.table=TRUE', the same
+  coloring schema is used in the table below at the
+  corresponding row/factor (see examples). When specifying
+  as many colors as there are factor-levels, the same color
+  will be applied to a factor-level automatically. This is
+  relevant for factors, which are not top-level (bottom in
+  the table).  Example: BG=list(var="run", col=c("white",
+  "lightgray"), border=NA) draws the background for
+  alternating levels of factor "run" white and gray for
+  better visual differentiation. Set to NULL to omit. Use
+  list( ..., col="white", border="gray") for using gray
+  vertical lines for separation.}
+
+  \item{ylim}{(numeric) vector of length two, specifying
+  the limits in Y-direction, if not set these values will
+  be determined automatically.}
+
+  \item{Join}{(list) specifying lines joining observed
+  values within lower-level factor-levels, set to NULL to
+  omit.}
+
+  \item{Mean}{(list) passed to function
+  \code{\link{points}} specifying plotting symbols used to
+  indicate mean values per lower-level factor-level, set
+  equal to NULL to omit.}
+
+  \item{MeanLine}{(list) passed to function
+  \code{\link{lines}} specifying the appearance of
+  horizontal lines indicating mean values of factor levels.
+  The factor variable for which mean-values of
+  factor-levels are plotted can be specified via
+  list-element "var" accepting any factor variable
+  specified in 'form'. List element "mar" takes values in
+  [0;.5] setting the left and right margin size of
+  mean-lines.  Set equal to NULL to omit. Use 'var="int"'
+  for specifying the overall mean (grand mean, intercept).}
+
+  \item{VCnam}{(list) specifying the text-labels (names of
+  variance components) appearing as axis-labels. These
+  parameters are passed to function 'mtext'. Set to NULL to
+  omit VC-names.}
+
+  \item{useVarNam}{(logical) TRUE = each factor-level
+  specifier is pasted to the variable name of the current
+  variable and used as list-element name, FALSE =
+  factor-level specifiers are used as names of
+  list-elements; the former is useful when factor levels
+  are indicated as integers, e.g. days as 1,2,..., the
+  latter is useful when factor levels are already unique,
+  e.g. day1, day2, ... .}
+
+  \item{...}{further graphical parameters passed on to
+  function 'par', e.g. use 'mar' for specification of
+  margin widths. Note, that not all of them will have an
+  effect, because some are fixed ensuring that a
+  variability chart is drawn.}
+}
+\value{
+(invisibly) returns 'Data' with additional variable
+'Xcoord' giving X-coordinates of each observation
+}
+\description{
+Function \code{varPlot} determines the sequence of
+variables in the model formula and uses this information to
+construct the variability chart.
+}
+\details{
+This function implements a variability-chart, known from,
+e.g. JMP (JMP, SAS Institute Inc., Cary, NC). Arbitrary
+models can be specified via parameter 'form'. Formulas will
+be reduced to a simple hierarchical structure ordering
+factor-variables according to the order of appearance in
+'form'. This is done to make function \code{varPlot}
+applicable to any random model considered in this package.
+Even if there are main factors, neither one being above or
+below another main factor, these are forced into a
+hierachy. Besides the classic scatterplot, where
+observations are plotted in sub-classes emerging from the
+model formula, a plot of standard deviations (SD) or
+coefficients of variation (CV) is provided (type=2) or both
+types of plots together (type=3).
+}
+\examples{
+# load data (CLSI EP05-A2 Within-Lab Precision Experiment)
+data(dataEP05A2_3)
+
+dataEP05A2_3$user <- sample(rep(c(1,2), 40))
+dataEP05A2_3$cls2 <- sample(rep(c(1,2), 40))
+
+# plot data as variability-chart, using automatically determined parameter
+# settings (see 'dynParmSet')
+varPlot(y~day/run, dataEP05A2_3)
+
+# display intercept (total mean)
+varPlot(y~day/run, dataEP05A2_3, MeanLine=list(var="int"))
+
+# use custom VC-names
+varPlot(y~day/run, dataEP05A2_3, VCnam=list(text=c("_Day", "_Run")))
+
+# re-plot now also indicating dayly means as blue horizontal lines
+varPlot(y~day/run, dataEP05A2_3, MeanLine=list(var=c("day", "int"), col="blue"))
+
+# now use variable-names in names of individual factor-levels and use a different
+# notation of the nesting structure
+varPlot(y~day+day:run, dataEP05A2_3, useVarNam=TRUE)
+
+# use alternating backgrounds for each level of factor "day"
+# (top-level factor is default)
+# use a simplified model formula (NOTE: only valid for function 'varPlot')
+varPlot(y~day+run, dataEP05A2_3, BG=list(col=c("lightblue", "lightgray"), border=NA))
+
+# now also color the corresponding row in the table accordingly
+varPlot( y~day+run, dataEP05A2_3,
+			BG=list(col=c("lightblue", "lightgray"), border=NA, col.table=TRUE))
+
+# assign different point-colors according to a classification variable
+# not part of the model (artificial example in this case)
+varPlot( y~day+day:run, dataEP05A2_3,
+         Points=list(col=list(var="user", col=c("red", "green"))) )
+
+# assign different plotting symbols according to a classification
+# variable not part of the model
+varPlot( y~day+day:run, dataEP05A2_3,
+         Points=list(pch=list(var="user", pch=c(2, 8))) )
+
+# now combine point-coloring and plotting symbols
+# to indicate two additional classification variables
+varPlot( y~day+day:run, dataEP05A2_3,
+         Points=list(col=list(var="user", col=c("red", "green")),
+					   	pch=list(var="cls2", pch=c(2, 8))) )
+
+# use magenta lines between each level of factor "run"
+varPlot(y~day/run, dataEP05A2_3, BG=list(var="run", border="magenta"))
+
+# plot SDs for each run
+varPlot(y~day+day:run, dataEP05A2_3, type=2)
+
+# use CV instead of SD
+varPlot(y~day/run, dataEP05A2_3, type=2, VARtype="CV")
+
+# now plot variability-chart and SD-plot in one window
+varPlot(y~day/run, dataEP05A2_3, type=3, useVarNam=TRUE)
+
+# now further customize the plot
+varPlot( y~day/run, dataEP05A2_3, BG=list(col=c("lightgray", "wheat")),
+         YLabel=list(font=2, col="green", cex=1, text="Custom Y-Axis Label"),
+         VCnam=list(col="red", font=4),
+         VarLab=list(col="magenta", font=3, srt=0))
+
+# create variability-chart of the example dataset in the CLSI EP05-A2
+# guidline (listed on p.25)
+data(dataEP05A2_example)
+varPlot(result~day/run, dataEP05A2_example, type=3)
+
+# use individual settings of 'VarLab' and 'VSpace' for each variance component
+varPlot(result~day/run, dataEP05A2_example, type=3,
+		   VarLab=list(list(srt=45, col="red", font=2),
+		   list(srt=90, col="blue", font=3)), VSpace=c(.25, .75))
+
+# set individual titles for both plot when 'type=3'
+varPlot(	result~day/run, dataEP05A2_example, type=3,
+  		Title=list(list(main="Variability Chart"),
+  		list(main="Plot of SD-Values")))
+
+# more complex experimental design
+data(realData)
+Data <- realData[realData$PID == 1,]
+varPlot(y~lot/calibration/day/run, Data, type=3)
+
+# improve visual appearance of the plot
+varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
+  	   BG=list(var="calibration", col=c("white", "lightgray")))
+
+# add horizontal lines indicating mean-value for each factor-level of all variables
+varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
+  	   BG=list(var="calibration",
+				   col=c("aquamarine","antiquewhite2","antiquewhite4",
+						 "antiquewhite1","aliceblue","antiquewhite3",
+						 "white","antiquewhite","wheat" ),
+				   col.table=TRUE),
+		   MeanLine=list(var=c("lot", "calibration", "day", "int"),
+						 col=c("orange", "blue", "darkgreen", "yellow"),
+						 lwd=c(2,2,2,2)))
+}
+\author{
+Andre Schuetzenmeister
+\email{andre.schuetzenmeister@roche.com}
+}
+

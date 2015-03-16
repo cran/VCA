@@ -1,0 +1,68 @@
+\name{stepwiseVCA}
+\alias{stepwiseVCA}
+\title{Bottom-Up Step-Wise VCA-Analysis of the Complete Dataset.}
+\usage{
+stepwiseVCA(obj, VarVC = FALSE, VarVC.method = c("scm", "gb"))
+}
+\arguments{
+  \item{obj}{(VCA) object representing the complete
+  analysis}
+
+  \item{VarVC}{(logical) TRUE = estimate complete
+  variance-covariance matrix of variance components and
+  include corresponding sub-matrices in result-objects of
+  the step-wise analysis. This allows to cosntruct
+  confidence intervals on all VCs via function
+  \code{\link{VCAinference}}}
+
+  \item{VarVC.method}{(character) string specifying the
+  algorithm to be used for estimating variance-covariance
+  matrix of VCs (see \code{\link{anovaMM}} for details).}
+}
+\value{
+(list) of (simplified) 'VCA' objects representing
+analysis-result of sub-models
+}
+\description{
+Function performs step-wise VCA-analysis on a fitted
+VCA-object by leaving out N-1 to 0 top-level variance
+components (VC).
+}
+\details{
+This function uses the complete data to quantify sub-sets
+of variance components. In each step the current total
+variance is estimated by subtracting the sum of all
+left-out VCs from the total variance of the initial VCA
+object. Doing this guarantees that the contribution to the
+total variance which is due to left-out VCs is accounted
+for, i.e. it is estimated but not included/reported. The
+degrees of freedom (DFs) the emerging total variances of
+sub-sets are estimated using the Satterthwaite
+approximation. This is achieved by extracting the
+corresponding sub-matrix from the coefficient matrix
+\eqn{C} of the 'VCA' object, the sub-vector of ANOVA mean
+squares, and the sub-vector of degrees of freedom and
+calling function \code{\link{SattDF}} method="total". This
+step-wise procedure starts one-level above error
+(repeatability) and ends at the level of the upper-most VC.
+}
+\examples{
+data(VCAdata1)
+datS7L1 <- VCAdata1[VCAdata1$sample == 7 & VCAdata1$lot == 1, ]
+fit0 <- anovaVCA(y~device/day/run, datS7L1)
+
+# complete VCA-analysis result
+fit0
+
+# perform step-wise (bottom-up) VCA-analyses
+sw.res <- stepwiseVCA(fit0, VarVC=TRUE)
+sw.res
+
+# get CIs on intermediate precision
+VCAinference(sw.res[["device:day"]], VarVC=TRUE)
+}
+\author{
+Andre Schuetzenmeister
+\email{andre.schuetzenmeister@roche.com}
+}
+

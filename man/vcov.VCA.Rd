@@ -1,0 +1,36 @@
+\name{vcov.VCA}
+\alias{vcov.VCA}
+\title{Calculate Variance-Covariance Matrix of Fixed Effects for an 'VCA' Object.}
+\usage{
+\method{vcov}{VCA}(object, ...)
+}
+\arguments{
+  \item{object}{(VCA) object for which the
+  variance-covariance matrix of fixed effects shall be
+  calculated}
+
+  \item{...}{additional parameters}
+}
+\value{
+(matrix) corresponding to the variance-covariance matrix of
+fixed effects
+}
+\description{
+Return the variance-covariance matrix of fixed effects for
+a linear mixed model applicable for objects of class 'VCA'.
+}
+\details{
+Actually this function only extracts this matrix or, if not
+available, calls function \code{\link{vcovFixed}} which
+performs calculations. It exists for compatibility reasons,
+i.e. for coneniently using objects of class 'VCA' with
+other packages expecting this function, e.g. the 'multcomp'
+package for general linear hypotheses for parametric
+models.
+}
+\examples{
+data(dataEP05A2_1)
+fit <- anovaVCA(y~day/(run), dataEP05A2_1)
+vcov(fit)
+}
+

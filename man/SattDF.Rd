@@ -1,0 +1,58 @@
+\name{SattDF}
+\alias{SattDF}
+\title{Satterthwaite Approximation for Total Degrees of Freedom and for Single Variance Components.}
+\usage{
+SattDF(MS, Ci, DF, type = c("total", "individual"))
+}
+\arguments{
+  \item{MS}{(numeric) vector of sequential mean squares
+  (ANOVA type-1).}
+
+  \item{Ci}{(matrix) where elements are numeric values
+  representing the inverse of the coefficient matrix for
+  calculation of expected mean squares (see
+  \code{\link{anovaVCA}}, \code{\link{getCmatrix}}).}
+
+  \item{DF}{(numeric) vector with the degrees of freedom
+  for each factor in a ANOVA type-1 model.}
+
+  \item{type}{(character) string specifying whether "total"
+  degrees of freedom should be approximated or those of
+  individual variance components}
+}
+\value{
+numeric value representing the Satterthwaite DFs of the
+total variance.
+}
+\description{
+This function estimates degrees of freedom of the total
+variance (type="total") in random models or individual
+variance components (type="individual"). It bases on the
+results of the unified approach to ANOVA-type estimation of
+variance components as implemented in functions
+\code{\link{anovaVCA}} and \code{\link{anovaMM}}.
+}
+\details{
+Function is used internally, thus, it is not exported.
+Option 'type="total"' is used in functions
+\code{\link{anovaVCA}} and \code{\link{anovaMM}} for
+approximating total DF. Option 'type="individual"' is used
+in function \code{\link{VCAinference}} when choosing
+'ci.method="satterthwaite"' for approximating DFs for
+individual variance components.
+}
+\examples{
+\dontrun{
+data(dataEP05A2_2)
+res <- anovaVCA(y~day/run, dataEP05A2_2)
+VCA:::SattDF(res$aov.tab[-1,"MS"], getMat(res, "Ci.MS"), res$aov.tab[-1,"DF"], type="tot")
+
+# now approximating individual DF for variance components
+VCA:::SattDF(res$aov.tab[-1,"MS"], getMat(res, "Ci.MS"), res$aov.tab[-1,"DF"], type="i")
+}
+}
+\author{
+Andre Schuetzenmeister
+\email{andre.schuetzenmeister@roche.com}
+}
+

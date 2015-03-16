@@ -1,0 +1,275 @@
+\name{VCAinference}
+\alias{VCAinference}
+\title{Inferential Statistics for VCA-Results.}
+\usage{
+VCAinference(obj, alpha = 0.05, total.claim = NA, error.claim = NA,
+  claim.type = "VC", VarVC = FALSE, excludeNeg = TRUE,
+  constrainCI = TRUE, ci.method = c("sas", "satterthwaite"))
+}
+\arguments{
+  \item{obj}{(object) of class 'VCA'}
+
+  \item{alpha}{(numeric) value specifying the significance
+  level for \eqn{100*(1-alpha)}\% confidence intervals.}
+
+  \item{total.claim}{(numeric) value specifying the
+  claim-value for the Chi-Squared test for the total
+  variance (SD or CV, see \code{claim.type}).}
+
+  \item{error.claim}{(numeric) value specifying the
+  claim-value for the Chi-Squared test for the error
+  variance (SD or CV, see \code{claim.type}).}
+
+  \item{claim.type}{(character) one of "VC", "SD", "CV"
+  specifying how claim-values have to be interpreted:\cr
+  "VC" (Default) = claim-value(s) specified in terms of
+  variance(s),\cr "SD" = claim-values specified in terms of
+  standard deviations (SD),\cr "CV" = claim-values
+  specified in terms of coefficient(s) of variation (CV)
+  and are specified as percentages.\cr If set to "SD" or
+  "CV", claim-values will be converted to variances before
+  applying the Chi-Squared test (see examples).}
+
+  \item{VarVC}{(logical) TRUE = if attribute "Matrices"
+  exists (see \code{\link{anovaVCA}}), the covariance
+  matrix of the estimated VCs will be computed (see
+  \code{\link{vcovVC}}, which is used in CIs for
+  intermediate VCs if 'method.ci="sas"'.  Note, this might
+  take very long for larger datasets, since there are many
+  matrix operations involved.  FALSE (Default) = computing
+  covariance matrix of VCs is omitted, as well as CIs for
+  intermediate VCs.}
+
+  \item{excludeNeg}{(logical) TRUE = confidence intervals
+  of negative variance estimates will not be reported. \cr
+  FALSE = confidence intervals for all VCs will be reported
+  including those with negative VCs.\cr See the details
+  section for a thorough explanation.}
+
+  \item{constrainCI}{(logical) TRUE = CI-limits for all
+  variance components are constrained to be >= 0.\cr FALSE
+  = unconstrained CIs with potentially negative CI-limits
+  will be reported.\cr which will preserve the original
+  width of CIs.  See the details section for a thorough
+  explanation.}
+
+  \item{ci.method}{(character) string or abbreviation
+  specifying which approach to use for computing confidence
+  intervals of variance components (VC).  "sas" (default)
+  uses Chi-Squared based CIs for total and error and normal
+  approximation for all other VCs, "satterthwaite" will
+  approximate DFs for each VC using the Satterthwaite
+  approach (see \code{\link{SattDF}} and all Cis are based
+  on the Chi-Squared distribution. This approach is
+  conservative but avoids negative values for the lower
+  bounds.}
+}
+\value{
+(VCAinference) object, a list with elements:
+\item{ChiSqTest}{(data.frame) with results of the
+Chi-Squared test} \item{ConfInt}{(list) with elements
+\code{VC}, \code{SD}, \code{CV}, all lists themselves
+containing (data.frame) objects \code{OneSided} and
+\code{TwoSided}} \item{VCAobj}{(VCA) object specified as
+input, if \code{VarVC=TRUE}, the 'aov.tab' element will
+have an extra column "Var(VC)" storing variances of
+VC-estimates"}
+}
+\description{
+Function \code{VCAinference} constructs one- and two-sided
+confidence intervals, and performs Chi-Squared tests for
+total and error variance against claimed values for 'VCA'
+objects.
+}
+\details{
+This function computes confidence intervals (CI) for
+variance components (VC), standard deviations (SD) and
+coefficients of variation (CV). VCs 'total' and 'error' can
+be tested against claimed values specifying parameters
+'total.claim' and 'error.claim'. One can also specify
+claim-values in terms of SD or CV (see
+\code{claim.type}).\cr Confidence intervals for VCs are
+constructed either following the same rules as in SAS 9.2
+PROC MIXED with option 'method=type1' (ci.method="sas") or
+using Satterthwaite methodology throughout
+(ci.method="satterthwaite"). In the former approach for VC
+total and error, which are constrained to be \eqn{>= 0},
+CIs are based on the Chi-Squared distribution. Degrees of
+freedom (DF) for total variance are approximated using the
+Satterthwaite approximation (which is not available in
+either SAS procedure). For all other VCs, the CI is
+\eqn{[sigma^2-QNorm(alpha/2)*SE(sigma^2);
+sigma^2+QNorm(1-alpha/2)*SE(sigma^2)]}, where QNorm(x)
+indicates the x-quantile of the standard normal
+distribution. The second method approximates DFs for all
+VCs using the Satterthwaite approximation and CIs are based
+on the corresponding Chi-Squared distribution for all VCs
+(see examples). Note that in the computation of the
+covariance-matrix of the VCs, the estimated VCs will be
+used. If these are requested to be set to 0
+(\code{NegVC=FALSE} in \code{\link{anovaVCA}}), the result
+might not be conformable with theory given in the first
+reference. The validity of this implementation was checked
+against SAS 9.2 PROC MIXED (method=type1), where VCs are
+not constrained to be >= 0. The sampling variances for VCs
+are obtained assuming normality throughout based on
+\eqn{Var(\sigma^{2} = C^{-1} * Var(m_{SS} *
+(C^{-1})^{T}))}{Var(sigma^2) = Ci * Var(SS) * Ci'}, where
+\eqn{C^{-1}}{Ci} is the inverse of the coefficient matrix
+equating observed Sum of Squares (SS) to their expected
+values, and \eqn{(C^{-1})^{T}}{Ci'} indicating the
+transpose of \eqn{C^{-1}}{Ci} (see Searle et al. 1992, pg.
+176).
+
+An input \code{VCA}-object can be in one of three
+states:\cr \cr State (1) corresponds to the situation,
+where all VC > 0.\cr State (2) corresponds to the
+situation, where at least one VC < 0.\cr State (3)
+corresponds to situations, where negative VC estimates
+occured but were set to 0, i.e. \code{NegVC=FALSE} - the
+Default.\cr
+
+State (2) occurs when parameter \code{NegVC} was set to
+TRUE in \code{\link{anovaVCA}}, state (3) represents the
+default-setting in function \code{\link{anovaVCA}}. If a
+\code{VCA}-object is in state (1), parameter
+\code{excludeNeg} has no effect (there are no negative
+VCs), only parameter \code{constrainCI} is evaluated. For
+\code{VCA}-objects in state(2), \code{constrainCI} has no
+effect, because constraining CIs for unconstrained VCs
+makes no sense. State (3) forces parameter
+\code{constrainCI} to be set to TRUE and one can only
+choose whether to exclude CIs of negative VC estimates or
+not. Whenever VCs have to be constrained, it is straight
+forward to apply constraining also to any CI. Note that
+situations outlined above only occur when parameter
+\code{VarVC} is set to TRUE, which causes estimation of the
+covariance-matrix of variance components. The default is
+only to compute and report CIs for total and error
+variance, which cannot become negative.
+}
+\note{
+Original CIs will always be available independent of
+parameter-settings of \code{excludeNeg} and
+\code{constrainCI}. Original CIs are stored in attribute
+"CIoriginal" of the returned 'VCAinference'-object.
+}
+\examples{
+\dontrun{
+# load data (CLSI EP05-A2 Within-Lab Precision Experiment)
+data(dataEP05A2_1)
+
+# perform (V)variance (C)component (A)nalysis (also comute A-matrices)
+res <- anovaVCA(y~day/run, dataEP05A2_1)
+
+# get confidence intervals for total and error (VC, SD, CV)
+VCAinference(res)
+
+# additionally request CIs for all other VCs; default is to constrain
+# CI-limits to be >= 0
+VCAinference(res, VarVC=TRUE)
+
+# now using Satterthwaite methodology for CIs
+VCAinference(res, VarVC=TRUE, ci.method="satt")
+
+# request unconstrained CIs
+VCAinference(res, VarVC=TRUE, constrainCI=FALSE)
+
+# additionally request Chi-Squared Tests of total and error, default
+# is that claim values are specified as variances (claim.type="VC")
+VCAinference(res, total.claim=4.5, error.claim=3.5)
+
+# perform Chi-Squared Tests, where claim-values are given as SD,
+# compare p-values to former example
+VCAinference(res, total.claim=sqrt(4.5), error.claim=sqrt(3.5), claim.type="SD")
+
+# now using Satterthwaite methodology for CIs
+VCAinference(res, total.claim=sqrt(4.5), error.claim=sqrt(3.5),
+				claim.type="SD", ci.method="satt")
+
+# now add random error to example data forcing the ANOVA-estimate of the
+# day-variance to be negative
+set.seed(121)
+tmpData <- dataEP05A2_1
+tmpData$y <- tmpData$y + rnorm(80,,3)
+res2 <- anovaVCA(y~day/run, tmpData)
+
+# call 'VCAinference' with default settings
+VCAinference(res2)
+
+# extract components of the returned 'VCAinference' object
+inf <- VCAinference(res2, total.claim=12)
+inf$ConfInt$VC$OneSided			# one-sided CIs for variance components
+inf$ConfInt$VC$TwoSided			# two-sided CI for variance components
+inf$ChiSqTest
+
+# request CIs for all VCs, default is to exclude CIs of negative VCs (excludeNeg=TRUE)
+VCAinference(res2, VarVC=TRUE)
+
+# request CIs for all VCs, including those for negative VCs, note that all CI-limits
+# are constrained to be >= 0
+VCAinference(res2, VarVC=TRUE, excludeNeg=FALSE)
+
+# request unconstrained CIs for all VCs, including those for negative VCS
+# one has to re-fit the model allowing the VCs to be negative
+res3 <- anovaVCA(y~day/run, tmpData, NegVC=TRUE)
+VCAinference(res3, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)
+
+### use the numerical example from the CLSI EP05-A2 guideline (p.25)
+data(dataEP05A2_example)
+res.ex <- anovaVCA(result~day/run, dataEP05A2_example)
+
+### also perform Chi-Squared tests
+### Note: in guideline claimed SD-values are used, here, claimed variances are used
+VCAinference(res.ex, total.claim=3.4^2, error.claim=2.5^2)
+
+
+# load another example dataset and extract the "sample_1" subset
+data(VCAdata1)
+sample1 <- VCAdata1[which(VCAdata1$sample==1),]
+
+# generate an additional factor variable and random errors according to its levels
+sample1$device <- gl(3,28,252)
+set.seed(505)
+sample1$y <- sample1$y + rep(rep(rnorm(3,,.25), c(28,28,28)),3)
+
+# fit a crossed-nested design with main factors 'lot' and 'device'
+# and nested factors 'day' and 'run' nested below, also request A-matrices
+res1 <- anovaVCA(y~(lot+device)/day/run, sample1)
+
+# get confidence intervals, covariance-matrix of VCs, ...,
+# explicitly request the covariance-matrix of variance components
+inf1 <- VCAinference(res1, VarVC=TRUE, constrainCI=FALSE)
+inf1
+
+# print numerical values with more digits
+print(inf1, digit=12)
+
+# print only parts of the 'VCAinference' object (see \\code{\\link{print.VCAinference}})
+print(inf1, digit=12, what=c("VCA", "VC"))
+
+# extract complete covariance matrix of variance components
+# (main diagonal is part of standard output -> "Var(VC"))
+VarCovVC <- vcovVC(inf1$VCAobj)
+round(VarCovVC, 12)
+}}
+\author{
+Andre Schuetzenmeister
+\email{andre.schuetzenmeister@roche.com}
+}
+\references{
+Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance
+Components., Wiley New York
+
+Burdick, R., Graybill, F. (1992), Confidence Intervals on
+Variance Components. Marcel Dekker, Inc.
+
+Satterthwaite, F.E. (1946), An Approximate Distribution of
+Estimates of Variance Components., Biometrics Bulletin 2,
+110-114
+}
+\seealso{
+\code{\link{print.VCAinference}}, \code{\link{getVCvar}},
+\code{\link{anovaVCA}}
+}
+

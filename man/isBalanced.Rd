@@ -1,0 +1,73 @@
+\name{isBalanced}
+\alias{isBalanced}
+\title{Check Whether Design Is Balanced Or Not.}
+\usage{
+isBalanced(form, Data, na.rm = TRUE)
+}
+\arguments{
+  \item{form}{(formula) object defining the experimental
+  design.}
+
+  \item{Data}{(data.frame) containing all variables
+  appearing in 'form'.}
+
+  \item{na.rm}{(logical) TRUE = delete rows where any is
+  NA, FALSE = NAs are not removed, if there are NAs in the
+  response variable and all information in independent
+  variables is available, then only the design is checked.}
+}
+\value{
+(logical) TRUE if data is balanced, FALSE if data is
+unbalanced (according to the definition of balance used)
+}
+\description{
+This function is for internal use only. Thus, it is not
+exported.
+}
+\details{
+The approach taken here is to check whether each cell
+defined by one level of a factor are all equal or not.
+Here, data is either balanced or unbalanced, there is no
+concept of "planned unbalancedness" as discussed e.g. in
+Searle et al. (1992) p.4. The expanded (simplified) formula
+is divided into main factors and nested factors, where the
+latter are interaction terms. The N-dimensional contingency
+table, N being the number of main factors, is checked for
+all cells containing the same number. If there are
+differences, the dataset is classified as "unbalanced". All
+interaction terms are tested individually. Firstly, a
+single factor is generated from combining factor levels of
+the first (n-1) variables in the interaction term. The last
+variable occuring in the interaction term is then recoded
+as factor-object with \eqn{M} levels. \eqn{M} is the number
+of factor levels within each factor level defined by the
+first \eqn{(n-1)} variables in the interaction term. This
+is done to account for the independence within sub-classes
+emerging from the combination of the first \eqn{(n-1)}
+variables.
+}
+\examples{
+\dontrun{
+data1 <- data.frame(site=gl(3,8), lot=factor(rep(c(2,3,1,2,3,1),
+                    rep(4,6))), day=rep(1:12, rep(2,12)), y=rnorm(24,25,1))
+
+# not all combinations of 'site' and 'lot' in 'data1'
+
+VCA:::isBalanced(y~site+lot+site:lot:day, data1)
+
+# balanced design for this model
+
+VCA:::isBalanced(y~lot+lot:day, data1)
+
+# gets unbalanced if observation is NA
+
+data1[1,"y"] <- NA
+VCA:::isBalanced(y~lot+lot:day, data1)
+VCA:::isBalanced(y~lot+lot:day, data1, FALSE)
+}
+}
+\author{
+Andre Schuetzenmeister
+\email{andre.schuetzenmeister@roche.com}
+}
+

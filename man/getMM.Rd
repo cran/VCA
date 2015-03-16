@@ -1,0 +1,57 @@
+\name{getMM}
+\alias{getMM}
+\title{Overparameterized Design Matrices.}
+\usage{
+getMM(form, Data)
+}
+\arguments{
+  \item{form}{(formula) with or without response specifying
+  the model to be fit}
+
+  \item{Data}{(data.frame) with the data}
+}
+\description{
+Function \code{getMM} constructs overparameterized design
+matrices from a model formula and a data.frame.
+}
+\details{
+This function constructs the overparameterized design
+matrix for a given dataset 'Data' according to the model
+formula 'form'. Each combination of factor-levels and or
+numeric variables is identified and accounted for by a
+separate column. See examples for differences compared to
+function 'model.matrix' (stats). This type of design matrix
+is used e.g. in constructing A-matrices of quadratic forms
+in \eqn{y} expressing ANOVA sums of squares as such. This
+is key functionality of functions \code{\link{anovaVCA}}
+and \code{\link{anovaMM}}.
+}
+\examples{
+# load example data (CLSI EP05-A2 Within-Lab Precision Experiment)
+data(dataEP05A2_3)
+tmpData <- dataEP05A2_3[1:10,]
+
+# check out the differences
+getMM(~day+day:run, tmpData)
+model.matrix(~day+day:run, tmpData)
+
+# adapt factor variables in 'tmpData'
+tmpData$day <- factor(tmpData$day)
+
+# check out the differences now
+getMM(~day+day:run, tmpData)
+model.matrix(~day+day:run, tmpData)
+
+# numeric covariate 'cov'
+tmpData2 <- dataEP05A2_3[1:10,]
+tmpData2$cov <- 10+rnorm(10,,3)
+model.matrix(~day*cov, tmpData2)
+}
+\author{
+Andre Schuetzenmeister
+\email{andre.schuetzenmeister@roche.com}
+}
+\seealso{
+\code{\link{getAmatrix}}
+}
+

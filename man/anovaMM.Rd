@@ -1,0 +1,221 @@
+\name{anovaMM}
+\alias{anovaMM}
+\title{ANOVA-Type Estimation of Mixed Models.}
+\usage{
+anovaMM(form, Data, VarVC.method = c("scm", "gb"), NegVC = FALSE)
+}
+\arguments{
+  \item{form}{(formula) specifying the linear mixed model
+  (fixed and random part of the model), all random terms
+  need to be enclosed by brackets. Any variable not being
+  bracketed will be considered as fixed. Interaction terms
+  containing at least one random factor will automatically
+  be random (Piepho et al. 2003).}
+
+  \item{Data}{(data.frame) storing all variables referenced
+  in 'form', note that variables can only be of type
+  "numeric", "factor" or "character". The latter will be
+  automatically converted to "factor".}
+
+  \item{VarVC.method}{(character) string specifying whether
+  to use the algorithm given in the 1st reference ("scm")
+  or in the 2nd refernce ("gb"). Method "scm" (Searle,
+  Casella, McCulloch) is the exact algorithm but slower,
+  "gb" (Giesbrecht, Burns) is termed "rough approximation"
+  by the authors, but sufficiently exact compared to e.g.
+  SAS PROC MIXED (method=type1) which uses the inverse of
+  the Fisher-Information matrix as approximation. For
+  balanced designs all methods give identical results, only
+  in unbalanced designs differences occur.}
+
+  \item{NegVC}{(logical) FALSE = negative variance
+  component estimates (VC) will be set to 0 and they will
+  not contribute to the total variance (as done e.g. in SAS
+  PROC NESTED, conservative estimate of total variance).
+  The original ANOVA estimates can be found in element
+  'VCoriginal'.  The degrees of freedom of the total
+  variance are based on adapted mean squares (MS) (see
+  details).}
+}
+\value{
+(VCA) object
+}
+\description{
+Estimate/Predict random effects employing ANOVA-type
+estimation and obtain generalized least squares estimates
+of fixed effects for any linear mixed model including
+random models and linear models.
+}
+\details{
+A Linear Mixed Model, noted in standard matrix notation,
+can be written as {y = Xb + Zg + e}, where \eqn{y} is the
+column vector of observations, \eqn{X} and \eqn{Z}{Z} are
+design matrices assigning fixed (\eqn{b}), respectively,
+random (\eqn{g}) effects to observations, and \eqn{e} is
+the column vector of residual errors. Whenever there is an
+intercept in the model, i.e. the substring "-1" is not part
+of the model formula, the same restriction as in SAS PROC
+MIXED is introduced setting the last fixed effect equal to
+zero. Note, that the results of an linear contrasts are not
+affected by using an intercept or not, except that
+constrained fixed effects cannot be part of such contrasts
+(one could use the intercept estimated instead).
+
+Here, no further restrictions on the type of model are
+made. One can fit mixed models as well as random models,
+which constitute a sub-set of mixed models (intercept being
+the only fixed effect). Variables must be either of type
+"numeric" or "factor". "character" variables are
+automatically converted to factors and the response
+variable has to be numeric, of course. In case that
+'class(Data[,i])' is neither one of these three options, an
+error is issued. Even simple linear models can be fitted,
+i.e. models without a random part (without \eqn{Zg}{Zg})
+besides the residual errors. In this case, an Analysis of
+Variance (ANOVA) table is computed in the same way as done
+by function 'anova.lm'.
+
+One drawback of using ANOVA-type estimation of random
+effects is, that random effects are independent, i.e they
+have zero covariance by definition \eqn{cov(g_i,g_j) = 0}.
+Another one is that estimated variance components may
+become negative under certain conditions. The latter
+situation is addressed by setting negative variance
+estimates equal to zero and adapting ANOVA mean squares
+(MS) as \eqn{MS = C * VC}, where \eqn{C} is a coefficient
+matrix and a function of the design matrix \eqn{[X Z]} and
+\eqn{VC} is the column-vector of adapted variance
+components. The Satterthwaite approximation of total
+degrees of freedom (DF for total variance) will use adapted
+\eqn{MS}-values.
+
+Note, that setting negative VCs equal to zero results in a
+conservative estimate of the total variance, i.e. it will
+be larger than the estimate including the negative VC(s).
+Use parameter 'NegVC=TRUE' to explicitly allow negative
+variance estimates.
+}
+\examples{
+\dontrun{
+data(dataEP05A2_2)
+
+# assuming 'day' as fixed, 'run' as random
+anovaMM(y~day/(run), dataEP05A2_2)
+
+# assuming both as random leads to same results as
+# calling anovaVCA
+anovaMM(y~(day)/(run), dataEP05A2_2)
+anovaVCA(y~day/run, dataEP05A2_2)
+
+# use different approaches to estimating the covariance of
+# variance components (covariance parameters)
+dat.ub <- dataEP05A2_2[-c(11,12,23,32,40,41,42),]			# get unbalanced data
+m1.ub <- anovaMM(y~day/(run), dat.ub, VarVC.method="scm")
+m2.ub <- anovaMM(y~day/(run), dat.ub, VarVC.method="gb")		# is faster
+V1.ub <- round(vcovVC(m1.ub), 12)
+V2.ub <- round(vcovVC(m2.ub), 12)
+all(V1.ub == V2.ub)
+
+# make it explicit that "gb" is faster than "scm"
+# compute variance-covariance matrix of VCs 10-times
+\dontrun{
+
+system.time(for(i in 1:100) vcovVC(m1.ub))	# "scm"
+system.time(for(i in 1:100) vcovVC(m2.ub))	# "gb"
+
+}
+
+# fit a larger random model
+data(VCAdata1)
+fitMM1 <- anovaMM(y~((lot)+(device))/(day)/(run), VCAdata1[VCAdata1$sample==1,])
+fitMM1
+# now use function tailored for random models
+fitRM1 <- anovaVCA(y~(lot+device)/day/run, VCAdata1[VCAdata1$sample==1,])
+fitRM1
+
+# there are only 3 lots, take 'lot' as fixed
+fitMM2 <- anovaMM(y~(lot+(device))/(day)/(run), VCAdata1[VCAdata1$sample==2,])
+
+# the following model definition is equivalent to the one above,
+# since a single random term in an interaction makes the interaction
+# random (see the 3rd reference for details on this topic)
+fitMM3 <- anovaMM(y~(lot+(device))/day/run, VCAdata1[VCAdata1$sample==2,])
+
+# fit mixed model originally from 'nlme' package
+\dontrun{
+
+library(nlme)
+data(Orthodont)
+fit.lme <- lme(distance~Sex*I(age-11), random=~I(age-11)|Subject, Orthodont)
+
+# re-organize data for using 'anovaMM'
+Ortho <- Orthodont
+Ortho$age2 <- Ortho$age - 11
+Ortho$Subject <- factor(as.character(Ortho$Subject))
+fit.anovaMM1 <- anovaMM(distance~Sex*age2+(Subject)*age2, Ortho)
+
+# use simplified formula avoiding unnecessary terms
+fit.anovaMM2 <- anovaMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho)
+
+# and exclude intercept
+fit.anovaMM3 <- anovaMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2-1, Ortho)
+
+# compare results
+fit.lme
+fit.anovaMM1
+fit.anovaMM2
+fit.anovaMM3
+
+# are there a sex-specific differences?
+cmat <- getL(fit.anovaMM3, c("SexMale-SexFemale", "SexMale:age2-SexFemale:age2"))
+cmat
+
+test.fixef(fit.anovaMM3, L=cmat)
+
+# former versions of the package used R-function 'lm' and 'anova',
+# which is significantly slower for sufficiently large/complex models
+data(realData)
+datP1 <- realData[realData$PID==1,]
+system.time(anova.lm.Tab <- anova(lm(y~lot/calibration/day/run, datP1)))
+system.time(anovaMM.Tab  <- anovaMM(y~lot/calibration/day/run, datP1))
+
+# compare results, note that the latter corresponds to a linear model,
+# i.e. without random effects. Various matrices have already been computed,
+# e.g. "R", "V" (which are identical in this case).
+anova.lm.Tab
+anovaMM.Tab
+}}
+}
+\author{
+Andre Schuetzenmeister
+\email{andre.schuetzenmeister@roche.com}
+}
+\references{
+Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance
+Components, Wiley New York
+
+Giesbrecht, F.G. and Burns, J.C. (1985), Two-Stage Analysis
+Based on a Mixed Model: Large-Sample Asymptotic Theory and
+Small-Sample Simulation Results, Biometrics 41, p. 477-486
+
+H.P.Piepho, A.Buechse and K.Emrich (2003), A Hitchhiker's
+Guide to Mixed Models for Randomized Experiments,
+J.Agronomy & Crop Science 189, p. 310-322
+
+Gaylor,D.W., Lucas,H.L., Anderson,R.L. (1970), Calculation
+of Expected Mean Squares by the Abbreviated Doolittle and
+Square Root Methods., Biometrics 26 (4): 641-655
+
+SAS Help and Documentation PROC MIXED, SAS Institute Inc.,
+Cary, NC, USA
+}
+\seealso{
+\code{\link{anovaVCA}}
+
+\code{\link{anovaVCA}}, \code{\link{VCAinference}},
+\code{\link{ranef}}, \code{\link{fixef}},
+\code{\link{vcov}}, \code{\link{vcovVC}},
+\code{\link{test.fixef}}, \code{\link{test.lsmeans}},
+\code{\link{plotRandVar}}
+}
+

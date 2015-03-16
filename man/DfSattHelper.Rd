@@ -1,0 +1,22 @@
+\name{DfSattHelper}
+\alias{DfSattHelper}
+\title{Variance-Covariance Matrix of Fixed Effects as Function of Covariance Parameter Estimates.}
+\usage{
+DfSattHelper(obj, x)
+}
+\arguments{
+  \item{obj}{(VCA) object}
+
+  \item{x}{(numeric) vector of covariance parameter
+  estimates}
+}
+\value{
+(matrix) corresponding to the variance-covariance matrix of
+fixed effects
+}
+\description{
+This is a helper function for function
+\code{\link{test.fixef}} approximating degrees of freedom
+for linear contrasts of fixed effect parameter estimates.
+}
+
