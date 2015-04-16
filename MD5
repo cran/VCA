@@ -1,7 +1,7 @@
-7e0e2a32c0ef81dfeb2bf4c1a753d1a3 *DESCRIPTION
+709adf1e31c2ed7ebb3626f1ba9b0ab4 *DESCRIPTION
 1f22dee6e8b4201001a125c031a8761f *NAMESPACE
 d61cce241055409e8c6f51e0ed05ec64 *R/plot.R
-6fecc9c2135ef7f51822178cc1ec6aa8 *R/vca.R
+bb0386d806b3cd41d2b8dac62865a13f *R/vca.R
 585b6e7925581f0c5b2acaed5eb2e1e1 *data/Orthodont.RData
 09e77f0a39fbe7b7a3544128fc68dbd8 *data/VCAdata1.RData
 37fc5370d335cf64e76a2736f3d30e9b *data/dataEP05A2_1.RData
@@ -18,7 +18,7 @@ d7d833be64e7b21229a4c20d9b63aa30 *data/dataRS0005_1.RData
 57308adf95a68cf7a6dfe2550932e4e8 *data/dataRS0005_2.RData
 3d07387e18ee92c60c8630391aaa748c *data/dataRS0005_3.RData
 7038467e7829ab5088c56a96c29bd27c *data/realData.RData
-bdb6232a1bbb6b307eaf9138faa6e05e *inst/ChangeLog.txt
+ec3b392acfffeeaef18b9984f9b8e99d *inst/ChangeLog.txt
 057b46d31090f2c53531c3b33bb0f856 *inst/UnitTests/RunAllTests.R
 5b48da793aabad31830239f975811caa *inst/UnitTests/SASresultsRealData_Model1_by_PID_Lot.txt
 c0808d5f0dbb385c152c6d33656a6877 *inst/UnitTests/SASresultsRealData_Model2_by_PID.txt
@@ -31,10 +31,10 @@ c4528ef8172aa0bf807f85d36b5b1022 *man/MPinv.Rd
 d64e5e2412f01c19d2e379fb57234ac8 *man/Orthodont.Rd
 49e8a6a646a41f36c68a28110b10e4b0 *man/SattDF.Rd
 d670c1713912bac309b418f98e8db994 *man/Trace.Rd
-608969dc5ebdea8ac54cf63c1f5f4afc *man/VCA-Package.Rd
+c8aac03a0449a96365fa0e892171b861 *man/VCA-Package.Rd
 87ee2d56eb707305d37ab247f5894fd0 *man/VCAdata1.Rd
 403715a1207132a68d02ce50f230fd3a *man/VCAinference.Rd
-085bc3b2ca9966f5d824ee7677cd9dca *man/anovaDF.Rd
+7d5dc399533849e54af89a8eec005ebe *man/anovaDF.Rd
 dc64c79b1a0b8046d33804b5c38a3ba6 *man/anovaMM.Rd
 9490b9e213bc9e27598b12d1c051a911 *man/anovaVCA.Rd
 83d2b0dac414a833d4b45579567ef107 *man/as.matrix.VCA.Rd
@@ -82,4 +82,4 @@ b2b3299ed264970be17c640de557e8d1 *man/solveMM.Rd
 83fd18ef3ddd087ea76302dc9b45a4f1 *man/vcov.VCA.Rd
 48864e71c7293d6073790be9c0897227 *man/vcovFixed.Rd
 14e1528b6fdeb93b747a5e9044b50b1d *man/vcovVC.Rd
-0c7afa3c014ddb74c160c275b5e08982 *src/vca.c
+81657c198e57016eb0238d4f0e85649e *src/vca.c

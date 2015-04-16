@@ -2,7 +2,7 @@
 \alias{anovaDF}
 \title{ANOVA Type-I Degrees of Freedom.}
 \usage{
-anovaDF(form, Data, Zmat, Amat, tol = 1e-10)
+anovaDF(form, Data, Zmat, Amat, tol = 1e-8)
 }
 \arguments{
   \item{form}{(formula) object specifying the model for

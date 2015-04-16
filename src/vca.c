@@ -4,7 +4,6 @@
  * the coefficient matrix C in ANOVA Type 1 estimation of variance components.          		*
  *			   																			        *
  * Author:			Dr. André Schützenmeister											        *
- *					SW Engineering & Data Processing											*
  *																								*
  *					Roche Diagnostics GmbH														*
  *					DXREBC..6164																*
@@ -15,62 +14,15 @@
  *					mailto:andre.schuetzenmeister@roche.com										*
  *																								*
  *				  																			    *
- * Last modified:	2014-July-18																*
+ * Last modified:	2015-04-07																    *
  *																								*
  ************************************************************************************************/
 #include <stdio.h>
 #include <math.h>
-#include <time.h>
 #include <stdlib.h>
-#include <assert.h>
-#include <omp.h>
-#ifndef PI
-#define PI 3.141592653589793115998
-#endif
-typedef enum {false, true} bool;
-#ifndef EPS
-#define EPS 1.e-12		/* precision to be used, not used right now */
-#endif
+
 
 void getAmatBmat(double* mm, int* ncol, int* nrow, double* tol, double* Amat, double* Bmat);
-void multVectors(double* mm1, double* mm2, int* row1, int* row2, int* ind1, int* ind2, int* len, double* res);
-
-/*
-	mm1			(double*) pointer to double array representing matrix 1
-	mm2			(double*) pointer to double array representing matrix 2
-	row1		(int*) pointer to integer indicating whether i-th row (1) or j-th column (0) of 'mm1' should be used
-	row2		(int*) pointer to integer indicating whether i-th row (1) or j-th column (0) of 'mm2' should be used
-	ind1		(int*) pointer to integer specifying the i-th row or j-th column (depends) on 'row1') of 'mm1'
-	ind2		(int*) pointer to integer specifying the i-th row or j-th column (depends) on 'row2') of 'mm2'
-	len			(int*) pointer to integer specifying the length of both vectors to be matrix multiplied
-	res			(double*) pointer to double where the result should be stored
-*/
-
-void multVectors(double* mm1, double* mm2, int* row1, int* row2, int* ind1, int* ind2, int* len, double* res)
-{
-	double tmp = 0;
-	
-	for(int i=0; i<(*len); i++)
-	{
-		if(*row1 == 1 && *row2 == 1)				/* both rows */
-		{
-			tmp = tmp + mm1[i*(*len)+(*ind1)] * mm2[i*(*len)+(*ind2)];
-		}
-		else if(*row1 != 1 && *row2 != 1) 			/* both columns */
-		{
-			tmp = tmp + mm1[(*ind1)*(*len)+i] * mm2[(*ind2)*(*len)+i];
-		}
-		else if(*row1 == 1 && *row2 != 1)			/* row of mm1 and column of mm2 */
-		{
-			tmp = tmp + mm1[i*(*len)+(*ind1)] * mm2[(*ind2)*(*len)+i];
-		}
-		else										/* column of mm1 and row of mm2 */
-		{
-			tmp = tmp + mm1[(*ind1)*(*len)+i] * mm2[i*(*len)+(*ind2)];
-		}
-	}
-	*res = tmp;
-}
 
 /*
 	Implements the "Square Root and Abbreviated Doolittle Method", specifically, computes

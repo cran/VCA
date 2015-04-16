@@ -504,7 +504,7 @@ anovaMM <- function(form, Data, VarVC.method=c("scm", "gb"), NegVC=FALSE)
 #' VCA:::anovaDF(lm(y~(lot+calibration)/day/run, datP1))
 #' }
 
-anovaDF <- function(form, Data, Zmat, Amat, tol=1e-10)
+anovaDF <- function(form, Data, Zmat, Amat, tol=1e-8)
 {
 	form <- terms(form, simplify=TRUE, keep.order=TRUE)
 
