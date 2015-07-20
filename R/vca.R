@@ -1,3 +1,415 @@
+#' Load/unload C-lib.
+
+.onLoad <- function(lib, pkg)
+{
+	library.dynam(chname="VCA", package=pkg, lib.loc=lib)
+}
+
+.onUnload <- function(lib)
+{
+	library.dynam.unload(chname="VCA", libpath=lib)
+}	
+
+#' Solve System of Linear Equations using Inverse of Cholesky-Root.
+#' 
+#' This function is intended to reduce the computational time in function
+#' \code{\link{solveMME}} which computes the inverse of the square variance-
+#' covariance Matrix of observations. It is considerably faster than function
+#' \code{\link{solve}} (see example).
+#' 
+#' @param X			(matrix, Matrix) object to be inverted
+#' 
+#' @return (matrix, Matrix) corresponding to the inverse of X
+#' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @examples
+#' \dontrun{
+#' # following complex (nonsense) model takes pretty long to fit
+#' system.time(res.sw <- anovaVCA(y~(sample+lot+device)/day/run, VCAdata1))
+#' # extract covariance matrix of observations V
+#' V1 <- getMat(res.sw, "V")
+#' V2 <- as.matrix(V)
+#' system.time(V2i <- solve(V2))
+#' system.time(V1i <- Solve(V))
+#' V1i <- as.matrix(V1i)
+#' dimnames(V1i) <- NULL
+#' dimnames(V2i) <- NULL
+#' all.equal(V1i, V2i)
+#' } 
+
+Solve <- function(X)
+{
+	stopifnot(ncol(X) == nrow(X))
+	
+	clsMatrix <- inherits(X, "Matrix")
+	if(clsMatrix)
+	{
+		cls <- class(X)
+		X <- as.matrix(X)
+	}
+	Xi <- chol2inv(chol(X))
+	if(clsMatrix)
+	{
+		Xi <- as(Xi, "dgCMatrix")			# Solve used here for inverting V-matrix
+	}
+	return(Xi)
+}
+
+
+
+#' Calling C-implementation of the SWEEP-Operator
+#' 
+#' Function calls a fast C-implementation of the SWEEP operator using the
+#' transpose of the original augmented matrix \eqn{X'X} (see \code{\link{getSSQsweep}}).
+#' Transposing prior to applying the SWEEP-operator speeds up things since the 
+#' complete matrix is stored in memory in consecutive manner. 
+#' 
+#' This is an utility-function not intended to be called directly.
+#' 
+#' @param M			(matrix) matrix, representing the augmented matrix \eqn{X'X}
+#' @param asgn		(integer) vector, identifying columns in \eqn{M} corresponding variables, 
+#' 					respectively, to their coefficients
+#' @param thresh	(numeric) value used to check whether the influence of the a coefficient
+#' 					to reducing the error sum of squares is small enough to coclude that the
+#' 					corresponding column in \eqn{X'X} is a linear combination of preceding 
+#' 					columns
+#' @param tol		(numeric) value used to check numerical equivalence to zero
+#' @param Ncpu		(integer) number of cores to be used for parallel processing
+#'                  (not yet used)
+#' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @return (list) with two elements:\cr
+#' 			\item{SSQ}{(numeric) vector of ANOVA sum of squares}
+#' 			\item{LC}{(integer) vector indicating linear dependence of each column}
+
+Csweep <- function(M, asgn, thresh=1e-8, tol=1e-12, Ncpu=1)
+{
+	nr <- nrow(M)
+	stopifnot(nr == ncol(M))
+	LC <- ZeroK <- rep(0, length(asgn))
+
+	ind <- is.nan(M) | is.na(M) | M == Inf | M == -Inf;
+	if(any(ind))
+		M[which(ind)] <- 0
+	
+	swept <- .C("Tsweep", M=as.double(t(M)), k=as.integer(asgn), thresh=as.double(thresh), 
+				NumK=as.integer(length(asgn)), nr=as.integer(nr), LC=as.integer(LC), 
+				tol=as.double(tol), SSQ=as.double(rep(0, length(unique(asgn)))), 
+				PACKAGE="VCA")
+
+	res <- list(SSQ=swept$SSQ, 
+				LC=tapply(swept$LC, asgn, function(x) length(which(x==1))))
+
+	return(res)
+}
+
+
+#' Calling C-implementation of the SWEEP-Operator for Matrix-Inversion
+#' 
+#' Function calls a fast C-implementation of the SWEEP operator using the
+#' transpose of the matrix to be swept.
+#' 
+#' Transposing prior to applying the SWEEP-operator speeds up things since the 
+#' complete matrix is stored in memory in consecutive manner. 
+#' This version of the SWEEP-operator is intended for matrix inversion only, thus,
+#' not computing ANOVA sum of squares and number of linear dependencies (see function
+#' \code{\link{Csweep}}).
+#' 
+#' This is an utility-function not intended to be called directly.
+#' 
+#' @param M			(matrix) matrix, representing the augmented matrix \eqn{X'X}
+#' @param tol		(numeric) value used to check numerical equivalence to zero
+#' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @return (Matrix) object corresponding to the inverted matrix
+
+Sinv <- function(M, tol=.Machine$double.eps)
+{
+	nr <- nrow(M)
+	stopifnot(nr == ncol(M))
+	
+#	ind <- is.nan(M) | is.na(M) | M == Inf | M == -Inf;
+#	if(any(ind))
+#		M[which(ind)] <- 0
+#	
+	swept <- .C("TsweepFull", M=as.double(t(M)), nr=as.integer(nr), 
+				tol=as.double(tol*max(abs(diag(M)))), PACKAGE="VCA")
+	
+	if(class(M) == "matrix")
+		return(matrix(round(swept$M, abs(log10(tol))), nrow=nr, ncol=nr, byrow=TRUE))
+	else
+		return(Matrix(round(swept$M, abs(log10(tol))), nrow=nr, ncol=nr, byrow=TRUE))
+}
+
+
+
+#' ANOVA Sum of squares via Sweeping.
+#' 
+#' Compute ANOVA Type-1 sum of squares for linear models.
+#' 
+#' This function performs estimation of ANOVA Type-1 sum of squares
+#' using the sweep-operator (see reference), operating on the augmented
+#' matrix X'X, where X represents the design matrix not differentiating
+#' between fixed and random factors.
+#' This is an utility function not intended to be called directly.
+#' For each term in the formula the design-matrix \code{Z} is constructed.
+#' Matrix X corresponds to binding all these Z-matrices together column-wise.
+#' 
+#' Degrees of freedom for each term are determined by subtracting the number of
+#' linearly dependent columns from the total number of column in X asigned to a
+#' specific term.
+#' 
+#' @param Data			(data.frame) with the data
+#' @param tobj			(terms) object derived from original formula object
+#' @param random		(character) vector, optionally containing information about each
+#' 						model term, whether it is random or fixed (only used in mixed models)
+#' 
+#' @return (list) representing the  with variables:\cr
+#' 			\item{aov.tab}{basic ANOVA-table with degrees of freedom (DF), SS and MS}
+#' 			\item{Lmat}{(list) with components 'Z' and 'A'}
+#' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @references 
+#' Goodnight, J.H., (1979), A Tutorial on the SWEEP Operator, The American Statistician, 33:3, p.149-158
+#' 
+#' @examples 
+#' \dontrun{
+#' data(dataEP05A2_1)
+#' res <- VCA:::getSSQsweep(dataEP05A2_1, terms(y~day/run))
+#' str(res)
+#' }
+getSSQsweep <- function(Data, tobj, random=NULL)
+{	
+	form     <- formula(tobj)
+	resp     <- as.character(form)[2]
+	fac      <- attr(tobj, "term.labels")
+	int      <- attr(tobj, "intercept") == 1 
+
+	N        <- nrow(Data)															
+	SS       <- numeric()
+	DF       <- numeric()
+	Lmat     <- list()                                                      	# compute A-matrices, used in constructing covariance-matrix of VCs
+	Lmat$Z   <- list()
+	Lmat$Zre <- Matrix(nrow=N, ncol=0)
+	y        <- Matrix(Data[,resp], ncol=1)
+
+	ord <- attr(tobj, "order")
+	vars <- rownames(attr(tobj, "factors"))
+	fac <- c(fac, "error")
+	DF  <- rep(0, length(fac))
+	done <- rep(FALSE, length(fac))					# keep track which DFs have been computed
+	names(DF) <- fac
+	vars <- vars[-1]
+	Nvc  <- length(fac) 							# error not included
+	N <- nrow(Data)
+	asgn <- NULL
+	Lmat <- list()
+	Lmat$Z <- list()
+	
+	if(int)
+	{
+		Lmat$Zre <- Matrix(1, nrow=N, ncol=1)
+		colnames(Lmat$Zre) <- "int"
+		asgn     <- 0
+	}	
+	else
+		Lmat$Zre <- Matrix(0, nrow=N, ncol=0)
+	
+	NumK <- c(rep(0, Nvc-1), N)
+
+	for(i in 1:Nvc)                 				# construct design-matrices Z for each term, and matrix X (here Zre)                       
+	{
+		if(i < Nvc)
+		{
+			tmpMM <- model.matrix(as.formula(paste(resp, "~", fac[i], "-1", sep="")), Data)
+			Lmat$Z[[i]] <- Matrix(tmpMM)
+			all0 <- apply(Lmat$Z[[i]], 2, function(x) all(x==0))
+			if(any(all0))
+			{
+				ZeroCol <- which(all0)
+				Lmat$Z[[i]] <- Lmat$Z[[i]][,-ZeroCol]
+			}	
+			if(!is.null(random))
+				attr(Lmat$Z[[i]], "type") <- ifelse(fac[i] %in% random, "random", "fixed")
+			
+			attr(Lmat$Z[[i]], "term") <- fac[i]
+			
+			NumK[i] <- ncol(Lmat$Z[[i]])
+			Lmat$Zre    <- Matrix(cbind(as.matrix(Lmat$Zre), as.matrix(Lmat$Z[[i]])))
+			asgn <- c(asgn, rep(i, ncol(Lmat$Z[[i]])))
+		}
+		else
+		{
+			Lmat$Z[[Nvc]] <- Diagonal(N)							# include error design matrix
+			attr(Lmat$Z[[Nvc]], "type") <- "random"
+			attr(Lmat$Z[[Nvc]], "term") <- "error"
+		}
+	}
+
+	attr(Lmat$Zre, "assign") <- asgn
+	X <- Lmat$Zre
+	Xt <- t(X)
+	y  <- Matrix(Data[,resp], ncol=1)
+	yt <- t(y)
+	
+	M <- rbind(	cbind(as.matrix(Xt%*%X), as.matrix(Xt%*%y)), 
+				cbind(as.matrix(yt%*%X), as.matrix(yt%*%y)))	
+
+	uind <- unique(asgn)							# all factors
+	SS <- LC <- NULL
+	nr <- nrow(M)
+	tmpM <- M
+	
+	Int <- ifelse(int, 1, 0)
+	
+	V <- rep(1, ncol(M))
+	swept <- Csweep(M, asgn=asgn)					# sweep matrix M
+	LC    <- swept$LC
+	SS	  <- swept$SSQ
+
+	if(int)											# no DF-adjustment for intercept
+		LC <- LC[-1]
+
+	if(Nvc > 1)
+	{
+		DF[1:(Nvc-1)] <- NumK[1:(Nvc-1)]-LC				# adjust for linearly dependent variables --> resulting in degrees of freedom
+		DF["error"] <- tail(NumK,1)-sum(DF[1:(length(DF)-1)]) - Int
+	}
+	else
+		DF["error"] <- NumK - Int
+	
+	if(!int)
+		SS <- c(M[nr, nr], SS)
+	
+	SSQ <- abs(diff(SS))
+	SSQ <- c(SSQ, tail(SS,1))
+	
+	aov.tab <- data.frame(DF=DF, SS=SSQ, MS=SSQ/DF)	# basic ANOVA-table
+
+	return(list(aov.tab=aov.tab, Lmat=Lmat))
+}
+
+
+#' ANOVA Sum of Squares via Quadratic Forms
+#' 
+#' Compute ANOVA Type-1 sum of squares for linear models.
+#' 
+#' This function performs estimation of ANOVA Type-1 sum of squares
+#' using an approach of expressing them as quadratic forms in \code{y},
+#' the column vector of observations. This is an utility function not
+#' intended to be called directly.
+#' For each term in the formula the design-matrix \code{Z} and the corresponding
+#' \code{A}-matrix 
+#' Degrees of freedom for each term are determined calling function \code{\link{anovaDF}}.
+#' 
+#' @param Data			(data.frame) with the data
+#' @param tobj			(terms) object derived from original formula object
+#' @param random		(character) vector, optionally containing information about each
+#' 						model term, whether it is random or fixed (only used in mixed models)
+#' 
+#' @return (list) representing the  with variables:\cr
+#' 			\item{aov.tab}{basic ANOVA-table with degrees of freedom (DF), SS and MS}
+#' 			\item{Lmat}{(list) with components 'Z' and 'A'}
+#' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @examples 
+#' \dontrun{
+#' data(dataEP05A2_1)
+#' res <- VCA:::getSSQqf(dataEP05A2_1, terms(y~day/run))
+#' str(res)
+#' }
+
+getSSQqf<- function(Data, tobj, random=NULL)
+{
+	form     <- formula(tobj)
+	resp     <- as.character(form)[2]
+	fac      <- attr(tobj, "term.labels")
+	int      <- attr(tobj, "intercept") == 1 
+
+	N        <- nrow(Data)															
+	SS       <- numeric()
+	DF       <- numeric()
+	Lmat     <- list()                                                      	# compute A-matrices, used in constructing covariance-matrix of VCs
+	Lmat$Z   <- list()
+	asgn     <- NULL
+	
+	if(int)
+	{
+		Lmat$Zre <- Matrix(1, nrow=N, ncol=1)
+		colnames(Lmat$Zre) <- "int"
+		asgn     <- 0
+	}
+	else
+		Lmat$Zre <- Matrix(0, nrow=N, ncol=0)
+	
+	y        <- Matrix(Data[,resp], ncol=1)
+	Lmat$A   <- list()
+	
+	Nvc <- length(fac) + 1
+	
+	X1 <- NULL																# X1-matrix for building A-matrices continuously growing 
+	
+	for(i in 1:Nvc)                                                     	# over variance components (including error)                        
+	{
+		if(i < Nvc)
+		{
+			Lmat$Z[[i]] <- Matrix(model.matrix(as.formula(paste(resp, "~", fac[i], "-1", sep="")), Data))
+			
+			all0 <- apply(Lmat$Z[[i]], 2, function(x) all(x==0))
+			if(any(all0))
+				Lmat$Z[[i]] <- Lmat$Z[[i]][,-which(all0)]
+			asgn <- c(asgn, rep(i, ncol(Lmat$Z[[i]])))
+			
+			if(i == 1)
+			{
+				Lmat$A[[i]] <- getAmatrix(X1=Matrix(ifelse(int, 1, 0),ncol=1,nrow=N), X2=Lmat$Z[[i]])		# account for intercept
+			}
+			else
+			{
+				X1 <- cbind(X1, as.matrix(Lmat$Z[[i-1]]))
+				Lmat$A[[i]] <- getAmatrix(X1=Matrix(X1), X2=Lmat$Z[[i]])
+			}
+			
+			if(!is.null(random))
+			{
+				attr(Lmat$Z[[i]], "type") <- ifelse(fac[i] %in% random, "random", "fixed")
+				attr(Lmat$A[[i]], "type") <- ifelse(fac[i] %in% random, "random", "fixed")
+			}			
+			attr(Lmat$Z[[i]], "term") <- fac[i]
+			attr(Lmat$A[[i]], "term") <- fac[i]
+			
+			Lmat$Zre    <- Matrix(cbind(as.matrix(Lmat$Zre), as.matrix(Lmat$Z[[i]])))
+		}
+		else
+		{
+			Lmat$Z[[i]] <- Diagonal(N)                                		# error
+			Lmat$A[[i]] <- getAmatrix(X1=getMM(form, Data))
+			attr(Lmat$Z[[i]], "type") <- "random"
+			attr(Lmat$A[[i]], "type") <- "random"
+			attr(Lmat$Z[[i]], "term") <- "error"
+			attr(Lmat$A[[i]], "term") <- "error"
+		}
+
+		SS <- c(SS, as.numeric(t(y) %*% Lmat$A[[i]] %*% y))					# calculate ANOVA sum of squares
+	}
+	
+	attr(Lmat$Zre, "assign") <- asgn
+	
+	DF <- anovaDF(form=form, Data=Data, Zmat=Lmat$Z, Amat=Lmat$A)			# determine degrees of freedom
+	
+	aov.tab <- data.frame(DF=DF, SS=SS, MS=SS/DF)
+	rownames(aov.tab) <- c(attr(tobj, "term.labels"), "error")
+	
+	return(list(aov.tab=aov.tab, Lmat=Lmat))
+}
+
+
+
 #' ANOVA-Type Estimation of Mixed Models.
 #' 
 #' Estimate/Predict random effects employing ANOVA-type estimation and obtain generalized least squares estimates
@@ -34,12 +446,17 @@
 #'                      	will automatically be random (Piepho et al. 2003).
 #' @param Data				(data.frame) storing all variables referenced in 'form', note that variables can only be
 #'                          of type "numeric", "factor" or "character". The latter will be automatically converted to "factor".
+#' @param by				(factor, character) variable specifying groups for which the analysis should be performed individually,
+#' 							i.e. by-processing
 #' @param VarVC.method		(character) string specifying whether to use the algorithm given in the
 #' 							1st reference ("scm") or in the 2nd refernce ("gb"). Method "scm" (Searle, Casella, McCulloch)
 #'                          is the exact algorithm but slower, "gb" (Giesbrecht, Burns) is termed "rough approximation"
 #' 							by the authors, but sufficiently exact compared to e.g. SAS PROC MIXED (method=type1) which
 #' 							uses the inverse of the Fisher-Information matrix as approximation. For balanced designs all
 #'                          methods give identical results, only in unbalanced designs differences occur. 
+#' @param SSQ.method		(character) string specifying the method used for computing ANOVA Type-1 sum of squares and respective degrees of freedom.
+#' 							In case of "sweep" funtion \code{\link{getSSQsweep}} will be called, otherwise, function \code{\link{getSSQqf}}
+#'                      	TRUE = negative variance component estimates will not be set to 0 and they will contribute to the total variance (original definition of the total variance).
 #' @param NegVC         	(logical) FALSE = negative variance component estimates (VC) will be set to 0 and they will not 
 #' 							contribute to the total variance (as done e.g. in SAS PROC NESTED, conservative estimate of total variance). 
 #' 							The original ANOVA estimates can be found in element 'VCoriginal'. 
@@ -66,6 +483,8 @@
 #' @seealso \code{\link{anovaVCA}}
 #' 
 #' @examples 
+#' \dontrun{
+#' 
 #' data(dataEP05A2_2)
 #' 
 #' # assuming 'day' as fixed, 'run' as random
@@ -87,12 +506,10 @@
 #' 
 #' # make it explicit that "gb" is faster than "scm"
 #' # compute variance-covariance matrix of VCs 10-times
-#' \dontrun{
 #' 
 #' system.time(for(i in 1:100) vcovVC(m1.ub))	# "scm"
 #' system.time(for(i in 1:100) vcovVC(m2.ub))	# "gb"
 #' 
-#' }
 #' 
 #' # fit a larger random model
 #' data(VCAdata1)
@@ -110,8 +527,11 @@
 #' # random (see the 3rd reference for details on this topic)
 #' fitMM3 <- anovaMM(y~(lot+(device))/day/run, VCAdata1[VCAdata1$sample==2,])
 #' 
+#' # fit same model for each sample using by-processing
+#' lst <- anovaMM(y~(lot+(device))/day/run, VCAdata1, by="sample")
+#' lst
+#' 
 #' # fit mixed model originally from 'nlme' package
-#' \dontrun{
 #'  
 #' library(nlme)
 #' data(Orthodont)
@@ -146,26 +566,44 @@
 #' data(realData)
 #' datP1 <- realData[realData$PID==1,]
 #' system.time(anova.lm.Tab <- anova(lm(y~lot/calibration/day/run, datP1)))
-#' system.time(anovaMM.Tab  <- anovaMM(y~lot/calibration/day/run, datP1))
+#' # using the quadratic forms approach for estimating ANOVA Type-1 sums of squares
+#' system.time(anovaMM.Tab1  <- anovaMM(y~lot/calibration/day/run, datP1, SSQ.method="qf"))
+#' # using the sweeping approach for estimating ANOVA Type-1 sums of squares
+#' # this is now the default setting (Note: only "gb" method works as VarVC.method)
+#' system.time(anovaMM.Tab2  <- anovaMM(y~lot/calibration/day/run, datP1, SSQ.method="sweep"))
 #' 
 #' # compare results, note that the latter corresponds to a linear model,
 #' # i.e. without random effects. Various matrices have already been computed,
 #' # e.g. "R", "V" (which are identical in this case).
 #' anova.lm.Tab
-#' anovaMM.Tab
+#' anovaMM.Tab1
+#' anovaMM.Tab2
 #' }
 #' 
 #' @seealso \code{\link{anovaVCA}}, \code{\link{VCAinference}}, \code{\link{ranef}}, \code{\link{fixef}},
 #'          \code{\link{vcov}}, \code{\link{vcovVC}}, \code{\link{test.fixef}}, \code{\link{test.lsmeans}},
 #' 			\code{\link{plotRandVar}}
 
-anovaMM <- function(form, Data, VarVC.method=c("scm", "gb"), NegVC=FALSE)
+anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method=c("sweep", "qf"), NegVC=FALSE)
 {
+	if(!is.null(by))
+	{
+		stopifnot(by %in% colnames(Data))
+		stopifnot(is.factor(by) || is.character(by))
+		
+		levels  <- unique(Data[,by])
+		res <- lapply(levels, function(x) anovaMM(form=form, Data[Data[,by] == x,], NegVC=NegVC, SSQ.method=SSQ.method, VarVC.method=VarVC.method))
+		names(res) <- paste(by, levels, sep=".")
+		return(res)
+	}
+	
 	stopifnot(class(form) == "formula")
 	stopifnot(is.data.frame(Data))
 	stopifnot(nrow(Data) > 2)                                               	# at least 2 observations for estimating a variance
 	
 	VarVC.method <- match.arg(VarVC.method)
+	SSQ.method   <- match.arg(SSQ.method)
+	VarVC.method <- ifelse(SSQ.method == "sweep", "gb", VarVC.method)			# always use "gb", since A-matrices will not be computed	
 	
 	res <- list()
 	res$call <- match.call()
@@ -268,59 +706,21 @@ anovaMM <- function(form, Data, VarVC.method=c("scm", "gb"), NegVC=FALSE)
 	if(length(rmInd) > 0)
 		Data <- Data[-rmInd,]												
 
-	Data <- na.omit(Data[,rownames(attr(tobj, "factors"))])				# get rid of incomplete observations
+	Data <- na.omit(Data[,rownames(attr(tobj, "factors"))])					# get rid of incomplete observations
 	Mean <- mean(Data[,resp], na.rm=TRUE)                                   # mean computed after removing incomplete observations
 	Nobs <- N <- nrow(Data)
-	SS   <- DF <- Nlvl <- NULL
 	y    <- matrix(Data[,resp], ncol=1)										# vector of observations
+
+	if(SSQ.method == "qf")
+		tmp.res <- getSSQqf(Data, tobj, res$random)
+	else
+		tmp.res <- getSSQsweep(Data, tobj, res$random)
 	
-	Lmat <- list()                                                      	# compute A-matrices, used in constructing covariance-matrix of VCs
-	Lmat$Z <- list()
-	Lmat$A <- list()
+	Lmat    <- tmp.res$Lmat
+	aov.tab <- tmp.res$aov.tab
+	DF		<- aov.tab[,"DF"]
+	SS		<- aov.tab[,"SS"]
 
-	for(i in 1:Nvc)                                                     	# over all variables (top-down)                
-	{	
-		if(i < Nvc)
-		{
-			Lmat$Z[[i]] <- Matrix(model.matrix(as.formula(paste(resp, "~", fac[i], "-1", sep="")), Data))
-			all0 <- apply(Lmat$Z[[i]], 2, function(x) all(x==0))
-			if(any(all0))
-				Lmat$Z[[i]] <- Lmat$Z[[i]][,-which(all0)]
-		}
-		
-		if(i == 1)
-		{
-			Lmat$A[[i]] <- getAmatrix(X1=Matrix(ifelse(int, 1, 0), ncol=1,nrow=N), X2=Lmat$Z[[i]])
-		}
-		else if(i == Nvc)
-		{
-			Lmat$Z[[i]] <- Matrix(diag(N))                                  # error
-			Lmat$A[[i]] <- getAmatrix(X1=getMM(form, Data))
-
-			attr(Lmat$Z[[i]], "type") <- "random"
-			attr(Lmat$A[[i]], "type") <- "random"
-			attr(Lmat$Z[[i]], "term") <- "error"
-			attr(Lmat$A[[i]], "term") <- "error"
-		}    
-		else
-		{
-			Lmat$A[[i]] <- getAmatrix(X1=Matrix(do.call("cbind", lapply(Lmat$Z[1:(i-1)], function(x) as.matrix(x)))), 
-									  X2=Lmat$Z[[i]])
-		}
-		
-		if(i < Nvc)															# keep track on type of the currently processed variable
-		{
-			attr(Lmat$Z[[i]], "type") <- ifelse(fac[i] %in% res$random, "random", "fixed")
-			attr(Lmat$A[[i]], "type") <- ifelse(fac[i] %in% res$random, "random", "fixed")
-			attr(Lmat$Z[[i]], "term") <- fac[i]
-			attr(Lmat$A[[i]], "term") <- fac[i]
-		}
-				
-		SS <- c(SS, as.numeric(t(y) %*% Lmat$A[[i]] %*% y))					# calculate ANOVA sum of squares
-	}
-	DF <- anovaDF(form=form, Data=Data, Zmat=Lmat$Z, Amat=Lmat$A)			# determine degrees of freedom
-
-	aov.tab <- data.frame(DF=DF, SS=SS, MS=SS/DF)							# create ANOVA-table
 	rownames(aov.tab) <- c(attr(tobj, "term.labels"), "error")
 
 	res$Mean <- Mean
@@ -329,8 +729,8 @@ anovaMM <- function(form, Data, VarVC.method=c("scm", "gb"), NegVC=FALSE)
 
 	rf.ind  <- c(rf.ind, nrow(aov.tab))
 
-	C <- getCmatrix(form, Data, aov.tab[,"DF"], "SS")                       # compute coefficient matrix C in ss = C * s
-	
+	C <- getCmatrix(form, Data, aov.tab[,"DF"], "SS", MM=Lmat$Zre)          # compute coefficient matrix C in ss = C * s
+																			# at this point Zre comprises fixed and random effects
 	Ci  <- solve(C)
 	C2  <- apply(C, 2, function(x) x/DF)                                    # coefficient matrix for mean squares (MS)
 	Ci2 <- solve(C2)
@@ -444,8 +844,8 @@ anovaMM <- function(form, Data, VarVC.method=c("scm", "gb"), NegVC=FALSE)
 		res$aov.org <- tmp
 	}
 
-	res <- solveMM(res)
-
+	res <- solveMME(res)
+	gc(verbose=FALSE)													# trigger garbage collection
 	return(res)
 }
 
@@ -499,7 +899,6 @@ anovaMM <- function(form, Data, VarVC.method=c("scm", "gb"), NegVC=FALSE)
 #' system.time(anovaMM.Tab3  <- anovaMM( y~(lot+calibration)/day/run, datP1))
 #' anova.lm.Tab3
 #' anovaMM.Tab3
-#' 
 #' # calling the function directly (it is not exported)
 #' VCA:::anovaDF(lm(y~(lot+calibration)/day/run, datP1))
 #' }
@@ -576,9 +975,10 @@ anovaDF <- function(form, Data, Zmat, Amat, tol=1e-8)
 #' 
 #' @param obj			... (VCA) object
 #' 
-#' @return 	(VCA) object, which has additional attributes 'ranef' corresponding to the column vector 
-#' 		   	of estimated random effects, "fixef" being the column vector of estimated fixed effects. 
-#' 			Attribute "Matrices" has additional elements referring to the elements of the MMEs.
+#' @return 	(VCA) object, which has additional elements "RandomEffects" corresponding to the column vector 
+#' 		   	of estimated random effects, "FixedEffects" being the column vector of estimated fixed effects. 
+#' 			Element "Matrices" has additional elements referring to the elements of the MMEs and element
+#' 			"VarFixed" corresponds to the variance-covariance matrix of fixed effects.
 #' 
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #' 
@@ -586,11 +986,11 @@ anovaDF <- function(form, Data, Zmat, Amat, tol=1e-8)
 #' \dontrun{
 #' data(dataEP05A2_1)
 #' fit <- anovaVCA(y~day/run, dataEP05A2_1, NegVC=TRUE)
-#' fit <- VCA:::solveMM(fit)
+#' fit <- solveMME(fit)
 #' ranef(fit)
 #' }
 
-solveMM <- function(obj)
+solveMME <- function(obj)
 {
 	stopifnot(class(obj) == "VCA")
 	obj    	<- getV(obj)
@@ -601,16 +1001,17 @@ solveMM <- function(obj)
 	X      	<- Matrix(mats$X)
 	y      	<- mats$y
 	V      	<- mats$V
-	Vi     	<- solve(V)
-	K		<- MPinv(t(X) %*% Vi %*% X)		# variance-covariance matrix of fixed effects
+	Vi     	<- Solve(V)
+	K 		<- Sinv(t(X) %*% Vi %*% X)
+#	K		<- MPinv(t(X) %*% Vi %*% X)		# variance-covariance matrix of fixed effects
 	T	   	<- K %*% t(X) %*% Vi
-	H		<- X %*% T
-	Q		<- Vi %*% (diag(nrow(H))-H)
-	fixef  	<- T %*% y	
+#	H		<- X %*% T
+#	Q		<- Vi %*% (diag(nrow(H))-H)
+	fixef  	<- T %*% y
 	mats$Vi <- Vi
 	mats$T  <- T
-	mats$H	<- H
-	mats$Q  <- Q
+#	mats$H	<- H
+	#mats$Q  <- Q
 	rownames(fixef) <- colnames(X)
 	colnames(fixef) <- "Estimate"
 	if(is.null(Z))
@@ -628,9 +1029,11 @@ solveMM <- function(obj)
 	return(obj)
 }
 
+
 #' Generic Method for Extracting Random Effects from a Fitted Model.
 #' @param object		(object)
 #' @param ...			additional parameters
+#' @seealso \code{\link{ranef.VCA}}
 
 ranef <- function(object, ...)
 	UseMethod("ranef")
@@ -654,6 +1057,7 @@ ranef <- function(object, ...)
 #'                      should be returned or a transformed version c("student" or "standard")
 #' @param ...			additional parameters
 #' 
+#' @method ranef VCA
 #' @S3method ranef VCA
 #' 
 #' @references 
@@ -666,6 +1070,7 @@ ranef <- function(object, ...)
 #' Computational Statistics and Data Analysis, 56, 1405-1416
 #' 
 #' @examples 
+#' \dontrun{
 #' data(dataEP05A2_1)
 #' fit <- anovaVCA(y~day/run, dataEP05A2_1)
 #' ranef(fit)
@@ -680,12 +1085,51 @@ ranef <- function(object, ...)
 #' 
 #' # or studentized REs
 #' ranef(fit, 2, "stu")
+#' }
 
 ranef.VCA <- function(object, term=NULL, mode=c("raw", "student", "standard"), ...)
 {
+	Call <- match.call()
+	
 	obj <- object
 	stopifnot(class(obj) == "VCA")
 	mode <- match.arg(mode)
+
+	ObjNam  <- as.character(as.list(Call)$object)
+	
+	if(is.null(obj$RandomEffects))
+	{
+		obj  <- solveMME(obj)
+
+		if(!grepl("\\(", ObjNam))
+		{
+			expr <- paste(ObjNam, "<<- obj")		# update object missing MME results
+			eval(parse(text=expr))
+		}
+		else
+			warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+	}
+	
+	if(mode == "student" && is.null(obj$Matrices$Q))
+	{
+		mats <- obj$Matrices
+		X  <- mats$X
+		T  <- mats$T
+		Vi <- mats$Vi
+		mats$H <- H  <- X %*% T
+		mats$Q <- Q  <- Vi %*% (diag(nrow(H))-H)
+		obj$Matrices <- mats
+		
+		if(!grepl("\\(", ObjNam))
+		{
+			expr <- paste(ObjNam, "<<- obj")		# update object missing MME results
+			eval(parse(text=expr))
+		}
+		else
+			warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+		
+	}
+	
 	re <- obj$RandomEffects
 	nam <- rownames(re)
 	if(!is.null(term) && !is.character(term))
@@ -731,9 +1175,11 @@ ranef.VCA <- function(object, term=NULL, mode=c("raw", "student", "standard"), .
 }
 
 
+
 #' Generic Method for Extracting Fixed Effects from a Fitted Model.
 #' @param object		(object)
 #' @param ...			additional parameters
+#' @seealso \code{\link{fixef.VCA}}
 
 fixef <- function(object, ...)
 	UseMethod("fixef")
@@ -759,9 +1205,11 @@ fixef <- function(object, ...)
 #' @param quiet			(logical) TRUE = suppress warning messages, e.g. for non-estimable contrasts
 #' @param ...			additional parameters
 #' 
+#' @method fixef VCA
 #' @S3method fixef VCA
 #' 
 #' @examples 
+#' \dontrun{
 #' data(dataEP05A2_1)
 #' fit <- anovaVCA(y~day/(run), dataEP05A2_1)
 #' fixef(fit)
@@ -770,10 +1218,12 @@ fixef <- function(object, ...)
 #' data(VCAdata1)
 #' fit <- anovaMM(y~(lot+device)/(day)/(run), VCAdata1[VCAdata1$sample==2,])
 #' fixef(fit, "c")
+#' }
 
 fixef.VCA <- function(object, type=c("simple", "complex"), ddfm=c("contain", "residual", "satterthwaite"), 
 					  tol=1e-12, quiet=FALSE, ...)
 {
+	Call <- match.call()
 	obj <- object
 	stopifnot(class(obj) == "VCA")
 	type <- match.arg(type)
@@ -788,6 +1238,19 @@ fixef.VCA <- function(object, type=c("simple", "complex"), ddfm=c("contain", "re
 	vc <- vcov(obj)
 	se <- suppressWarnings(sqrt(diag(vc)))
 	fe <- obj$FixedEffects
+	if(is.null(fe))								# solve mixed model equations first
+	{
+		obj  <- solveMME(obj)
+		fe <- obj$FixedEffects
+		nam  <- as.character(as.list(Call)$object)
+		if(!grepl("\\(", nam))
+		{
+			expr <- paste(nam, "<<- obj")		# update object missing MME results
+			eval(parse(text=expr))
+		}
+		else
+			warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+	}
 	nam <- rownames(fe)
 	
 	if(type == "simple")
@@ -1175,7 +1638,6 @@ lsmMat <- function(obj, var=NULL)
 
 
 
-
 #' Extract Fixed Effects from 'VCA' Object.
 #' 
 #' For coneniently using objects of class 'VCA' with other packages expecting this
@@ -1184,25 +1646,45 @@ lsmMat <- function(obj, var=NULL)
 #' 
 #' @param object		(VCA) object where fixed effects shall be extracted
 #' @param ...			additional parameters
+#'
+#' @method coef VCA 
+#' @S3method coef VCA
 #' 
 #' @examples 
+#' \dontrun{
 #' data(dataEP05A2_1)
 #' fit1 <- anovaMM(y~day/(run), dataEP05A2_1)
 #' coef(fit1)
 #' fit2 <- anovaVCA(y~day/run, dataEP05A2_1)
 #' coef(fit2)
+#' }
 
 coef.VCA <- function(object, ...)
 {
+	Call <- match.call()
 	obj <- object
 	stopifnot(class(obj) == "VCA")
 	fe  <- fixef(obj)
+	if(is.null(fe))								# solve mixed model equations first
+	{
+		obj  <- solveMME(obj)
+		fe   <- fixef(obj)
+		nam  <- as.character(as.list(Call)$object)
+		if(!grepl("\\(", nam))
+		{
+			expr <- paste(nam, "<<- obj")		# update object missing MME results
+			eval(parse(text=expr))
+		}
+		else
+			warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+	}
 	fe  <- fe[,"Estimate", drop=F]
 	nam <- rownames(fe)
 	fe  <- c(fe)
 	names(fe) <- nam
 	return(fe)
 }
+
 
 #' Calculate Variance-Covariance Matrix of Fixed Effects for an 'VCA' Object.
 #' 
@@ -1221,10 +1703,15 @@ coef.VCA <- function(object, ...)
 #' 
 #' @return (matrix) corresponding to the variance-covariance matrix of fixed effects
 #' 
+#' @method vcov VCA
+#' @S3method vcov VCA
+#' 
 #' @examples 
+#' \dontrun{
 #' data(dataEP05A2_1)
 #' fit <- anovaVCA(y~day/(run), dataEP05A2_1)
 #' vcov(fit)
+#' }
 
 vcov.VCA <- function(object, ...)
 {
@@ -1263,7 +1750,7 @@ vcov.VCA <- function(object, ...)
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #' 
 #' @examples 
-#' 
+#' \dontrun{
 #' data(VCAdata1)
 #' tmpDat <- VCAdata1[VCAdata1$sample==1,]
 #' tmpDat <- tmpDat[-c(11,51,73:76),]
@@ -1272,7 +1759,7 @@ vcov.VCA <- function(object, ...)
 #' L <- getL(fitMM, c("lot1-lot2", "device1-device2"))
 #' getDF(fitMM, L)						# method="contain" is Default
 #' getDF(fitMM, L, method="res")
-#' \dontrun{
+#' 
 #' getDF(fitMM, L, method="satt")		# takes quite long for this model
 #' }
 
@@ -1298,22 +1785,39 @@ getDF <- function(obj, L, method=c("contain", "residual", "satterthwaite"), ...)
 #' @return (matrix) corresponding to the variance-covariance matrix of fixed effects
 #' 
 #' @examples 
+#' \dontrun{
 #' data(dataEP05A2_1)
 #' fit <- anovaVCA(y~day/(run), dataEP05A2_1)
 #' vcov(fit)
+#' }
 
 vcovFixed <- function(obj)
 {
+	Call <- match.call()
 	if(!obj$intercept && length(obj$fixed) == 0)
 	{
 		warning("There is no variance-convariance matrix of fixed effects for this object!")
 		return(NA)
 	}
+
 	X  <- getMat(obj, "X")
+	if(is.null(obj$Matrices$Vi))			# MME not yet been solved
+	{
+		obj  <- solveMME(obj)
+		nam  <- as.character(as.list(Call)$obj)
+		if(!grepl("\\(", nam))
+		{
+			expr <- paste(nam, "<<- obj")		# update object missing MME results
+			eval(parse(text=expr))
+		}
+		else
+			warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+	}
 	Vi <- getMat(obj, "Vi")
 	VCov <- obj$VarFixed
 	if(is.null(VCov))
-		VCov <- MPinv(t(X) %*% Vi %*% X)
+		VCov <- Sinv(t(X) %*% Vi %*% X)
+		#VCov <- MPinv(t(X) %*% Vi %*% X)
 	rownames(VCov) <- colnames(VCov) <- rownames(obj$FixedEffects)
 	return(VCov)
 }
@@ -1348,9 +1852,10 @@ DfSattHelper <- function(obj, x)
 	R  <- getMat(obj, "R")
 	X  <- getMat(obj, "X")
 	V  <- Z %*% G %*% t(Z) + R
-	Vi <- solve(V)
-	P  <- MPinv(t(X) %*% Vi %*% X)
-	
+	Vi <- Solve(V)
+	P  <- Sinv(t(X) %*% Vi %*% X)
+#	P  <- MPinv(t(X) %*% Vi %*% X)
+	P <- as.matrix(P)	
 	return(P)
 }
 
@@ -1375,6 +1880,7 @@ DfSattHelper <- function(obj, x)
 #' @seealso \code{\link{test.fixef}}, \code{\link{lsmeans}}
 #' 
 #' @examples
+#' \dontrun{
 #' data(dataEP05A2_2)
 #' ub.dat <- dataEP05A2_2[-c(11,12,23,32,40,41,42),]
 #' fit <- anovaMM(y~day/(run), ub.dat)
@@ -1387,7 +1893,6 @@ DfSattHelper <- function(obj, x)
 #' test.lsmeans(fit, lc.mat) 
 #' 
 #' # fit mixed model from the 'nlme' package
-#' \dontrun{
 #'  
 #' library(nlme)
 #' data(Orthodont)
@@ -1483,6 +1988,7 @@ test.lsmeans <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"))
 #' @seealso \code{\link{test.lsmeans}}, \code{\link{getL}}
 #' 
 #' @examples
+#' \dontrun{
 #' data(dataEP05A2_2)
 #' ub.dat <- dataEP05A2_2[-c(11,12,23,32,40,41,42),]
 #' fit <- anovaMM(y~day/(run), ub.dat)
@@ -1513,6 +2019,7 @@ test.lsmeans <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"))
 #' system.time(tst2 <- test.fixef(fit, L, opt=FALSE))
 #' tst1
 #' tst2
+#' }
 
 test.fixef <- function(	obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 						method.grad="simple", tol=1e-12, quiet=FALSE, opt=TRUE,
@@ -1604,6 +2111,7 @@ test.fixef <- function(	obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #' 
 #' @examples
+#' \dontrun{
 #' data(dataEP05A2_2)
 #' fit <- anovaMM(y~day/(run), dataEP05A2_2)
 #' L <- getL(fit, c("day1-day2", "day5-day10"), what="fixef")
@@ -1620,6 +2128,7 @@ test.fixef <- function(	obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 #' L3 <- getL(fit.S2, c("lot1-lot2", "lot1:device3:day19-lot1:device3:day20", 
 #' 						"lot1:device1:day1-lot1:device1:day2"))
 #' test.fixef(fit.S2, L3)
+#' }
 
 getL <- function(obj, s, what=c("fixef", "lsmeans"))
 {
@@ -1792,7 +2301,7 @@ getDDFM <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"), tol=
 		A <- obj$VarCov											# same names as in SAS Help of PROC MIXED, Model statement, option "ddfm=sat"
 		if(is.null(A))
 			A <- vcovVC(obj)
-		
+	
 		VCs <- obj$Matrices$VCall[obj$Matrices$rf.ind]
 		
 		for( m in 1:length(SVD$values) )
@@ -1821,11 +2330,12 @@ getDDFM <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"), tol=
 #' 
 #' When 'method="scm"' is used function \code{\link{getVCvar}} is called implementing this rather
 #' time-consuming algorithm. Both approaches, respectively the results they generate, diverge for
-#' increasing degree of unbalancedness. For balanced designs, the seem to differ only due to 
+#' increasing degree of unbalancedness. For balanced designs, they seem to differ only due to 
 #' numerical reasons (error propagation).
 #' 
-#' This function is called on a 'VCA' object, which can be the sole argument. In this case the "scm"
-#' method will be used (see \code{\link{getVCvar}} for computational details).
+#' This function is called on a 'VCA' object, which can be the sole argument. In this case the value
+#' assigned to element 'VarVC.method' of the 'VCA' object will be used
+#' (see \code{\link{getVCvar}} for computational details).
 #' 
 #' @param obj			... (VCA) object
 #' @param method		... (character) string, optionally specifying whether to use the algorithm given in the
@@ -1843,11 +2353,10 @@ getDDFM <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"), tol=
 #' Asymptotic Theory and Small-Sample Simulation Results, Biometrics 41, p. 477-486
 #' 
 #' @examples
-#' 
 #' \dontrun{
 #' data(realData)
 #' dat1 <- realData[realData$PID==1,]
-#' fit  <- anovaVCA(y~lot/calibration/day/run, dat1) 
+#' fit  <- anovaVCA(y~lot/calibration/day/run, dat1, SSQ.method="qf") 
 #' vcovVC(fit)
 #' vcovVC(fit, "scm")		# Searle-Casella-McCulloch method (1st reference)
 #' vcovVC(fit, "gb")		# Giesbrecht and Burns method (2nd reference)
@@ -1855,6 +2364,8 @@ getDDFM <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"), tol=
 
 vcovVC <- function(obj, method=NULL)
 {
+	Call <- match.call()
+	
 	stopifnot(class(obj) == "VCA")
 	if(!is.null(method))
 		method <- match.arg(method, c("scm", "gb"))
@@ -1893,9 +2404,20 @@ vcovVC <- function(obj, method=NULL)
 	}
 	else
 	{
+		if(is.null(obj$VarFixed))
+		{
+			obj  <- solveMME(obj)
+			nam  <- as.character(as.list(Call)$obj)
+			if(!grepl("\\(", nam))
+			{
+				expr <- paste(nam, "<<- obj")		# update object missing MME results
+				eval(parse(text=expr))
+			}
+			else
+				warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+		}
+		
 		P  <- obj$VarFixed										# vcov of fixed effects
-		if(is.null(P))
-			P <- vcov(obj)
 		X  <- getMat(obj, "X")
 		Vi <- getMat(obj, "Vi")
 		Q  <- Vi - Vi %*% X %*% P %*% t(X) %*% Vi				# this Q is different from the on in obj$Matrices (I ran out of capital letters ;-)
@@ -1907,7 +2429,7 @@ vcovVC <- function(obj, method=NULL)
 		nam <- rownames(obj$aov.org)[ind]
 		nam[length(nam)] <- "error"
 		rownames(VCvar) <- colnames(VCvar) <- nam
-		
+
 		for(i in 1:length(ind))
 		{
 			for(j in i:length(ind))
@@ -1942,6 +2464,7 @@ vcovVC <- function(obj, method=NULL)
 #' @return (matrix) as requested by the user
 #' 
 #' @examples
+#' \dontrun{
 #' data(dataEP05A2_1)
 #' fit <- anovaVCA(y~day/run, dataEP05A2_1)
 #' getMat(fit, "Z")
@@ -1950,6 +2473,7 @@ vcovVC <- function(obj, method=NULL)
 #' getMat(fit, "Zerror")
 #' getMat(fit, "V")			 	# Var(y)
 #' getMat(fit, "G")				# Var(re)
+#' }
 
 getMat <- function(obj, mat)
 {
@@ -2012,7 +2536,8 @@ getV <- function(obj)
 {
 	stopifnot(class(obj) == "VCA")
 	mats <- obj$Matrices
-	R <- Matrix(diag(obj$Nobs)) * obj$aov.tab["error", "VC"]
+	R <- Diagonal(obj$Nobs) * obj$aov.tab["error", "VC"]
+
 	if(as.character(obj$terms)[3] == "1")
 	{
 		mats$V <- mats$R <- R
@@ -2049,7 +2574,7 @@ getV <- function(obj)
 	{
 		Z <- Matrix(Z)
 		assign <- list(ind=assign, terms=VCnam)
-		G <- Matrix(diag(ncol(Z))) * Vs								# estimated variance-covariance matrix of random effects
+		G <- Diagonal(ncol(Z)) * Vs						# estimated variance-covariance matrix of random effects
 		rownames(G) <- colnames(G) <- nam
 		V <- Z %*% G %*% t(Z) + R						# compute V
 	}
@@ -2060,21 +2585,11 @@ getV <- function(obj)
 	mats$R   <- R
 	obj$Matrices <- mats
 	obj$re.assign <- assign
-	
+
 	return(obj)
 }
 
-#' Load/unload C-lib.
 
-.onLoad <- function(lib, pkg)
-{
-	library.dynam(chname="VCA", package=pkg, lib.loc=lib)
-}
-
-.onUnload <- function(lib)
-{
-	library.dynam.unload(chname="VCA", libpath=lib)
-}	
 
 
 #' Coefficient Matrix for (V)ariance (C)omponent (A)nalysis.
@@ -2108,6 +2623,8 @@ getV <- function(obj)
 #'                              "SS" = sum of squares coefficient matrix
 #' @param digits    (integer) numeric tolerance expressed in number of digits. This is used
 #'                  for testing whether a value is equal to zero (round(x,digits) == 0).
+#' @param MM		(Matrix) object referring to the overparameterized model matrix of the full
+#'                  model, if provided, it does not need to be computed twice
 #' 
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #' 
@@ -2117,7 +2634,7 @@ getV <- function(obj)
 #'  Gaylor,D.W., Lucas,H.L., Anderson,R.L. (1970), Calculation of Expected Mean Squares by the Abbreviated Doolittle and Square Root Methods. Biometrics 26(4):641-655
 #' 
 #' @examples 
-#' 
+#' \dontrun{
 #' data(dataEP05A2_1)
 #' C_ms <- getCmatrix(y~day/run, dataEP05A2_1, type="MS")
 #' C_ms
@@ -2126,76 +2643,64 @@ getV <- function(obj)
 #' aov.tab <- anova(lm(y~day+day:run, dataEP05A2_1))
 #' aov.tab
 #' apply(C_ss, 2, function(x) x/aov.tab[,"Df"])
+#' }
 
-getCmatrix <- function(form, Data, DF=NULL, type=c("MS", "SS"), digits=8L)
+getCmatrix <- function(form, Data, DF=NULL, type=c("MS", "SS"), digits=8L, MM=NULL)
 {
-
-    stopifnot(class(form) == "formula")
-    stopifnot(is.data.frame(Data))
+	stopifnot(class(form) == "formula")
+	stopifnot(is.data.frame(Data))
 	if(as.character(form)[3] == "1")
 		return(matrix(DF))
-    
-    type <- match.arg(type)    
-    form <- formula(terms(form, simplify=TRUE, keep.order=TRUE))
-    
-    if(is.null(DF))
-    {
-        DF <- anova(lm(form, Data))[,"Df"]
-    }
-    
-    mm   <- getMM(form, Data)
-
-    asgn <- attr(mm, "assign")
-    NVC  <- max(asgn)                           # number of variance components (without mean level)              
-    nc  <- ncol(mm)                             # number of effects without intercept
- 
-    Amat <- Bmat <-matrix(0, nc-1, nc-1)
-
-	tol <- eval(parse(text=paste("1e-", digits, sep="")))
-
-	res <- .C("getAmatBmat", mm=as.double(mm), 										# call C-implementation of the most elaborate part of the algorithm
-			r=as.integer(nc), nrow=as.integer(nrow(mm)), tol=as.double(tol), 
-			Amat=as.double(Amat), Bmat=as.double(Bmat), PACKAGE="VCA")
 	
-	Amat <- Matrix(round(res$Amat, digits), nc-1, nc-1)
-	Bmat <- Matrix(round(res$Bmat, digits), nc-1, nc-1)
+	type <- match.arg(type)    
+	form <- formula(terms(form, simplify=TRUE, keep.order=TRUE))
+	
+	if(is.null(DF))
+	{
+		DF <- anova(lm(form, Data))[,"Df"]
+	}
+	
+	if(is.null(MM))
+		MM   <- getMM(form, Data)
 
-    amat <- Amat * Bmat                             # square-root method
-    sgn  <- sign(Amat)
-    amat <- sqrt(amat)
-    amat <- sgn * amat
-    rownames(amat) <- colnames(amat) <- asgn[-1]    # for identifying rows and cols belonging to a specific VC
-    
-    C <- matrix(0, NVC, NVC)
-   
-    # build coefficient matrix of the system of linear equations computing observed MS to expected values
-    
-    for(i in 1:NVC)                                 # over VCs           
-    {
-        tmp <- amat[which(rownames(amat) == i),,drop=F]    # rows belongig to i-th VC
+	asgn <- attr(MM, "assign")
+	NVC  <- max(asgn)                           # number of variance components (without mean level)              
+	nc   <- ncol(MM)                            # number of effects without intercept
+	nr   <- nrow(MM)
+	
+	amat <- Amat <- Bmat <- matrix(0, nc-1, nc-1)
+	
+	tol  <- eval(parse(text=paste("1e-", digits, sep="")))
+	
+	if(inherits(MM, "CsparseMatrix"))			# even faster implementation for sparse matrices
+	{	
+		res <- .C(	"getAmatBmatSparse", xEl=as.double(MM@x), iEl=as.integer(MM@i),
+				 	pEl=as.integer(MM@p), NobsCol=as.integer(diff(MM@p)), 
+					ncol=as.integer(nc), nrow=as.integer(nr), tol=as.double(tol), 
+					Amat=as.double(Amat), Bmat=as.double(Bmat), amat=as.double(amat),
+					Cmat=double(NVC^2), Nvc=as.integer(NVC), asgn=as.integer(asgn[-1]),
+					DF=as.integer(DF), PACKAGE="VCA")
+	}
+	else										# fast C-implementation for dense matrices
+	{
+		res <- .C("getAmatBmat", mm=as.double(MM), 										# call C-implementation of the most elaborate part of the algorithm
+				ncol=as.integer(nc), nrow=as.integer(nr), tol=as.double(tol), 
+				Amat=as.double(Amat), Bmat=as.double(Bmat), amat=as.double(amat),
+				Cmat=double(NVC^2), NVC=as.integer(NVC), asgn=as.integer(asgn[-1]),
+				DF=as.integer(DF),	PACKAGE="VCA")
+	}
 
-        for(j in i:NVC)                             # over columns contributing to i-th VC 
-        {
-            for(k in 1:nrow(tmp))                   # over all rows of 'tmp'
-            {
-                if( all(tmp[k,] == 0) )             # skip all-zero lines of 'tmp'
-                    next
-                C[i,j] <- C[i,j] + sum(tmp[k, which(colnames(tmp) == as.character(j))]^2)
-            }
-            C[i,j] <- C[i,j] / DF[i]
-        }
-    }
-    C <- rbind(C, rep(0, ncol(C)))
-    C <- cbind(C, rep(1,nrow(C)))
-   
-    if(type=="SS")                                  # adapt to sum of squares (SS)
-    {
-        C <- apply(C, 2, function(x) x <- x*DF)
-    }
+	C <- matrix(res$Cmat, NVC, NVC)
+	C <- rbind(C, rep(0, ncol(C)))					# account for error
+	C <- cbind(C, rep(1,nrow(C)))
+	
+	if(type=="SS")                                  # adapt to sum of squares (SS)
+	{
+		C <- apply(C, 2, function(x) x <- x*DF)
+	}
 
-    return(C)
+	return(C)
 }
-
 
 #' Determine A-Matrix.
 #' 
@@ -2217,7 +2722,7 @@ getCmatrix <- function(form, Data, DF=NULL, type=c("MS", "SS"), digits=8L)
 
 getAmatrix <- function(X1, X2)
 {
-    I <- Matrix(diag(nrow(X1)))    
+	I <- Diagonal(nrow(X1))   
     if(missing(X2))                     					# A-matrix for error
 	{
 		A <- I-X1 %*%MPinv(t(X1) %*% X1) %*% t(X1) 
@@ -2366,7 +2871,7 @@ getVCvar <- function(Ci, A, Z, VC)
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #' 
 #' @examples 
-#' 
+#' \dontrun{
 #' # load example data (CLSI EP05-A2 Within-Lab Precision Experiment)
 #' data(dataEP05A2_3)
 #' tmpData <- dataEP05A2_3[1:10,] 
@@ -2386,6 +2891,7 @@ getVCvar <- function(Ci, A, Z, VC)
 #' tmpData2 <- dataEP05A2_3[1:10,] 
 #' tmpData2$cov <- 10+rnorm(10,,3)
 #' model.matrix(~day*cov, tmpData2)
+#' }
 #' 
 #' @seealso \code{\link{getAmatrix}}
 
@@ -2471,6 +2977,7 @@ getMM <- function(form, Data)
 	        eff <- unique(Data[,lvls[i]])
 	        Ni  <- length(eff)                                          # number of effects for the i-th factor
 	        tmp <- matrix(0, N, Ni)
+
 	        colnames(tmp) <- unique(tmpName)
 			
 			for(j in 1:Ni)                                              # over effects of the i-th factor 
@@ -2556,6 +3063,7 @@ SattDF <- function(MS, Ci, DF, type=c("total", "individual"))
     
     return(r1)  
 }
+
 
 #' Standard Printing Method for Objects of Class 'VCA'.
 #' 
@@ -2674,7 +3182,8 @@ print.VCA <- function(x, digits=6L, ...)
 #' of variance components. The default is only to compute and report CIs for total and error variance, which cannot become negative.
 #' 
 #' 
-#' @param obj               (object) of class 'VCA' 
+#' @param obj               (object) of class 'VCA' or, alternatively, a list of 'VCA' objects, where all other argument can be 
+#' 							specified as vectors, where the i-th vector element applies to the i-th element of 'obj' (see examples) 
 #' @param alpha             (numeric) value specifying the significance level for \eqn{100*(1-alpha)}\% confidence intervals.
 #' @param total.claim       (numeric) value specifying the claim-value for the Chi-Squared test for the total variance (SD or CV, see \code{claim.type}).
 #' @param error.claim       (numeric) value specifying the claim-value for the Chi-Squared test for the error variance (SD or CV, see \code{claim.type}).
@@ -2722,8 +3231,8 @@ print.VCA <- function(x, digits=6L, ...)
 #' @seealso \code{\link{print.VCAinference}}, \code{\link{getVCvar}}, \code{\link{anovaVCA}}
 #' 
 #' @examples 
-#' 
 #' \dontrun{
+#' 
 #' # load data (CLSI EP05-A2 Within-Lab Precision Experiment) 
 #' data(dataEP05A2_1)
 #' 
@@ -2735,6 +3244,8 @@ print.VCA <- function(x, digits=6L, ...)
 #' 
 #' # additionally request CIs for all other VCs; default is to constrain 
 #' # CI-limits to be >= 0
+#' # first solve MME
+#' res <- solveMME(res)
 #' VCAinference(res, VarVC=TRUE)
 #' 
 #' # now using Satterthwaite methodology for CIs
@@ -2772,6 +3283,8 @@ print.VCA <- function(x, digits=6L, ...)
 #' inf$ChiSqTest
 #' 
 #' # request CIs for all VCs, default is to exclude CIs of negative VCs (excludeNeg=TRUE) 
+#' # solve MMEs first (or set MME=TRUE when calling anovaVCA)
+#' res2 <- solveMME(res2)
 #' VCAinference(res2, VarVC=TRUE)
 #' 
 #' # request CIs for all VCs, including those for negative VCs, note that all CI-limits 
@@ -2780,12 +3293,12 @@ print.VCA <- function(x, digits=6L, ...)
 #' 
 #' # request unconstrained CIs for all VCs, including those for negative VCS
 #' # one has to re-fit the model allowing the VCs to be negative
-#' res3 <- anovaVCA(y~day/run, tmpData, NegVC=TRUE)
+#' res3 <- anovaVCA(y~day/run, tmpData, NegVC=TRUE, MME=TRUE)
 #' VCAinference(res3, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)
 #'  
 #' ### use the numerical example from the CLSI EP05-A2 guideline (p.25)
-#' data(dataEP05A2_example)
-#' res.ex <- anovaVCA(result~day/run, dataEP05A2_example)
+#' data(Glucose)
+#' res.ex <- anovaVCA(result~day/run, Glucose)
 #' 
 #' ### also perform Chi-Squared tests
 #' ### Note: in guideline claimed SD-values are used, here, claimed variances are used
@@ -2807,6 +3320,8 @@ print.VCA <- function(x, digits=6L, ...)
 #' 
 #' # get confidence intervals, covariance-matrix of VCs, ..., 
 #' # explicitly request the covariance-matrix of variance components
+#' # solve MMEs first
+#' res1 <- solveMME(res1)
 #' inf1 <- VCAinference(res1, VarVC=TRUE, constrainCI=FALSE)
 #' inf1
 #' 
@@ -2820,11 +3335,34 @@ print.VCA <- function(x, digits=6L, ...)
 #' # (main diagonal is part of standard output -> "Var(VC"))
 #' VarCovVC <- vcovVC(inf1$VCAobj)
 #' round(VarCovVC, 12)
+#' 
+#' # use by-processing and specific argument-values for each level of the by-variable
+#' data(VCAdata1)
+#' fit.all <- anovaVCA(y~(device+lot)/day/run, VCAdata1, by="sample", NegVC=TRUE)
+#' inf.all <- VCAinference(fit.all, total.claim=c(.1,.75,.8,1,.5,.5,2.5,20,.1,1))
+#' print.VCAinference(inf.all, what="VC")
 #' }
 
 VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.type="VC", 
 						 VarVC=FALSE, excludeNeg=TRUE, constrainCI=TRUE, ci.method=c("sas", "satterthwaite"))
 {
+	Call <- match.call()
+	
+	if(is.list(obj) && class(obj) != "VCA")
+	{
+		if(!all(sapply(obj, class) == "VCA"))
+			stop("Only lists of 'VCA' object are accepted!")
+		
+		res <- mapply(	FUN=VCAinference, obj=obj, alpha=alpha, 
+						total.claim=total.claim, error.claim=error.claim,
+						claim.type=claim.type, VarVC=VarVC, excludeNeg=excludeNeg,
+						constrainCI=constrainCI, ci.method=ci.method, 
+						SIMPLIFY=FALSE)
+				
+		names(res) <- names(obj)
+		return(res)
+	}	
+
     stopifnot(class(obj) == "VCA")
 	ci.method <- match.arg(ci.method)
 	
@@ -2854,6 +3392,20 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
     
     if( !is.null(obj$Matrices) && VarVC )
     {
+
+		if(is.null(obj$VarCov))						# solve mixed model equations first
+		{
+			obj  <- solveMME(obj)
+			nam  <- as.character(as.list(Call)$obj)
+			if(!grepl("\\(", nam))							# obj is function call
+			{
+				expr <- paste(nam, "<<- obj")				# update object missing MME results
+				eval(parse(text=expr))	
+			}
+			else
+				warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+		}
+		
         Lmat  <- obj$Matrices                               # different matrices needed for VCA
         
        	VCvar <- vcovVC(obj, method=obj$VarVC.method) 		# get variance-covariance matrix of VCs (p.176); do not pass total VC
@@ -3217,10 +3769,11 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 }
 
 
+
 #' Standard Print Method for Objects of Class 'VCAinference'.
 #' 
 #' Formats the list-type objects of class 'VCAinference' for a more comprehensive
-#' presentation of results, which are easier to grasp . The default is to show the complete
+#' presentation of results, which are easier to grasp. The default is to show the complete
 #' object (VCA ANOVA-table, VC-, SD-, and CV-CIs). Using parameter 'what' allows to
 #' restrict the printed output to certain parts. Print-function invisibly returns a matrix
 #' or a list of matrices, depending on the values of 'what', i.e. it can be used as for
@@ -3231,6 +3784,8 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 #' @param what      (character) one of "all", "VC", "SD", "CV", "VCA" specifying which part of the 'VCA'-object is to be printed.
 #' @param ...       additional arguments to be passed to or from methods.
 #' 
+#' @return invisibly returns sub-elements of 'x' specified via 'what'
+#' 
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #' 
 #' @method print VCAinference
@@ -3239,7 +3794,7 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 #' @seealso \code{\link{VCAinference}}, \code{\link{anovaVCA}}
 #' 
 #' @examples
-#' 
+#' \dontrun{
 #' # load data (CLSI EP05-A2 Within-Lab Precision Experiment) 
 #' data(dataEP05A2_1)
 #' 
@@ -3255,10 +3810,26 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 #' 
 #' # show numerical values with more digits
 #' print(inf, digit=12)
-
+#' }
 
 print.VCAinference <- function(x, digits=4L, what=c("all", "VC", "SD", "CV", "VCA"), ...)
 {
+	if(is.list(x) && class(x) != "VCAinference")
+	{
+		if(!all(sapply(x, class) == "VCAinference"))
+			stop("Only lists of 'VCAinference' objects can printed!")
+		
+		nam <- names(x)
+		lst <- list()
+		
+		for(i in 1:length(x))
+		{
+			print(nam[i])
+			lst[[i]] <- print(x[[i]], digits=digits, what=what)
+		}
+		return()			# leave function now
+	}
+	
     stopifnot(class(x) == "VCAinference") 
     claim.type <- attr(x, "claim.type")
     VCAobj <- x$VCAobj
@@ -3572,6 +4143,7 @@ Trace <- function(x)
 }
 
 
+
 #' Standard 'as.matrix' Method for 'VCA' S3-Objects.
 #' 
 #' @param x         (VCA) object 
@@ -3583,9 +4155,11 @@ Trace <- function(x)
 #' @S3method as.matrix VCA
 #' 
 #' @examples 
+#' \dontrun{
 #' data(dataEP05A2_1)
 #' fit <- anovaVCA(y~day/run, dataEP05A2_1)
 #' as.matrix(fit)
+#' }
 
 as.matrix.VCA <- function(x, ...)
 {
@@ -3634,10 +4208,14 @@ as.matrix.VCA <- function(x, ...)
 #' 
 #' @param form          (formula) specifying the model to be fit, a response variable left of the '~' is mandatory
 #' @param Data          (data.frame) storing all variables referenced in 'form'
+#' @param by			(factor, character) variable specifying groups for which the analysis should be performed individually,
+#' 						i.e. by-processing
 #' @param NegVC         (logical) FALSE = negative variance component estimates (VC) will be set to 0 and they will not contribute to the total variance 
 #'                      (as done in SAS PROC NESTED, conservative estimate of total variance). The original ANOVA estimates can be found in attribute 'VCoriginal'. 
 #'                      The degrees of freedom of the total variance are based on adapted mean squares (MS), i.e. adapted MS are computed as \eqn{D * VC}, where VC is 
 #'                      the column vector with negative VCs set to 0. \cr
+#' @param SSQ.method	(character) string specifying the method used for computing ANOVA Type-1 sum of squares and respective degrees of freedom.
+#' 						In case of "sweep" funtion \code{\link{getSSQsweep}} will be called, otherwise, function \code{\link{getSSQqf}}
 #'                      TRUE = negative variance component estimates will not be set to 0 and they will contribute to the total variance (original definition of the total variance).
 #' @param VarVC.method	(character) string specifying whether to use the algorithm given in the
 #' 						\eqn{1^{st}}{1st} reference ("scm") or in the \eqn{2^{nd}}{2nd} refernce ("gb"). Method "scm" (Searle, Casella, McCulloch)
@@ -3645,6 +4223,10 @@ as.matrix.VCA <- function(x, ...)
 #' 						by the authors, but sufficiently exact compared to e.g. SAS PROC MIXED (method=type1) which
 #' 						uses the inverse of the Fisher-Information matrix as approximation. For balanced designs all
 #'                      methods give identical results, only in unbalanced designs differences occur. 
+#' @param MME			(logical) TRUE = (M)ixed (M)odel (E)quations will be solved, i.e. 'VCA' object will have additional elements
+#' 						"RandomEffects", "FixedEffects", "VarFixed" (variance-covariance matrix of fixed effects) and the "Matrices"
+#' 						element has addional elements corresponding to intermediate results of solving MMEs.
+#' 						FALSE = do not solve MMEs, which reduces the computation time for very complex models significantly.
 #' 
 #' @return (object) of class 'VCA'
 #' 
@@ -3673,6 +4255,8 @@ as.matrix.VCA <- function(x, ...)
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #' 
 #' @examples
+#' 
+#' \dontrun{
 #' 
 #' # load data (CLSI EP05-A2 Within-Lab Precision Experiment) 
 #' data(dataEP05A2_2)
@@ -3706,17 +4290,57 @@ as.matrix.VCA <- function(x, ...)
 #' anovaVCA(y~lot+day+lot:day:run, data_sample1[-c(1,11,15),])
 #' 
 #' ### use the numerical example from the CLSI EP05-A2 guideline (p.25)
-#' data(dataEP05A2_example)
-#' res.ex <- anovaVCA(result~day/run, dataEP05A2_example)
+#' data(Glucose)
+#' res.ex <- anovaVCA(result~day/run, Glucose)
 #' 
 #' ### also perform Chi-Squared tests
 #' ### Note: in guideline claimed SD-values are used, here, claimed variances are used
 #' VCAinference(res.ex, total.claim=3.4^2, error.claim=2.5^2)
 #' 
-#' #' # load another example dataset and extract the "sample==1" subset
+#' ### now use the six sample reproducibility data from CLSI EP5-A3
+#' ### and fit per sample reproducibility model
+#' data(CA19_9)
+#' fit.all <- anovaVCA(result~site/day, CA19_9, by="sample")
+#' 
+#' reproMat <- data.frame(
+#'  Sample=c("P1", "P2", "Q3", "Q4", "P5", "Q6"),
+#'  Mean= c(fit.all[[1]]$Mean, fit.all[[2]]$Mean, fit.all[[3]]$Mean, 
+#' 	        fit.all[[4]]$Mean, fit.all[[5]]$Mean, fit.all[[6]]$Mean),
+#' 	Rep_SD=c(fit.all[[1]]$aov.tab["error","SD"], fit.all[[2]]$aov.tab["error","SD"],
+#' 	         fit.all[[3]]$aov.tab["error","SD"], fit.all[[4]]$aov.tab["error","SD"],
+#'           fit.all[[5]]$aov.tab["error","SD"], fit.all[[6]]$aov.tab["error","SD"]),
+#' 	Rep_CV=c(fit.all[[1]]$aov.tab["error","CV[%]"],fit.all[[2]]$aov.tab["error","CV[%]"],
+#'           fit.all[[3]]$aov.tab["error","CV[%]"],fit.all[[4]]$aov.tab["error","CV[%]"],
+#'           fit.all[[5]]$aov.tab["error","CV[%]"],fit.all[[6]]$aov.tab["error","CV[%]"]),
+#'  WLP_SD=c(sqrt(sum(fit.all[[1]]$aov.tab[3:4,"VC"])),sqrt(sum(fit.all[[2]]$aov.tab[3:4, "VC"])),
+#'           sqrt(sum(fit.all[[3]]$aov.tab[3:4,"VC"])),sqrt(sum(fit.all[[4]]$aov.tab[3:4, "VC"])),
+#'           sqrt(sum(fit.all[[5]]$aov.tab[3:4,"VC"])),sqrt(sum(fit.all[[6]]$aov.tab[3:4, "VC"]))),
+#'  WLP_CV=c(sqrt(sum(fit.all[[1]]$aov.tab[3:4,"VC"]))/fit.all[[1]]$Mean*100,
+#'           sqrt(sum(fit.all[[2]]$aov.tab[3:4,"VC"]))/fit.all[[2]]$Mean*100,
+#'           sqrt(sum(fit.all[[3]]$aov.tab[3:4,"VC"]))/fit.all[[3]]$Mean*100,
+#'           sqrt(sum(fit.all[[4]]$aov.tab[3:4,"VC"]))/fit.all[[4]]$Mean*100,
+#'           sqrt(sum(fit.all[[5]]$aov.tab[3:4,"VC"]))/fit.all[[5]]$Mean*100,
+#'           sqrt(sum(fit.all[[6]]$aov.tab[3:4,"VC"]))/fit.all[[6]]$Mean*100),
+#'  Repro_SD=c(fit.all[[1]]$aov.tab["total","SD"],fit.all[[2]]$aov.tab["total","SD"],
+#'             fit.all[[3]]$aov.tab["total","SD"],fit.all[[4]]$aov.tab["total","SD"],
+#'             fit.all[[5]]$aov.tab["total","SD"],fit.all[[6]]$aov.tab["total","SD"]),
+#'  Repro_CV=c(fit.all[[1]]$aov.tab["total","CV[%]"],fit.all[[2]]$aov.tab["total","CV[%]"],
+#'             fit.all[[3]]$aov.tab["total","CV[%]"],fit.all[[4]]$aov.tab["total","CV[%]"],
+#'             fit.all[[5]]$aov.tab["total","CV[%]"],fit.all[[6]]$aov.tab["total","CV[%]"]))
+#'  
+#'  for(i in 3:8) reproMat[,i] <- round(reproMat[,i],digits=ifelse(i%%2==0,1,3))
+#'  reproMat
+#' 
+#' # now plot the precision profile over all samples
+#' plot(reproMat[,"Mean"], reproMat[,"Rep_CV"], type="l", main="Precision Profile CA19-9",
+#' 		xlab="Mean CA19-9 Value", ylab="CV[%])
+#' grid()
+#' points(reproMat[,"Mean"], reproMat[,"Rep_CV"], pch=16)
+#' 
+#' # load another example dataset and extract the "sample==1" subset
 #' data(VCAdata1)
 #' sample1 <- VCAdata1[which(VCAdata1$sample==1),]
-#' 
+#'  
 #' # generate an additional factor variable and random errors according to its levels
 #' sample1$device <- gl(3,28,252)                                      
 #' set.seed(505)
@@ -3726,16 +4350,45 @@ as.matrix.VCA <- function(x, ...)
 #' # and nested factors 'day' and 'run' nested below 
 #' res1 <- anovaVCA(y~(lot+device)/day/run, sample1) 
 #' res1
+#' 
+#' # fit same model for each sample using by-processing
+#' lst <- anovaVCA(y~(lot+device)/day/run, VCAdata1, by="sample")
+#' lst
+#' 
+#' # now fitting a nonsense model on the complete dataset "VCAdata1" 
+#' # using both methods for fitting ANOVA Type-1 sum of squares
+#' # SSQ.method="qf" used to be the default up to package version 1.1.1
+#' # takes ~165s on a Intel Xeon E5-2687W (3.1GHz)
+#' system.time(res.qf <- anovaVCA(y~(sample+lot+device)/day/run, VCAdata1, SSQ.method="qf"))
+#' # the SWEEP-operator is the new default since package version 1.2
+#' # takes ~50s
+#' system.time(res.sw <- anovaVCA(y~(sample+lot+device)/day/run, VCAdata1, SSQ.method="sweep"))
+#' res.qf
+#' res.sw
+#' }
 
-anovaVCA <- function(form, Data, NegVC=FALSE, VarVC.method=c("scm", "gb"))
+anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "qf"), 
+						VarVC.method=c("gb", "scm"), MME=FALSE)
 {
+	if(!is.null(by))
+	{
+		stopifnot(by %in% colnames(Data))
+		stopifnot(is.factor(by) || is.character(by))
+		
+		levels  <- unique(Data[,by])
+		res <- lapply(levels, function(x) anovaVCA(form=form, Data[Data[,by] == x,], NegVC=NegVC, SSQ.method=SSQ.method, VarVC.method=VarVC.method, MME=MME))
+		names(res) <- paste(by, levels, sep=".")
+		return(res)
+	}
+	
 	stopifnot(class(form) == "formula")
 	stopifnot(is.data.frame(Data))
 	stopifnot(nrow(Data) > 2)                                               # at least 2 observations for estimating a variance
 	stopifnot(is.logical(NegVC))
-	
+		
 	VarVC.method <- match.arg(VarVC.method)
-	
+	SSQ.method   <- match.arg(SSQ.method)
+	VarVC.method <- ifelse(SSQ.method == "sweep", "gb", VarVC.method)		# always use "gb", since A-matrices will not be computed	
 	tobj <- terms(form, simplify=TRUE, keep.order=TRUE)                     # expand nested factors if necessary, retain ordering of terms in the formula
 	form <- formula(tobj)
 	
@@ -3797,66 +4450,19 @@ anovaVCA <- function(form, Data, NegVC=FALSE, VarVC.method=c("scm", "gb"))
 		vcol <- resp
 	Data <- na.omit(Data[,vcol, drop=F])
 	Nobs <- N <- nrow(Data)
-	
-	SS      <- numeric()
-	DF      <- numeric()
-	
-	Lmat <- list()                                                      	# compute A-matrices, used in constructing covariance-matrix of VCs
-	Lmat$Z <- list()
-	Lmat$Zre <- Matrix(nrow=N, ncol=0)
-	Lmat$A <- list()
 
-	y <- Matrix(Data[,resp], ncol=1)
+	if(SSQ.method == "qf")
+		tmp.res <- getSSQqf(Data, tobj)										# determine ANOVA Type-1 sum of squares using the quadratic form approach									
+	else
+		tmp.res <- getSSQsweep(Data, tobj)									# determine ANOVA Type-1 sum of squares using sweeping
 
-	X1 <- NULL																# X1-matrix for building A-matrices continuously growing 
-	
-	for(i in 1:Nvc)                                                     	# over variance components (including error)                        
-	{
-		if(i < Nvc)
-		{
-			Lmat$Z[[i]] <- Matrix(model.matrix(as.formula(paste(resp, "~", fac[i], "-1", sep="")), Data))
-			Lmat$Zre    <- Matrix(cbind(as.matrix(Lmat$Zre), as.matrix(Lmat$Z[[i]])))
-			all0 <- apply(Lmat$Z[[i]], 2, function(x) all(x==0))
-			if(any(all0))
-				Lmat$Z[[i]] <- Lmat$Z[[i]][,-which(all0)]
-		}
-		
-		if(i == 1 && i < Nvc)
-		{
-			Lmat$A[[i]] <- getAmatrix(X1=Matrix(ifelse(int, 1, 0),ncol=1,nrow=N), X2=Lmat$Z[[i]])		# account for intercept
-		}
-		else if(i == Nvc)
-		{
-			Lmat$Z[[i]] <- Matrix(diag(N))                                  # error
-			Lmat$A[[i]] <- getAmatrix(X1=getMM(form, Data))
-			attr(Lmat$Z[[i]], "type") <- "random"
-			attr(Lmat$A[[i]], "type") <- "random"
-			attr(Lmat$Z[[i]], "term") <- "error"
-			attr(Lmat$A[[i]], "term") <- "error"
-		}    
-		else
-		{
-			X1 <- cbind(X1,as.matrix(Lmat$Z[[i-1]]))
-			#X1 <- Matrix(do.call("cbind", lapply(Lmat$Z[1:(i-1)], function(x) as.matrix(x))))
-			Lmat$A[[i]] <- getAmatrix(X1=Matrix(X1), X2=Lmat$Z[[i]])
-		}
-		
-		if(i < Nvc)															# keep track on type of the currently processed variable
-		{
-			attr(Lmat$Z[[i]], "type") <- ifelse(fac[i] %in% res$random, "random", "fixed")
-			attr(Lmat$A[[i]], "type") <- ifelse(fac[i] %in% res$random, "random", "fixed")
-			attr(Lmat$Z[[i]], "term") <- fac[i]
-			attr(Lmat$A[[i]], "term") <- fac[i]
-		}		
-		SS <- c(SS, as.numeric(t(y) %*% Lmat$A[[i]] %*% y))					# calculate ANOVA sum of squares
-	}
+	gc(verbose=FALSE)
 
-	DF <- anovaDF(form=form, Data=Data, Zmat=Lmat$Z, Amat=Lmat$A)			# determine degrees of freedom
-
-	aov.tab <- data.frame(DF=DF, SS=SS, MS=SS/DF)
-	rownames(aov.tab) <- c(attr(tobj, "term.labels"), "error")
-
-	C <- getCmatrix(form, Data, aov.tab[,"DF"], "SS")                       # compute coefficient matrix C in ss = C * s
+	Lmat    <- tmp.res$Lmat
+	aov.tab <- tmp.res$aov.tab												# basic ANOVA-table
+	DF <- aov.tab[,"DF"]
+	SS <- aov.tab[,"SS"]
+	C <- getCmatrix(form, Data, aov.tab[,"DF"], "SS", MM=Lmat$Zre) 			# compute coefficient matrix C in ss = C * s
 	Ci  <- solve(C)
 	C2  <- apply(C, 2, function(x) x/DF)                                    # coefficient matrix for mean squares (MS)
 	Ci2 <- solve(C2)
@@ -3893,6 +4499,7 @@ anovaVCA <- function(form, Data, NegVC=FALSE, VarVC.method=c("scm", "gb"))
 	res$rmInd   <- rmInd
 	
 	res$VarVC.method <- VarVC.method
+	res$SSQ.method   <- SSQ.method
 	res$Mean         <- Mean
 	res$Nobs         <- Nobs
 	res$EstMethod    <- "ANOVA"
@@ -3926,10 +4533,12 @@ anovaVCA <- function(form, Data, NegVC=FALSE, VarVC.method=c("scm", "gb"))
 				"unbalanced"
 	class(res) <- "VCA"    
 	
-	res <- solveMM(res)
+	if(MME)
+		res <- solveMME(res)
+	
+	gc(verbose=FALSE)													# trigger garbage collection
 	return(res)
 }
-
 
 
 
@@ -3965,6 +4574,9 @@ anovaVCA <- function(form, Data, NegVC=FALSE, VarVC.method=c("scm", "gb"))
 #' 
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #' 
+#' @method residuals VCA
+#' @S3method residuals VCA
+#' 
 #' @references 
 #' 
 #' Hilden-Minton, J. A. (1995). Multilevel diagnostics for mixed and hierarchical linear
@@ -3977,7 +4589,7 @@ anovaVCA <- function(form, Data, NegVC=FALSE, VarVC.method=c("scm", "gb"))
 #' Computational Statistics and Data Analysis, 56, 1405-1416
 #' 
 #' @examples
-#' 
+#' \dontrun{
 #' data(VCAdata1)
 #' datS1 <- VCAdata1[VCAdata1$sample==1,]
 #' fit1  <- anovaVCA(y~(lot+device)/(day)/(run), datS1) 
@@ -3994,6 +4606,7 @@ anovaVCA <- function(form, Data, NegVC=FALSE, VarVC.method=c("scm", "gb"))
 #' # covariances into account
 #' resid(fit1, mode="stud")		# conditional residuals (default)
 #' resid(fit1, "marg", "stud")		# marginal residuals
+#' }
 #' 
 #' @aliases resid
 #' 
@@ -4001,11 +4614,25 @@ anovaVCA <- function(form, Data, NegVC=FALSE, VarVC.method=c("scm", "gb"))
 
 residuals.VCA <- function(object, type=c("conditional", "marginal"), mode=c("raw", "student", "standard", "pearson"), ...)
 {		
+	Call <- match.call()
 	obj <- object
 	stopifnot(class(obj) == "VCA")
 	
 	type <- match.arg(type)
 	mode <- match.arg(mode)
+	
+	if(is.null(obj$FixedEffects))
+	{
+		obj  <- solveMME(obj)
+		nam  <- as.character(as.list(Call)$object)
+		if(!grepl("\\(", nam))
+		{
+			expr <- paste(nam, "<<- obj")		# update object missing MME results
+			eval(parse(text=expr))
+		}
+		else
+			warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+	}
 	
 	Xb <- getMat(obj, "X") %*% obj$FixedEffects
 	y  <- getMat(obj, "y")
@@ -4025,7 +4652,9 @@ residuals.VCA <- function(object, type=c("conditional", "marginal"), mode=c("raw
 			X  <- getMat(obj, "X")
 			Vi <- getMat(obj, "Vi")
 			
-			Q  <- X %*% MPinv(t(X) %*% Vi %*% X) %*% t(X)
+			#Q  <- X %*% MPinv(t(X) %*% Vi %*% X) %*% t(X)
+			K   <- obj$VarFixed																	
+			Q   <- X %*% K %*% t(X)
 			res <- res/sqrt(diag(V-Q))								# apply studentization
 		}
 		else if(mode == "pearson")
@@ -4044,6 +4673,24 @@ residuals.VCA <- function(object, type=c("conditional", "marginal"), mode=c("raw
 			mats <- obj$Matrices
 			
 			Q	 <- mats$Q
+			
+			if(is.null(Q))
+			{
+				X  <- mats$X
+				T  <- mats$T
+				Vi <- mats$Vi
+				mats$H <- H  <- X %*% T
+				mats$Q <- Q  <- Vi %*% (diag(nrow(H))-H)
+				
+				nam  <- as.character(as.list(Call)$object)			
+	
+				if(!grepl("\\(", nam))								# write back to object in the calling env
+				{
+					obj$Matrices <- mats
+					expr <- paste(nam, "<<- obj")
+					eval(parse(text=expr))
+				}
+			}
 			P 	 <- R %*% Q %*% R
 			res	 <- res / sqrt(diag(P))								# apply studentization
 		}
@@ -4096,10 +4743,10 @@ residuals.VCA <- function(object, type=c("conditional", "marginal"), mode=c("raw
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #' 
 #' @examples 
-#' 
+#' \dontrun{
 #' data(VCAdata1)
 #' datS7L1 <- VCAdata1[VCAdata1$sample == 7 & VCAdata1$lot == 1, ]
-#' fit0 <- anovaVCA(y~device/day/run, datS7L1)
+#' fit0 <- anovaVCA(y~device/day/run, datS7L1, MME=TRUE)
 #' 
 #' # complete VCA-analysis result
 #' fit0
@@ -4110,11 +4757,13 @@ residuals.VCA <- function(object, type=c("conditional", "marginal"), mode=c("raw
 #' 
 #' # get CIs on intermediate precision 
 #' VCAinference(sw.res[["device:day"]], VarVC=TRUE)
+#' }
 
 stepwiseVCA <- function(obj, VarVC=FALSE, VarVC.method=c("scm", "gb"))
 {
 	stopifnot(obj$Type == "Random Model")					# only random models correspond to true VCA-analyses
 	VarVC.method <- match.arg(VarVC.method)
+	VarVC.method <- ifelse(obj$SSQ.method == "sweep", "gb", VarVC.method)		# always use "gb", since A-matrices will not be computed	
 	tab <- obj$aov.tab
 	Nstp  <- nrow(tab)-2
 	res <- vector("list", length=Nstp)

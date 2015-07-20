@@ -37,34 +37,72 @@
 #' 
 #' @examples 
 #' 
+#'  \dontrun{
 #' data(dataEP05A2_1)
 #' fit <- anovaVCA(y~day/run, dataEP05A2_1)
+#' # solve mixed model equations including random effects
+#' fit <- solveMME(fit)
 #' plotRandVar(fit, "cond", "stand")	
 #' plotRandVar(fit, 1, "stud")						# 1st random term 'day'
 #' plotRandVar(fit, "day", "stud")					# equivalent to the above			
 #' 
 #' # for larger datasets residuals can hardly be identified
 #' # pick out interesting points with the mouse
-#' \dontrun{
+#'
 #' plotRandVar(fit, "marg", "stud", pick=TRUE)
-#' } 
 #' 
 #' # customize the appearance
 #' plotRandVar( fit, 1, "stud", Vlines=list(col=c("red", "darkgreen")), 
 #' 	Xlabels=list(offset=.5, srt=60, cex=1, col="blue"),
 #' 	Points=list(col=c("black", "red", rep("black", 18)),
 #'	pch=c(3,17,rep(3,18)), cex=c(1,2,rep(1,18))))	
-
+#' } 
 
 plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pearson"), main=NULL, 
 		Xlabels=list(), Points=list(), Vlines=list(), pick=FALSE)
 {
+	Call <- match.call()
+	
 	stopifnot(class(obj) == "VCA")
 	stopifnot(!is.null(term))
-	
+		
 	if(length(mode) > 1)
 		mode <- mode[1]
+
+	ObjNam  <- as.character(as.list(Call)$obj)	
+
+	if(is.null(obj$RandomEffects))					# compute required matrices
+	{
+		obj  <- solveMME(obj)
+		
+		if(!grepl("\\(", ObjNam))
+		{
+			expr <- paste(ObjNam, "<<- obj")		# update object missing MME results
+			eval(parse(text=expr))
+		}
+		else
+			warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+	}
 	
+	if(grepl(mode, "student") && is.null(obj$Matrices$Q))		# might be required when solveMME has been called yet
+	{
+		mats <- obj$Matrices
+		X  <- mats$X
+		T  <- mats$T
+		Vi <- mats$Vi
+		mats$H <- H  <- X %*% T
+		mats$Q <- Q  <- Vi %*% (diag(nrow(H))-H)
+		obj$Matrices <- mats
+		
+		if(!grepl("\\(", ObjNam))
+		{
+			expr <- paste(ObjNam, "<<- obj")		# update object missing MME results
+			eval(parse(text=expr))
+		}
+		else
+			warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+	}
+
 	if(!is.character(term))
 	{
 		term <- obj$re.assign$terms[as.integer(term)]
@@ -203,20 +241,28 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' 						color will be applied to a factor-level automatically. This is relevant for factors, which are not top-level (bottom in the table).
 #'                      Example: BG=list(var="run", col=c("white", "lightgray"), border=NA) draws the background for alternating levels of factor "run" 
 #'                      white and gray for better visual differentiation. Set to NULL to omit. Use list( ..., col="white", border="gray") for using gray 
-#'                      vertical lines for separation.
+#'                      vertical lines for separation. See argument 'VLine' for additional highlighting options of factor-levels.
+#' @param VLine			(list) specifying all parameters applicable in \code{\link{lines}} optionally separating levels of one or multiple variables
+#' 						as vertical lines. This is useful in addition to 'BG' (see examples), where automatically 'border=NA' will be set that 'VLine' will
+#' 						take full effect. If this list contains element 'col.table=TRUE', vertical lines will be extended to the table below the plot.
 #' @param ylim          (numeric) vector of length two, specifying the limits in Y-direction, if not set these values will be determined automatically.
 #' @param Join          (list) specifying lines joining observed values within lower-level factor-levels, set to NULL to omit.
+#' @param JoinLevels	(list) specifying all arguments applicable in function \code{\link{lines}}, joining factor-levels nested within higher order factor levels,
+#' 						list-element "var" specifies this variable
 #' @param Mean          (list) passed to function \code{\link{points}} specifying plotting symbols used to indicate mean values per lower-level factor-level, 
 #' 						set equal to NULL to omit. 
 #' @param MeanLine		(list) passed to function \code{\link{lines}} specifying the appearance of horizontal lines indicating mean values of factor levels. 
 #' 						The factor variable for which mean-values of factor-levels are plotted can be specified via list-element "var" accepting any factor 
 #' 						variable specified in 'form'. List element "mar" takes values in [0;.5] setting the left and right margin size of mean-lines.
 #' 						Set equal to NULL to omit. Use 'var="int"' for specifying the overall mean (grand mean, intercept).
+#' 						If this list contains logical 'join' which is set to TRUE, these mean lines will be joined.
 #' @param VCnam         (list) specifying the text-labels (names of variance components) appearing as axis-labels. These parameters are passed to function
 #'                      'mtext'. Set to NULL to omit VC-names. 
 #' @param useVarNam     (logical) TRUE = each factor-level specifier is pasted to the variable name of the current variable and used as list-element name, 
 #'                               FALSE = factor-level specifiers are used as names of list-elements; the former is useful when factor levels are indicated
 #'                               as integers, e.g. days as 1,2,..., the latter is useful when factor levels are already unique, e.g. day1, day2, ... .
+#' @param max.level		(integer) specifying the max. number of levels of a nested factor in order to draw vertical lines. If there are too many levels a black
+#' 						area will be generated by many vertical lines. Level names will also be omitted.
 #' @param ...			further graphical parameters passed on to function 'par', e.g. use 'mar' for specification of margin widths. Note, that not all of them
 #' 						will have an effect, because some are fixed ensuring that a variability chart is drawn.
 #' 
@@ -225,6 +271,7 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #' 
 #' @examples
+#' \dontrun{
 #' 
 #' # load data (CLSI EP05-A2 Within-Lab Precision Experiment)
 #' data(dataEP05A2_3)
@@ -294,16 +341,16 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' 
 #' # create variability-chart of the example dataset in the CLSI EP05-A2 
 #' # guidline (listed on p.25)
-#' data(dataEP05A2_example)
-#' varPlot(result~day/run, dataEP05A2_example, type=3)
+#' data(Glucose)
+#' varPlot(result~day/run, Glucose, type=3)
 #' 
 #' # use individual settings of 'VarLab' and 'VSpace' for each variance component
-#' varPlot(result~day/run, dataEP05A2_example, type=3, 
+#' varPlot(result~day/run, Glucose, type=3, 
 #' 		   VarLab=list(list(srt=45, col="red", font=2), 
 #' 		   list(srt=90, col="blue", font=3)), VSpace=c(.25, .75))
 #' 
 #' # set individual titles for both plot when 'type=3'
-#' varPlot(	result~day/run, dataEP05A2_example, type=3, 
+#' varPlot(	result~day/run, Glucose, type=3, 
 #'   		Title=list(list(main="Variability Chart"), 
 #'   		list(main="Plot of SD-Values")))
 #' 
@@ -326,6 +373,35 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' 		   MeanLine=list(var=c("lot", "calibration", "day", "int"), 
 #' 						 col=c("orange", "blue", "darkgreen", "yellow"), 
 #' 						 lwd=c(2,2,2,2)))
+#' 
+#' # now also highlight bounds between factor levels of "lot" and "day" 
+#' # as vertical lines and extend them into the table
+#' varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
+#'   	   BG=list(var="calibration", 
+#' 				   col=c("aquamarine","antiquewhite2","antiquewhite4",
+#' 						 "antiquewhite1","aliceblue","antiquewhite3",
+#' 						 "white","antiquewhite","wheat" ), 
+#' 				   col.table=TRUE),
+#' 		   MeanLine=list(var=c("lot", "calibration", "day", "int"), 
+#' 						 col=c("orange", "blue", "darkgreen", "yellow"), 
+#' 						 lwd=c(2,2,2,2)),
+#' 		   VLine=list(var=c("lot", "day"), col=c("black", "skyblue1"),
+#'				      lwd=c(2, 1), col.table=TRUE))
+#' 
+#' # one can use argument 'JoinLevels' to join factor-levels or a variable
+#' # nested within a higher-level factor, 'VLine' is used to separate levels
+#' # of variables "calibration" and "lot" with different colors
+#'  varPlot(y~calibration/lot/day/run, Data, 
+#'  		BG=list(var="calibration", 
+#'  				col=c("#f7fcfd","#e5f5f9","#ccece6","#99d8c9",
+#'  				"#66c2a4","#41ae76","#238b45","#006d2c","#00441b"), 
+#'  				col.table=TRUE), 
+#' 			VLine=list(var=c("calibration", "lot"), 
+#'  				   col=c("black", "darkgray"), lwd=c(2,1), col.table=TRUE), 
+#'  		JoinLevels=list(var="lot", col=c("#ffffb2","orangered","#feb24c"), 
+#'  				        lwd=c(2,2,2)), 
+#'  		MeanLine=list(var="lot", col="blue", lwd=2))
+#' }
 
 varPlot <- function(form, Data, keep.order=TRUE, 
                     type=c(1L, 2L, 3L)[1], VARtype="SD", htab=.5,
@@ -337,12 +413,14 @@ varPlot <- function(form, Data, keep.order=TRUE,
                     SDs=list(pch=16, col="blue", cex=.75),
                     SDline=list(lwd=1, lty=1, col="blue"),
                     BG=list(border="lightgray", col.table=FALSE),
+					VLine=NULL,
                     Join=list(lty=1, lwd=1, col="gray"),
+					JoinLevels=NULL,
                     Mean=list(pch=3, col="red", cex=.5),
 					MeanLine=NULL,
                     VCnam=list(cex=.75, col="black", line=0.25),
                     useVarNam=FALSE, 
-                    ylim=NULL, ...)
+                    ylim=NULL, max.level=25, ...)
 {        
     stopifnot(is.data.frame(Data))
 	stopifnot(class(form) == "formula")
@@ -366,7 +444,6 @@ varPlot <- function(form, Data, keep.order=TRUE,
                 x <- unlist(strsplit(x, ":"))
                 return(x[length(x)])
             })
-
 
 	tab <- table(nest)
 	if(any(tab > 1))
@@ -395,7 +472,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
    
     if( !is.null(BG) && is.null(BG$var) )
         BG$var <- nest[1]                                   				# use top-level factor for separating factor-levels if not otherwise specified 
-   
+ 
     if(nest[1] != "1")                                         				# travers nesting structure and build nested list
     {
         lst <- buildList(Data=Data, Nesting=nest, Current=nest[1], resp=resp,
@@ -563,6 +640,9 @@ varPlot <- function(form, Data, keep.order=TRUE,
 				names(BG$col) <- Lvls						# same color will be used for same level
 			}
 		}
+		
+		if(!is.null(VLine) && VLine$var %in% nest)
+			BG$border <- NA
 	}
 	
     if(!is.null(SDline))
@@ -592,33 +672,59 @@ varPlot <- function(form, Data, keep.order=TRUE,
         Mean <- Mean.default
     }
 	
-	# environment for recording plotting coordinates
+	if(!is.null(JoinLevels) && is.list(JoinLevels) && JoinLevels$var %in% nest[2:length(nest)])
+	{
+		JoinLevelsLevels <- unique(as.character(Data[, JoinLevels$var]))
+		if(is.null(JoinLevels$col) || length(JoinLevels$col) < length(JoinLevelsLevels))
+		{
+			JoinLevels$col <- sample(colors()[1:length(JoinLevelsLevels)])
+			warning("Random selection of colors used because too few user-specified colors detected!")
+		}
+		JLcolorMap <- JoinLevels$col
+		names(JLcolorMap) <- JoinLevelsLevels
+		JoinLevels$col <- NULL									# information not needed any more
+	}
+	
+	# environment for recording plotting coordinates and used as interims storage for plotting information
 	rec.env <- environment()
 	rec.env$dat <- list()
+	rec.env$VLineCollection <- list()							# also use it for collecting vertical line information
+	rec.env$JoinLevelsCollection <- list()						# and for joining factor level means
+	rec.env$JoinCollection <- list()
+	rec.env$MeanLineCollection <- list()
+	rec.env$MeansCollection <- list()
+	rec.env$PointCollection <- list()
 	    
     #abline(h=Ybound[Nvc+1])
  
     tlNames <- names(lst)
+	
+	global.Points <- list()
 
     # adding tabluar environment at the bottom and scatterplot of observed values
     #
-    # lst       ... (list) to be processed 
-    # xlim      ... (numeric) vector specifying the X-limits for the current list
-    # yval      ... (numeric) vector specifying the Y-coordinates of horizontal lines
-    # Xdiff     ... (numeric) value specifying the width of a base cell (cell corresponding to a node)
-    # type      ... (integer) see 'type' above
-    # VARtype   ... (character) see 'VARtype' above
-    # StatsList ... (list) for descriptive statistics
-	# VarLab	... (list of lists) specifying the labelling style in the tabular-environment
-	# MeanLine	... (list) of function arguments specifying factor-levels means
-	# Intercept ... (list) of function arguments specifying the horizontal intercept-line
+	# lst       	... (list) to be processed 
+	# xlim      	... (numeric) vector specifying the X-limits for the current list
+	# yval      	... (numeric) vector specifying the Y-coordinates of horizontal lines
+	# Xdiff     	... (numeric) value specifying the width of a base cell (cell corresponding to a node)
+	# type      	... (integer) see 'type' above
+	# VARtype   	... (character) see 'VARtype' above
+	# StatsList 	... (list) for descriptive statistics
+	# VarLab		... (list of lists) specifying the labelling style in the tabular-environment
+	# MeanLine		... (list) of function arguments specifying factor-levels means
+	# VLine			... (list) of function arguments for vertically separating factor-levels
+	# Intercept 	... (list) of function arguments specifying the horizontal intercept-line
+	# JoinLevels	... (list) of functin arguments specifying lines joining factor-level means, nested within higher order factor
+	# draw.vertical ... (logical) indicating whether vertical lines in the table should be drawn or not, depends on 'max.level'
     
-    processList <- function(lst, xlim, yval, Xdiff, type, VARtype, StatsList, index=1, VarLab, MeanLine, Intercept)
+    processList <- function(lst, xlim, yval, Xdiff, type, VARtype, StatsList, index=1, 
+							VarLab, MeanLine, VLine, Intercept, JoinLevels, draw.vertical=TRUE)
     {
-        Xlower <- xlim[1]        
+        Xlower <- xlim[1]    
 
-        Stats <- attr(lst, "Stats")
-        Nelem <- attr(lst, "Nelem")
+        Stats  <- attr(lst, "Stats")
+        Nelem  <- attr(lst, "Nelem")
+		Nlevel <- attr(lst, "Nlevel")
         
         Names <- names(lst)
 		
@@ -651,6 +757,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
         for(i in 1:length(lst))
         {  
 			tmp <- lst[[i]]    
+			tmp.draw.vertical <- Nlevel[i] <= max.level								# no further sub-division if too many levels
 
             Xupper <- Xlower + Xdiff * Nelem[i]
 
@@ -701,7 +808,8 @@ varPlot <- function(form, Data, keep.order=TRUE,
                 }
             }
             
-            lines(x=rep(Xupper, 2), y=yval[1:2])                                    # draw vertical lines of the table       
+			if(draw.vertical || i == length(lst))
+            	lines(x=rep(Xupper, 2), y=yval[1:2])                                # draw vertical lines of the table       
   
             if(is.list(tmp))                                                        # recursive descent
             {	
@@ -710,12 +818,20 @@ varPlot <- function(form, Data, keep.order=TRUE,
                 VarLabel$x=mean(c(Xlower, Xupper))
                 VarLabel$y=mean(yval[1:2])
                 VarLabel$labels=Names[i]
-
-                do.call("text", args=VarLabel)
-               
+				
+				if(draw.vertical)
+                	do.call("text", args=VarLabel)
+				
+				if(!tmp.draw.vertical)
+				{
+					text(mean(c(Xlower, Xupper)),  mean(yval[2:3]), 
+						 paste("N=", Nlevel[i], sep=""), cex=.75)
+			 	}
+				
                 StatsList <- processList(lst=tmp, xlim=c(Xlower, Xupper), yval=yval[-1], Xdiff=Xdiff, type=type, 
 										 VARtype=VARtype, StatsList=StatsList, index=index, VarLab=VarLab[-1],
-										 MeanLine=MeanLine, Intercept=Intercept)
+										 MeanLine=MeanLine, VLine=VLine, Intercept=Intercept, JoinLevels=JoinLevels,
+										 draw.vertical=tmp.draw.vertical)
                 index <- attr(StatsList, "index")
             }
             else                                                                    # leaf-node reached (numeric vector)
@@ -725,7 +841,8 @@ varPlot <- function(form, Data, keep.order=TRUE,
                 VarLabel$y=mean(yval[1:2])
                 VarLabel$labels=Names[i]
 
-                do.call("text", args=VarLabel)
+				if(draw.vertical)
+					do.call("text", args=VarLabel)
                 
                 if(type == 1)
                 {
@@ -773,8 +890,10 @@ varPlot <- function(form, Data, keep.order=TRUE,
 					else
                     	Join$y=Points$y
 					
-                    do.call("lines", args=Join)
+                    #do.call("lines", args=Join)
+					rec.env$JoinCollection[[length(rec.env$JoinCollection)+1]] <- Join
                 }
+				
                 if(!is.null(Mean) && type == 1)
                 {
                     Mean$x=Points$x[1]
@@ -785,15 +904,20 @@ varPlot <- function(form, Data, keep.order=TRUE,
 						Mean$y[mstylim] <- NA
 					if(any(mgtylim))
 						Mean$y[mgtylim] <- NA
-                    do.call("points", args=Mean)
+					
+                    #do.call("points", args=Mean)
+					rec.env$MeanCollection[[length(rec.env$MeanCollection) + 1]] <- Mean
                 }
                 
                 Points$col <- attr(tmp, "Color")
 				Points$pch <- attr(tmp, "Symbol")
    
                 if(type == 1)
-                    do.call("points", args=Points)
-                else
+				{
+                    #do.call("points", args=Points)
+                	rec.env$PointsCollection[[length(rec.env$PointsCollection) + 1]] <- Points
+				}
+				else
                     do.call("points", args=SDs)
             }
 			
@@ -828,7 +952,88 @@ varPlot <- function(form, Data, keep.order=TRUE,
 				if(any(Mgtylim))
 					tmp.Mean$y[Mgtylim] <- NA
 				
-				do.call("lines", tmp.Mean)
+				#do.call("lines", tmp.Mean)
+				rec.env$MeanLineCollection[[length(rec.env$MeanLineCollection) + 1]] <- tmp.Mean
+			}
+			
+			nestInd <- which(nest == Factor)
+			
+			if( !is.null(VLine) && !is.null(Factor) && Factor %in% VLine$var)		# skip last vertical line
+			{
+				drawVLine <- TRUE
+				
+				if(nestInd > 1)														# not upper-most factor
+				{
+					if(nest[nestInd-1] %in% VLine$var)								# preceding factor in nesting structure also specified
+					{
+						drawVLine <- i < length(lst)
+					}
+				}
+				else
+				{
+					if(i == length(lst))
+						drawVLine <- FALSE											# omit last vertical line for upper-most factor
+				}
+				
+				if(drawVLine)														# do not draw last vertical line, this separates levels of the factor one level above
+				{
+					var.ind <- which(VLine$var == Factor)
+					VLineClone <- VLine
+					for(e in 1:length(VLineClone))									# only keep parameter values for current factor-variable
+					{
+						VLineClone[e] <- VLineClone[[e]][var.ind]
+					}
+					
+					VLine.default <- list(lty=1, lwd=1, col="black")
+					VLine.default[names(VLineClone)] <- VLineClone
+					VLineClone <- VLine.default
+					
+					tmpVLine <- VLineClone
+					tmpVLine$x <- c(Xupper, Xupper)
+					if("col.table" %in% names(tmpVLine))
+					{
+						tmpVLine$y <- c(yval[1], Range[2]+abs(diff(Range)))
+						tmpVLine$col.table <- NULL
+					}
+					else
+					{
+						tmpVLine$y <- c(Range[1], Range[2]+abs(diff(Range)))
+					}
+					tmpVLine$var <- NULL
+	
+					#do.call("lines", tmpVLine)
+					rec.env$VLineCollection[[length(rec.env$VLineCollection) + 1]] <- tmpVLine
+				}
+			}
+			
+
+			precFactor <- NULL
+			if(nestInd > 1)
+				precFactor <- nest[nestInd-1]											# preceding factor in nesting hierarchy
+			
+			if( !is.null(JoinLevels) && !is.null(Factor) && !is.null(precFactor) && Factor %in% JoinLevels$var)	# joining mean-values of current factor-variable
+			{
+				if(length(rec.env$JoinLevelsCollection[[Names[i]]]) == 0)
+				{
+					JoinLevelsClone <- JoinLevels
+					
+					JoinLevels.default <- list(lty=1, lwd=1)
+					JoinLevels.default[names(JoinLevelsClone)] <- JoinLevelsClone
+					JoinLevelsClone <- JoinLevels.default
+					JoinLevelsClone$col <- JLcolorMap[Names[i]]							# use correct color for current factor-level
+					
+					JoinLevelsClone$x <- mean(c(Xlower, Xupper))
+					JoinLevelsClone$y <- Stats$Mean[i]
+					JoinLevelsClone$var <- NULL
+					
+					rec.env$JoinLevelsCollection[[Names[i]]] <- JoinLevelsClone
+				}
+				else																	# only append X- and Y-coordinates
+				{
+					rec.env$JoinLevelsCollection[[Names[i]]]$x <- c(rec.env$JoinLevelsCollection[[Names[i]]]$x, mean(c(Xlower, Xupper)))
+					rec.env$JoinLevelsCollection[[Names[i]]]$y <- c(rec.env$JoinLevelsCollection[[Names[i]]]$y, Stats$Mean[i])
+					rec.env$JoinLevelsCollection[[Names[i]]]$col <- JLcolorMap[Names[i]]
+				}
 			}
 			
 			if(!is.null(tmpBG))														# all BG-drawing finished
@@ -895,10 +1100,58 @@ varPlot <- function(form, Data, keep.order=TRUE,
 
         StatsList <- processList(lst=lst, xlim=range(Xbound), yval=Ybound, Xdiff=Xdiff, type=1, 
 								 StatsList=StatsList, VARtype=VARtype, VarLab=VarLab, MeanLine=MeanLine, 
-								 Intercept=Intercept)   		  											
+								 Intercept=Intercept, VLine=VLine, JoinLevels=JoinLevels)   		  											
 
         box()
-        
+
+		if(length(rec.env$VLineCollection) > 0)
+		{
+			for(i in 1:length(rec.env$VLineCollection))								# now actually draw vertical lines, avoiding BG-coloring to partially cover them
+				do.call("lines", rec.env$VLineCollection[[i]])
+		
+			rec.env$VLineCollection <- NULL											# should not be returned
+		}
+		
+		if(length(rec.env$JoinLevelsCollection) > 0)
+		{
+			for(i in 1:length(rec.env$JoinLevelsCollection))						# now actually draw lines joining factor-level means
+				do.call("lines", rec.env$JoinLevelsCollection[[i]])
+		
+			rec.env$JoinLevelsCollection <- NULL
+		}
+		
+		if(length(rec.env$JoinCollection) > 0)										# vertical lines joining observations
+		{
+			for(i in 1:length(rec.env$JoinCollection))
+				do.call("lines", rec.env$JoinCollection[[i]])
+			
+			rec.env$JoinCollection <- NULL
+		}
+		
+		if(length(rec.env$MeanLineCollection) > 0)									# mean line per factor-level
+		{
+			for(i in 1:length(rec.env$MeanLineCollection))
+				do.call("lines", rec.env$MeanLineCollection[[i]])
+			
+			rec.env$MeanLineCollection <- NULL
+		}
+		
+		if(length(rec.env$PointsCollection) > 0)									# observations
+		{
+			for(i in 1:length(rec.env$PointsCollection))
+				do.call("points", rec.env$PointsCollection[[i]])
+			
+			rec.env$PointsCollection <- NULL
+		}
+		
+		if(length(rec.env$MeanCollection) > 0)										# Mean values in factor-levels of variable one above error
+		{
+			for(i in 1:length(rec.env$MeanCollection))
+				do.call("points", rec.env$MeanCollection[[i]])
+			
+			rec.env$MeanCollection <- NULL
+		}
+		
         if(!is.null(VCnam))
         {
             VCnam$side=2
@@ -933,7 +1186,8 @@ varPlot <- function(form, Data, keep.order=TRUE,
         StatsList <- list(SDvec=numeric(), Nobs=integer())
         #SDvec <- numeric()
         StatsList <- processList(lst=lst, xlim=range(Xbound), yval=SDYbound, Xdiff=Xdiff, type=2, StatsList=StatsList, 
-								VARtype=VARtype, VarLab=VarLab, MeanLine=MeanLine, Intercept=Intercept)   
+								VARtype=VARtype, VarLab=VarLab, MeanLine=MeanLine, Intercept=Intercept, VLine=VLine,
+								JoinLevels=JoinLevels)   
    
         if(!is.null(SDline))
         {
@@ -966,10 +1220,12 @@ varPlot <- function(form, Data, keep.order=TRUE,
     #    mtext(side=3, at=seq(rxb[1]+dx/2, rxb[2]-dx/2, length.out=len), text=tmp, cex=.75, line=1.25)
     #}
 
+	old.par$yaxs <- old.par$xaxs <- "i"						# unfortunatly need to be maintained in order to further add elements to the plot
+	old.par$mar <- par("mar")
 	par(old.par)
 
 	Data$Xcoord <- rec.env$dat$x
-	
+
 	invisible(Data)
 }
 
@@ -1076,7 +1332,7 @@ buildList <- function(Data, Nesting, Current, resp, keep.order=TRUE, useVarNam=T
     lst <- vector("list", length=length(lev))
     attr(lst, "factor") <- Current
     
-    Mean <- Median <- SD <- CV <- Nelem <- numeric(length(lev))
+    Mean <- Median <- SD <- CV <- Nelem <- Nlevel <- numeric(length(lev))
     Nbin <- 0
     SDrange <- c(Inf, -Inf)
     CVrange <- c(Inf, -Inf)
@@ -1144,10 +1400,12 @@ buildList <- function(Data, Nesting, Current, resp, keep.order=TRUE, useVarNam=T
                 CVrange[1] <- tmpCV[1] 
             if(tmpCV[2] > CVrange[2])
                 CVrange[2] <- tmpCV[2]
-        }    
+        } 
+		Nlevel[i] <- length(lst[[i]])
     }
-    attr(lst, "Nelem") <- Nelem
-    attr(lst, "Nbin") <- Nbin
+    attr(lst, "Nelem")   <- Nelem
+	attr(lst, "Nlevel")  <- Nlevel
+    attr(lst, "Nbin")    <- Nbin
     attr(lst, "SDrange") <- SDrange
     attr(lst, "CVrange") <- CVrange
     

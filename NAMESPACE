@@ -22,6 +22,7 @@ export(
 	"ranef",
 	"ranef.VCA",
 	"residuals.VCA",
+	"solveMME",
 	"stepwiseVCA",
 	"test.lsmeans",
 	"test.fixef",
@@ -31,14 +32,16 @@ export(
 	"VCAinference"
 )
 
-
 ### Packages which are imported (appearing in the Description->Imports enumeration)
 
 import( 
+	"graphics",
+	"grDevices",
+	"stats",
 	"numDeriv", 
+	"methods",
 	"Matrix"
 )
-
 
 ### exported classes
 
@@ -46,19 +49,13 @@ exportClasses( 	"VCA",
 		"VCAinference"
 	     )
 
-
-### S3-method registration
-
-S3method(as.matrix, VCA)
-S3method(coef, VCA)
-S3method(fixef, VCA)
 S3method(print, VCA)
-S3method(print, VCAinference)
-S3method(ranef, VCA)
+S3method(coef, VCA)
 S3method(residuals, VCA)
-S3method(vcov, VCA)  
-
-   
-### shared-object registration
+S3method(vcov, VCA)
+S3method(as.matrix, VCA)
+S3method(ranef, VCA)
+S3method(fixef, VCA)
+S3method(print, VCAinference)
 	     
 useDynLib(VCA)

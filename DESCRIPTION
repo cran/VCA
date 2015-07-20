@@ -1,21 +1,28 @@
 Package: VCA
-Version: 1.1.1
-Date: 2015-04-16
+Version: 1.2
+Date: 2015-07-20
 Title: Variance Component Analysis
 Author: Andre Schuetzenmeister <andre.schuetzenmeister@roche.com>
 Maintainer: Andre Schuetzenmeister <andre.schuetzenmeister@roche.com>
-Depends: R (>= 3.0.0), stats
-Imports: Matrix, numDeriv
-Description: ANOVA-type estimation (prediction) of random effects and variance components in linear mixed models,
-    is implemented. Random models, a sub-set of mixed models, can be fit applying a Variance Component Analysis (VCA).
-    This is a special type of analysis frequently used in verifying the precision performance of diagnostics. 
-    The Satterthwaite approximation of the total degrees of freedom is implemented. There are several functions 
-    for extracting, random effects, fixed effects, variance-covariance matrices of random and fixed effects. 
-    Residuals can be extracted as raw, standardized and studentized residuals. Additionally, a variability chart 
-    is implemented for visualizing the variability in sub-classes emerging from an experimental design ('varPlot').
+Depends: R (>= 3.0.0)
+Imports: stats, graphics, grDevices, Matrix, methods, numDeriv
+Description: ANOVA-type estimation (prediction) of random effects in linear mixed models is implemented, following
+             Searle et al. 1991 (ANOVA for unbalanced data). For better performance the SWEEP-Operator is now implemented
+             for generating the ANOVA Type-1 error sum of squares. The primary objective of this package is to perform
+             Variance Component Analyses (VCA). This is a special type of analysis frequently used in verifying the
+             precision performance of diagnostics. 
+             The Satterthwaite approximation of the total degrees of freedom and for individual variance components is
+             implemented. These are used in the Chi-Squared tests against a claimed value, and in the respective confidence intervals. 
+             Satterthwaite's approximation of denominator degrees of freedom in t-/F-tests of fixed effects are also
+             available. 
+             There are several functions for extracting, random effects, fixed effects, variance-covariance
+             matrices of random and fixed effects. Residuals (marginal, conditional) can be extracted as raw, standardized
+             and studentized residuals.
+             Additionally, plotting methods for residuals and random effects and a variability chart are available. The latter
+             is useful for visualizing the variability in sub-classes emerging from the experimental design.
 License: GPL (>= 3)
 Collate: 'plot.R' 'vca.R'
+Packaged: 2015-07-20 12:43:17 UTC; schueta6
 NeedsCompilation: yes
-Packaged: 2015-04-16 10:21:45 UTC; schueta6
 Repository: CRAN
-Date/Publication: 2015-04-27 09:02:57
+Date/Publication: 2015-07-20 18:08:54

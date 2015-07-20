@@ -1,4 +1,29 @@
-Version 1.1.1
+Version 1.2
 -------------
 
-- package version to be released on CRAN
+- the SWEEP-operator has been introduced as C-implementation in two versions:
+  1) An adapted, speed-optimized version for computing ANOVA Type-1 sum of squares and corresponding degrees of freedom.
+     This has been set as default method. This speeds up fitting models with many effects (random or fixed).
+  2) A full SWEEP-operator for matrix-inversion ('Sinv') replacing calls to function 'MPinv' speeding up the process
+     of obtaining a generalized inverse.
+- one can now choose between the "qf" and the "sweep" method in functions 'anovaVCA' and 'anovaMM', where the former
+  corresponds to the approach based on finding A-matrices for expression ANOVA Type-1 sum of squares as quadratic form in y,
+  which is a prerequisite of applying the exact method for finding the variance-covariance matrix of variance components (VarVC.method="scm")
+- in function 'anovaVCA' time consuming step of solving mixed model equations is now optional (argument "solveMME")
+  since these are not required for the core of a VCA-analysis. Whenever this step is a prerequisite for other computations
+  function 'solveMME' will be called and the original object will be updated automatically.
+- function 'solveMME' was also refactored, outsourcing computation of the Q-matrix to function 'residuals.VCA',
+  which is only needed in computing studentized, conditional residuals
+- in function 'varPlot' now vertical lines can be drawn via argument 'VLine' as additional option to highlight
+  levels of one or multiple factor variables besides argument 'BG'
+- in function 'varPlot' argument "max.level" was introduced setting an upper limit for the number of factor-levels for which 
+  in the table indicating the experimental design vertical lines will be added, if this limit is exceeded, the number of levels
+  will be printed instead as e.g. "N=26"
+- in function 'varPlot' graphical "xaxs" and "yaxs" are not reset to their values prior to calling this function, avoiding 
+  annoying clipping of e.g. horizontal lines, which never reached the upper end of the plotting region
+- function 'Solve' was added, using the Cholesky-root for solving a system of linear equations, respectively, inverting
+  a matrix
+- dataset "dataEP05A2_example" has been renamed to "Glucose" the original name in the CLSI EP05-A3 guideline
+- dataset "CA19_9" has been added, a multi-sample, reproducibility dataset from the CLSI EP05-A3 guideline
+- now using Diagonal(N) instead of Matrix(diag(N)) which was a remainder from early phases of development and terribly slow
+- by-processing is now supported in functions 'anovaVCA', 'anovaMM', 'VCAinference' and 'print.VCAinference'

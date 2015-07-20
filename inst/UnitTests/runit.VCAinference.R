@@ -42,39 +42,44 @@ data(dataEP05A3_MS_3)
 
 TF001.VCAinference.constrained_CIs.balanced <- function()
 {
-    INF <- VCAinference(anovaVCA(y~day/run, Data=dataEP05A2_1, NegVC=TRUE), VarVC=TRUE, excludeNeg=FALSE, constrainCI=TRUE) 
+	fit1 <- anovaVCA(y~day/run, Data=dataEP05A2_1, NegVC=TRUE, MME=TRUE)
+    INF1 <- VCAinference(fit1, VarVC=TRUE, excludeNeg=FALSE, constrainCI=TRUE) 
     
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "LCL"]), 4), c(2.4156,        0,      0, 1.3167))            # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "UCL"]), 4), c(4.7767,  1.0322,  2.8455, 3.1980))            # CI VC two-sided upper limits
+    checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "LCL"]), 4), c(2.4156,        0,      0, 1.3167))            # CI VC two-sided lower limits
+    checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "UCL"]), 4), c(4.7767,  1.0322,  2.8455, 3.1980))            # CI VC two-sided upper limits
     
-    INF <- VCAinference(anovaVCA(y~day/run, Data=dataEP05A2_2, NegVC=TRUE), VarVC=TRUE, excludeNeg=FALSE, constrainCI=TRUE)
+	fit2 <- anovaVCA(y~day/run, Data=dataEP05A2_2, NegVC=TRUE, MME=TRUE)
+    INF2 <- VCAinference(fit2, VarVC=TRUE, excludeNeg=FALSE, constrainCI=TRUE)
      
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "LCL"]), 4), c(5.9669,       0,       0, 2.5077))            # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "UCL"]), 4), c(12.7046, 4.8921,  5.8428, 6.0906))            # CI VC two-sided upper limits
+    checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[, "LCL"]), 4), c(5.9669,       0,       0, 2.5077))            # CI VC two-sided lower limits
+    checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[, "UCL"]), 4), c(12.7046, 4.8921,  5.8428, 6.0906))            # CI VC two-sided upper limits
     
-    INF <- VCAinference(anovaVCA(y~day/run, Data=dataEP05A2_3, NegVC=TRUE), VarVC=TRUE, excludeNeg=FALSE, constrainCI=TRUE)
+	fit3 <- anovaVCA(y~day/run, Data=dataEP05A2_3, NegVC=TRUE, MME=TRUE)
+    INF3 <- VCAinference(fit3, VarVC=TRUE, excludeNeg=FALSE, constrainCI=TRUE)
    
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "LCL"]), 4), c(24.8957,  0,       0,       10.9764))          # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "UCL"]), 4), c(54.8935,  25.6818, 17.0897, 26.6590))         # CI VC two-sided upper limits
+    checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[, "LCL"]), 4), c(24.8957,  0,       0,       10.9764))          # CI VC two-sided lower limits
+    checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[, "UCL"]), 4), c(54.8935,  25.6818, 17.0897, 26.6590))         # CI VC two-sided upper limits
 }    
 
 TF002.VCAinference.unconstrained_CIs.balanced <- function()
 {
+    fit1 <- anovaVCA(y~day/run, Data=dataEP05A2_1, NegVC=TRUE, MME=TRUE)
+    INF1 <- VCAinference(fit1, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE) 
     
-    INF <- VCAinference(anovaVCA(y~day/run, Data=dataEP05A2_1, NegVC=TRUE), VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE) 
+    checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "LCL"]), 4), c(2.4156, -1.0300, -0.1565, 1.3167))            # CI VC two-sided lower limits
+    checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "UCL"]), 4), c(4.7767,  1.0322,  2.8455, 3.1980))            # CI VC two-sided upper limits
     
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "LCL"]), 4), c(2.4156, -1.0300, -0.1565, 1.3167))            # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "UCL"]), 4), c(4.7767,  1.0322,  2.8455, 3.1980))            # CI VC two-sided upper limits
+	fit2 <- anovaVCA(y~day/run, Data=dataEP05A2_2, NegVC=TRUE, MME=TRUE)
+    INF2 <- VCAinference(fit2, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)
     
-    INF <- VCAinference(anovaVCA(y~day/run, Data=dataEP05A2_2, NegVC=TRUE), VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)
+    checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[, "LCL"]), 4), c(5.9669, -1.1845, -0.1907, 2.5077))            # CI VC two-sided lower limits
+    checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[, "UCL"]), 4), c(12.7046, 4.8921,  5.8428, 6.0906))            # CI VC two-sided upper limits
     
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "LCL"]), 4), c(5.9669, -1.1845, -0.1907, 2.5077))            # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "UCL"]), 4), c(12.7046, 4.8921,  5.8428, 6.0906))            # CI VC two-sided upper limits
+	fit3 <- anovaVCA(y~day/run, Data=dataEP05A2_3, NegVC=TRUE, MME=TRUE)
+    INF3 <- VCAinference(fit3, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)
     
-    INF <- VCAinference(anovaVCA(y~day/run, Data=dataEP05A2_3, NegVC=TRUE), VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)
-    
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "LCL"]), 4), c(24.8957, -1.2196, -3.0273, 10.9764))          # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "UCL"]), 4), c(54.8935,  25.6818, 17.0897, 26.6590))         # CI VC two-sided upper limits
+    checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[, "LCL"]), 4), c(24.8957, -1.2196, -3.0273, 10.9764))          # CI VC two-sided lower limits
+    checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[, "UCL"]), 4), c(54.8935,  25.6818, 17.0897, 26.6590))         # CI VC two-sided upper limits
 }
 
 
@@ -83,45 +88,52 @@ TF003.VCAinference.negative_VC.balanced <- function()
 
     # constrainCI has to be TRUE whenever any VC-estimates were set to 0
     
-	INF <- VCAinference(anovaVCA(y~day/run, data1), VarVC=TRUE, constrainCI=FALSE)                                                 
-	checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "LCL"]), 4), c( 24.2184, NA, 0.0000, 14.4422))
+	fit1 <- anovaVCA(y~day/run, data1, MME=TRUE)
+	INF1 <- VCAinference(fit1, VarVC=TRUE, constrainCI=FALSE)                                                 
+	checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "LCL"]), 4), c( 24.2184, NA, 0.0000, 14.4422))
 	
 	# if CIs for originally negative VC estimates should not be excluded, always constrain them to zero if VC estimates were constrained 
 	
-	INF <- VCAinference(anovaVCA(y~day/run, data1), VarVC=TRUE, excludeNeg=FALSE)                                                  
-	checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "LCL"]), 4), c(24.2184, 0.0000, 0.0000, 14.4422))
+	fit2 <- anovaVCA(y~day/run, data1, MME=TRUE)
+	INF2 <- VCAinference(fit2, VarVC=TRUE, excludeNeg=FALSE)                                                  
+	checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[, "LCL"]), 4), c(24.2184, 0.0000, 0.0000, 14.4422))
 	
 	# CIs of results with negative VC estimates, which are reported unconstrained (NegVC=TRUE in anovaVCA), cannot be constrained
 	
 	# they can only be excluded (Default)
 	
-	INF <- VCAinference(anovaVCA(y~day/run, data1, NegVC=TRUE), VarVC=TRUE, excludeNeg=TRUE)                                                  
-	checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "LCL"]), 4), c(19.2231, NA, -3.0623, 14.4422))
+	fit3 <- anovaVCA(y~day/run, data1, NegVC=TRUE, MME=TRUE)
+	INF3 <- VCAinference(fit3, VarVC=TRUE, excludeNeg=TRUE)                                                  
+	checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[, "LCL"]), 4), c(19.2231, NA, -3.0623, 14.4422))
 	
 	# or not 
 	
-	INF <- VCAinference(anovaVCA(y~day/run, data1, NegVC=TRUE), VarVC=TRUE, excludeNeg=FALSE)                                                  
-	checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "LCL"]), 4), c(19.2231, -14.1191, -3.0623, 14.4422))
+	fit4 <- anovaVCA(y~day/run, data1, NegVC=TRUE, MME=TRUE)
+	INF4 <- VCAinference(fit4, VarVC=TRUE, excludeNeg=FALSE)                                                  
+	checkEquals(round(as.numeric(INF4$ConfInt$VC$TwoSided[, "LCL"]), 4), c(19.2231, -14.1191, -3.0623, 14.4422))
 }
     
     # check EP05-A3 3/5/5 Multi-Site output for balanced data (total variance, error variance)
 
 TF004.VCAinference.VC_CI.balanced <- function()
 {
-    INF <- VCAinference(anovaVCA(y~site/day, Data=dataEP05A3_MS_1, NegVC=TRUE), VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)
+	fit1 <- anovaVCA(y~site/day, Data=dataEP05A3_MS_1, NegVC=TRUE, MME=TRUE)
+    INF1 <- VCAinference(fit1, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)
     
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "LCL"]), 4), c(2.0437, -1.2939, -0.3148, 1.6365))            # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[, "UCL"]), 4), c(8.1959,  3.3287,  1.0065, 3.3674))            # CI VC two-sided upper limits
+    checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "LCL"]), 4), c(2.0437, -1.2939, -0.3148, 1.6365))            # CI VC two-sided lower limits
+    checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "UCL"]), 4), c(8.1959,  3.3287,  1.0065, 3.3674))            # CI VC two-sided upper limits
     
-    INF <- VCAinference(anovaVCA(y~site/day, Data=dataEP05A3_MS_2, NegVC=TRUE), VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)                                         # total not tested
+	fit2 <- anovaVCA(y~site/day, Data=dataEP05A3_MS_2, NegVC=TRUE, MME=TRUE)
+    INF2 <- VCAinference(fit2, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)                                         # total not tested
     
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[-1, "LCL"]), 4), c(-1.6806, -0.4157, 2.6842))                  # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[-1, "UCL"]), 4), c( 3.7022,  2.4723, 5.5231))                  # CI VC two-sided upper limits
+    checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[-1, "LCL"]), 4), c(-1.6806, -0.4157, 2.6842))                  # CI VC two-sided lower limits
+    checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[-1, "UCL"]), 4), c( 3.7022,  2.4723, 5.5231))                  # CI VC two-sided upper limits
     
-    INF <- VCAinference(anovaVCA(y~site/day, Data=dataEP05A3_MS_3, NegVC=TRUE), VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)                                         # total not tested
+	fit3 <- anovaVCA(y~site/day, Data=dataEP05A3_MS_3, NegVC=TRUE, MME=TRUE)
+    INF3 <- VCAinference(fit3, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)                                         # total not tested
     
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[-1, "LCL"]), 4), c(-20.5980, -1.4056, 10.8222))                # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF$ConfInt$VC$TwoSided[-1, "UCL"]), 4), c( 56.5796, 12.2530, 22.2685))                # CI VC two-sided upper limits
+    checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[-1, "LCL"]), 4), c(-20.5980, -1.4056, 10.8222))                # CI VC two-sided lower limits
+    checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[-1, "UCL"]), 4), c( 56.5796, 12.2530, 22.2685))                # CI VC two-sided upper limits
 }
 
 

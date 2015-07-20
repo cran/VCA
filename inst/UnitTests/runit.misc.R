@@ -236,7 +236,7 @@ TF010.ranef.balanced.nested <- function()
 	SASre  <- c(0.000201,0.002605,-0.00054,-0.00182,-0.00119,0.000152,0.001162,-0.00122, 0.000293,-0.00087,-0.00009,0.000457,-0.00079,-0.00031,0.001124,0.00062,0.00058,0.000421,-0.00096,0.000188,0.23,1.7866,0.4298,-2.2927,-0.5359,0.3628,0.1836,-1.8719,0.7564,-1.6238,-0.6192,0.7676,-0.3797,-0.7438,-0.09473,0.6637,0.1288,0.5929,-1.4274,0.5381,0.01714,1.4101,-1.0957,0.05366,-0.9255,-0.1757,1.242,0.3798,-0.3971,0.5512,0.5044,-0.2064,-0.5919,0.3678,1.4737,0.09764,0.5825,-0.07603,0.245,-0.3075)
 	digits <- nchar(gsub(".*\\.", "", as.character(SASre))) 
 	fit <- anovaVCA(y~day/run, dataEP05A2_1)
-	fit <- VCA:::solveMM(fit)
+	fit <- solveMME(fit)
 	
 	checkEquals(as.numeric(round(ranef(fit)[,1], digits)), SASre)
 	options(old.opt)
@@ -250,7 +250,7 @@ TF011.ranef.balanced.nested <- function()
 	SASre  <- c(-1.3614,0.9946,-0.3492,2.2449,-1.0212,-0.2419,-0.09628,-1.1657,1.4828,-0.08096,-0.4642,-0.473,-0.2088,0.4715,1.0583,-0.17,-0.07924,-0.1185,0.4657,-0.8874,-1.536,-0.3423,-0.06817,0.5967,0.7873,-0.3391,-0.3554,0.1041,0.07095,-0.03257,-2.3438,1.1429,-0.4562,0.2562,1.6627,-0.9192,-1.2352,-0.6738,0.7737,-0.4168,-0.5393,1.8585,-0.4641,2.8256,-2.3442,-0.02973,0.2087,-1.8812,2.1895,-0.09085,1.6362,-1.864,0.1378,0.4626,-0.04928,0.6601,1.1144,0.4931,-0.06373,-0.9361)
 	digits <- nchar(gsub(".*\\.", "", as.character(SASre))) 
 	fit <- anovaVCA(y~day/run, dataEP05A2_2)
-	fit <- VCA:::solveMM(fit)
+	fit <- solveMME(fit)
 	
 	checkEquals(as.numeric(round(ranef(fit)[,1], digits)), SASre)
 	options(old.opt)
@@ -264,7 +264,7 @@ TF012.ranef.balanced.nested <- function()
 	SASre  <- c(0.6753,-2.1525,0.595,4.8068,1.9164,1.6353,-2.7515,-3.2263,0.2208,1.6819,0.005058,4.8909,0.9292,3.971,-0.2123,-5.0957,-3.8365,-1.7749,-1.7071,-0.5711,0.5098,-0.07488,1.0364,3.7443,0.2138,-1.9382,-2.065,-2.4335,-0.3697,0.008577,0.4418,2.8435,-1.7807,2.4792,2.1879,-0.1801,-1.2571,-0.6198,0.1537,-0.6488,-0.1216,-1.1625,-0.6944,-0.981,0.8879,2.8783,0.4832,0.5788,0.4966,0.9583,-0.4389,-0.03192,2.3149,-0.1964,-2.31,-2.7492,-0.9484,-0.4006,-1.1351,0.3206)
 	digits <- nchar(gsub(".*\\.", "", as.character(SASre))) 
 	fit <- anovaVCA(y~day/run, dataEP05A2_3)
-	fit <- VCA:::solveMM(fit)
+	fit <- solveMME(fit)
 	
 	checkEquals(as.numeric(round(ranef(fit)[,1], digits)), SASre)
 	options(old.opt)
@@ -292,7 +292,7 @@ TF013.ranef.unbalanced.nested <- function()
 	SASre  <- c(-0.04937,-0.6243,0.1375,0.3915,0.2943,0.03382,-0.275,0.3004,-0.06473,0.2177,0.02878,-0.1045,0.07342,0.08029,-0.2658,-0.144,-0.1341,-0.09579,0.2393,-0.03934,0.2539,2.2287,0.3491,-2.3509,-0.7547,0.3425,-2.1535,0.813,-1.8442,-0.6803,0.8489,0.2013,-0.8418,0.04628,0.7644,0.1997,0.6611,-1.6523,0.5696,0.06753,1.8355,-1.244,-0.1982,-1.1615,-0.2202,1.4478,0.198,-0.3916,0.4271,0.493,-0.1683,-0.6793,0.3191,1.6842,0.1732,0.6735,-0.03746,0.09424,-0.3134)
 	digits <- nchar(gsub(".*\\.", "", as.character(SASre))) 
 	fit <- anovaVCA(y~day/run, dataEP05A2_1[-c(3,13,21,22,50), ], NegVC=TRUE)
-	fit <- VCA:::solveMM(fit)
+	fit <- solveMME(fit)
 	
 	checkEquals(as.numeric(round(ranef(fit)[,1], digits)), SASre)
 	options(old.opt)
@@ -307,7 +307,7 @@ TF014.ranef.unbalanced.nested <- function()
 	SASre  <- c(-1.1456,0.6634,0.463,1.9848,-0.8504,-0.1739,-0.04745,-0.9272,0.9797,-0.03415,-0.3668,-0.3744,-0.2066,0.329,0.9548,-0.1114,-0.4822,-0.06678,0.1464,-0.7342,-1.6664,-0.08874,1.0566,0.8392,0.7674,-0.3348,-0.3397,0.01771,0.4464,-0.00412,-2.4289,1.1808,-0.4149,0.03393,1.8452,-0.9296,-0.9685,-0.6712,0.1018,-0.4684,-0.6344,1.4211,-0.1266,3.1471,-2.4752,-0.01445,0.2444,-1.8798,1.5212,-0.06447,1.6922,-1.9328,0.6268,0.07245,0.7058,0.5371,0.1922,-1.0062)
 	digits <- nchar(gsub(".*\\.", "", as.character(SASre))) 
 	fit <- anovaVCA(y~day/run, dataEP05A2_2[-c(8, 9, 12, 32, 35, 51, 52, 53, 67, 68, 73), ], NegVC=TRUE)
-	fit <- VCA:::solveMM(fit)
+	fit <- solveMME(fit)
 	
 	checkEquals(as.numeric(round(ranef(fit)[,1], digits)), SASre)
 	options(old.opt)
@@ -323,7 +323,7 @@ TF015.ranef.unbalanced.nested <- function()
 	SASre  <- c(0.6958,-2.1514,0.3809,4.7516,1.8846,1.4953,-2.7456,-3.3254,0.2027,1.652,0.1019,4.8351,0.9999,3.9225,-0.2269,-5.2604,-3.8218,-1.0984,-1.7096,-0.5828,0.5248,-0.08342,1.068,3.5725,0.2055,-1.9519,-1.9777,-2.2817,-0.3553,0.009593,0.5286,2.7164,-1.7359,2.3667,2.0749,-0.3834,-1.2134,-0.899,0.1355,-0.6235,-0.1364,-1.1175,-0.8554,-0.9202,0.8465,2.7865,0.4451,0.4255,0.4684,0.9125,-0.4717,-0.01747,2.2941,-0.1771,-2.2015,-2.553,-0.9199,0.2859,-1.0898,0.2982)
 	digits <- nchar(gsub(".*\\.", "", as.character(SASre))) 
 	fit <- anovaVCA(y~day/run, dataEP05A2_3[-c(1, 11, 21, 31, 41, 51, 61, 71 ), ], NegVC=TRUE)
-	fit <- VCA:::solveMM(fit)
+	fit <- solveMME(fit)
 	
 	checkEquals(as.numeric(round(ranef(fit)[,1], digits)), SASre)
 	options(old.opt)
@@ -589,4 +589,80 @@ TF026.lsmeans.complex_model.including_covariate <- function()
 	lsm <- lsmeans(fit, c("lot", "device"))
 	
 	checkEquals( round(as.numeric(lsm[,"Estimate"]), 4), c(2.8143, 2.5496, 2.6720, 2.7762, 2.7380, 2.5217) )
+}
+
+
+# check whether result of by-processed samples are identical to 
+# separately computed results.
+
+TF027.anovaVCA.by_processing <- function()
+{
+	data(CA19_9)
+	fit.lst <- anovaVCA(result~site/day, CA19_9, by="sample")
+	samples <- gsub("sample\\.", "",names(fit.lst))
+	
+	for(i in 1:length(fit.lst))
+	{
+		tmp.fit <- anovaVCA(result~site/day, CA19_9[CA19_9$sample == samples[i],])
+		checkEquals(fit.lst[[i]]$aov.tab, tmp.fit$aov.tab)
+	}
+}
+
+# check whether result of by-processed samples are identical to 
+# separately computed results. Use artifical mixed model with site
+# as fixed factor
+
+TF028.anovaMM.by_processing <- function()
+{
+	data(CA19_9)
+	fit.lst <- anovaMM(result~site/(day), CA19_9, by="sample")
+	samples <- gsub("sample\\.", "",names(fit.lst))
+	
+	for(i in 1:length(fit.lst))
+	{
+		tmp.fit <- anovaMM(result~site/(day), CA19_9[CA19_9$sample == samples[i],])
+		print(checkEquals(fit.lst[[i]]$aov.tab, tmp.fit$aov.tab))
+	}
+}
+
+# check whether function VCAinference correctly handles
+# the list-object returned by function 'anovaVCA' when by-processing
+# is used
+
+TF029.anovaVCA.by_processing <- function()
+{
+	data(CA19_9)
+	fit.lst <- anovaVCA(result~site/day, CA19_9, by="sample")
+	samples <- gsub("sample\\.", "",names(fit.lst))
+	inf.lst <- VCAinference(fit.lst)
+	
+	for(i in 1:length(fit.lst))
+	{
+		tmp.fit <- anovaVCA(result~site/day, CA19_9[CA19_9$sample == samples[i],])
+		tmp.inf <- VCAinference(tmp.fit)
+		checkEquals(inf.lst[[i]]$aov.tab, tmp.inf$aov.tab)
+	}
+}
+
+# check whether function VCAinference correctly handles 
+# the list-object returned by function 'anovaVCA' when by-processing
+# and vector-arguments, e.g. 
+
+TF030.anovaVCA.by_processing <- function()
+{
+	data(CA19_9)
+	fit.lst <- anovaVCA(result~site/day, CA19_9, by="sample")
+	samples <- gsub("sample\\.", "",names(fit.lst))
+	
+	total.specs <- c(1, 3, 5, 30, 80, 200)
+	error.specs <- c(.5, 2, 2, 5, 50, 75)
+	
+	inf.lst <- VCAinference(fit.lst, total.claim=total.specs, error.claim=error.specs)	
+	
+	for(i in 1:length(fit.lst))
+	{
+		tmp.fit <- anovaVCA(result~site/day, CA19_9[CA19_9$sample == samples[i],])
+		tmp.inf <- VCAinference(tmp.fit, total.claim=total.specs[i], error.claim=error.specs[i])
+		print(checkEquals(inf.lst[[i]]$aov.tab, tmp.inf$aov.tab))
+	}
 }

@@ -263,3 +263,14 @@ TF014.anovaMM.missing_value_handling <- function()
 	checkEquals(res1$Nobs, 71)
 	checkEquals(res2$Nobs, 71)
 }
+
+# testcase checks results against SAS PROC MIXED results with ANOVA Type-1 estimation
+# of random effects. Dataset is taken from R-package lme4
+
+TF015.anovaMM.sleepstudy <- function()
+{
+	data(sleepstudy)
+	fit.mm <- anovaMM(Reaction~Days*(Subject), sleepstudy)
+	
+	checkEquals(round(as.numeric(fit.mm$aov.tab[-1,"VC"]), 5), c(698.52894, 35.07166, 654.94103))
+}

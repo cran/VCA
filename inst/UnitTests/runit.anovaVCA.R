@@ -388,7 +388,9 @@ TF021.anovaDF.unbalanced <- function()
 
 data(VCAdata1)
 datS1to2 <- VCAdata1[VCAdata1$sample %in% 1:2,]
+datS4to5 <- VCAdata1[VCAdata1$sample %in% 4:5,]
 datS1to2.ub <- datS1to2[-c(8, 72, 85, 140, 152, 174, 219, 265, 284, 288, 294, 316, 324, 328, 338, 349, 432, 450, 456, 493),]
+datS4to5.ub <- datS1to2[-c(56, 116, 170, 184, 211, 219, 221, 256, 257, 261, 309, 359, 376, 403, 432, 440, 459, 460, 474, 475),]
 
 
 TF022.anovaDF.balanced <- function()
@@ -439,6 +441,78 @@ TF026.anovaDF.balanced.ordering <- function()
 	checkTrue(any(as.numeric(rm.fit$aov.tab[-1, "DF"]) != as.numeric(aov.fit[,"Df"])))
 }
 
+
+# check numerical equivalence of sweep-based and quadratic form-based SSQ computation to reference results
+
+TF027.check.sweep_vs_qf_ssq_computation <- function()
+{
+	SAS.res <- c(1.431413, 0.036431, 0.036123, 0.025228, 0.061443)
+	data(realData)
+	dat1   <- realData[realData$PID==1,]
+	fit.qf <- anovaVCA(y~lot/calibration/day/run, dat1, SSQ.method="qf")
+	fit.ws <- anovaVCA(y~lot/calibration/day/run, dat1, SSQ.method="sweep")
+	R.res.qf <- round(as.numeric(fit.qf$aov.tab[-1, "VC"]), 6)
+	R.res.sw <- round(as.numeric(fit.qf$aov.tab[-1, "VC"]), 6)
+	checkEquals(R.res.qf, SAS.res)
+	checkEquals(R.res.sw, SAS.res)
+	checkEquals(R.res.qf, R.res.sw)
+}
+
+
+# check numerical equivalence of sweep-based and quadratic form-based SSQ computation to each other
+
+TF028.check.sweep_vs_qf_ssq_computation.balanced <- function()
+{
+	fit.qf <- anovaVCA(y~(sample+device+lot)/day/run, datS1to2, SSQ.method="qf")
+	fit.sw <- anovaVCA(y~(sample+device+lot)/day/run, datS1to2, SSQ.method="sweep")
+	
+	checkEquals(c(fit.qf$aov.tab), c(fit.sw$aov.tab))
+}
+
+# check numerical equivalence of sweep-based and quadratic form-based SSQ computation to each other
+
+TF029.check.sweep_vs_qf_ssq_computation.unbalanced <- function()
+{
+	fit.qf <- anovaVCA(y~(sample+device+lot)/day/run, datS1to2.ub, SSQ.method="qf")
+	fit.sw <- anovaVCA(y~(sample+device+lot)/day/run, datS1to2.ub, SSQ.method="sweep")
+	
+	checkEquals(c(fit.qf$aov.tab), c(fit.sw$aov.tab))
+}
+
+# check numerical equivalence of sweep-based and quadratic form-based SSQ computation to each other
+
+TF030.check.sweep_vs_qf_ssq_computation.balanced <- function()
+{
+	fit.qf <- anovaVCA(y~(sample+device+lot)/day/run, datS4to5, SSQ.method="qf")
+	fit.sw <- anovaVCA(y~(sample+device+lot)/day/run, datS4to5, SSQ.method="sweep")
+	
+	checkEquals(c(fit.qf$aov.tab), c(fit.sw$aov.tab))
+}
+
+# check numerical equivalence of sweep-based and quadratic form-based SSQ computation to each other
+
+TF031.check.sweep_vs_qf_ssq_computation.unbalanced <- function()
+{
+	fit.qf <- anovaVCA(y~(sample+device+lot)/day/run, datS4to5.ub, SSQ.method="qf")
+	fit.sw <- anovaVCA(y~(sample+device+lot)/day/run, datS4to5.ub, SSQ.method="sweep")
+	
+	checkEquals(c(fit.qf$aov.tab), c(fit.sw$aov.tab))
+}
+
+
+# check validity of C-implementation "getAmatBat" in R-function getCmatrix for dense
+# model matrices. Reference results from SAS PROC MIXED method=type1.
+
+TF032.check.getAmatBmat.dense.C <- function()
+{
+	tmp.dat <- data.frame(	y=c(1.91935483870968, 1.88709677419355, 1.9741935483871, 1.88387096774194),
+							v=c(1,1,2,3))
+					
+	fit <- anovaVCA(y~v, tmp.dat)
+	
+	checkEquals(round(as.numeric(fit$aov.tab[-1, "VC"]), 6), c(0.001482, 0.000520))
+	checkEquals(round(as.numeric(fit$aov.tab[-1, "MS"]), 6), c(0.002373, 0.000520))
+}
 
 
 
