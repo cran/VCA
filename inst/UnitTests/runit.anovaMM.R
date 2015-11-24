@@ -274,3 +274,17 @@ TF015.anovaMM.sleepstudy <- function()
 	
 	checkEquals(round(as.numeric(fit.mm$aov.tab[-1,"VC"]), 5), c(698.52894, 35.07166, 654.94103))
 }
+
+
+# testcase which should generate a warning due to numerical instabilities
+# using function 'chol2inv' for obtaining a matrix inverse.
+# This unit-test ensures that an exceptions is thrown and that it is handled
+# correctly yielding correct results. Reference results are generated with 
+# SAS PROC MIXED mehtod=type1.
+
+TF016.anovaMM.error.chol2inv <- function()
+{
+	data(chol2invData)
+	fit <- anovaMM(value~ID+(Site), chol2invData)
+	checkEquals(fit$VCoriginal, c(-0.0237369, 1.35363935))
+}

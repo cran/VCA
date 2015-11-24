@@ -6,7 +6,7 @@
 \usage{
 VCAinference(obj, alpha = 0.05, total.claim = NA, error.claim = NA,
   claim.type = "VC", VarVC = FALSE, excludeNeg = TRUE,
-  constrainCI = TRUE, ci.method = c("sas", "satterthwaite"))
+  constrainCI = TRUE, ci.method = "sas")
 }
 \arguments{
 \item{obj}{(object) of class 'VCA' or, alternatively, a list of 'VCA' objects, where all other argument can be

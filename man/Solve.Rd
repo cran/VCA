@@ -17,16 +17,21 @@ This function is intended to reduce the computational time in function
 \code{\link{solveMME}} which computes the inverse of the square variance-
 covariance Matrix of observations. It is considerably faster than function
 \code{\link{solve}} (see example).
+Whenever an error occurs, which is the case for non positive definite matrices
+'X', function \code{\link{MPinv}} is called automatically yielding a generalized
+inverse (Moore-Penrose inverse) of 'X'.
 }
 \examples{
 \dontrun{
 # following complex (nonsense) model takes pretty long to fit
 system.time(res.sw <- anovaVCA(y~(sample+lot+device)/day/run, VCAdata1))
+# solve mixed model equations (not automatically done to be more efficient)
+system.time(res.sw <- solveMME(res.sw))
 # extract covariance matrix of observations V
 V1 <- getMat(res.sw, "V")
-V2 <- as.matrix(V)
+V2 <- as.matrix(V1)
 system.time(V2i <- solve(V2))
-system.time(V1i <- Solve(V))
+system.time(V1i <- VCA:::Solve(V1))
 V1i <- as.matrix(V1i)
 dimnames(V1i) <- NULL
 dimnames(V2i) <- NULL

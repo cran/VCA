@@ -19,21 +19,22 @@ of type "numeric", "factor" or "character". The latter will be automatically con
 \item{by}{(factor, character) variable specifying groups for which the analysis should be performed individually,
 i.e. by-processing}
 
-\item{VarVC.method}{(character) string specifying whether to use the algorithm given in the
-   1st reference ("scm") or in the 2nd refernce ("gb"). Method "scm" (Searle, Casella, McCulloch)
+\item{VarVC.method}{(character) string specifying whether to use the algorithm given in Searle et al. (1992) which corresponds to \code{VarVC.method="scm"} or in
+   Giesbrecht and Burns (1985) which can be specified via "gb". Method "scm" (Searle, Casella, McCulloch)
 is the exact algorithm but slower, "gb" (Giesbrecht, Burns) is termed "rough approximation"
    by the authors, but sufficiently exact compared to e.g. SAS PROC MIXED (method=type1) which
    uses the inverse of the Fisher-Information matrix as approximation. For balanced designs all
 methods give identical results, only in unbalanced designs differences occur.}
 
 \item{SSQ.method}{(character) string specifying the method used for computing ANOVA Type-1 sum of squares and respective degrees of freedom.
-   In case of "sweep" funtion \code{\link{getSSQsweep}} will be called, otherwise, function \code{\link{getSSQqf}}
-TRUE = negative variance component estimates will not be set to 0 and they will contribute to the total variance (original definition of the total variance).}
+In case of "sweep" funtion \code{\link{getSSQsweep}} will be called, otherwise, function \code{\link{getSSQqf}}}
 
 \item{NegVC}{(logical) FALSE = negative variance component estimates (VC) will be set to 0 and they will not
    contribute to the total variance (as done e.g. in SAS PROC NESTED, conservative estimate of total variance).
    The original ANOVA estimates can be found in element 'VCoriginal'.
-The degrees of freedom of the total variance are based on adapted mean squares (MS) (see details).}
+The degrees of freedom of the total variance are based on adapted mean squares (MS) (see details).
+   TRUE = negative variance component estimates will not be set to 0 and they will contribute to the total
+   variance (original definition of the total variance).}
 }
 \value{
 (VCA) object
@@ -67,6 +68,8 @@ and \eqn{VC} is the column-vector of adapted variance components. The Satterthwa
 
 Note, that setting negative VCs equal to zero results in a conservative estimate of the total variance, i.e. it will be larger than
 the estimate including the negative VC(s). Use parameter 'NegVC=TRUE' to explicitly allow negative variance estimates.
+
+For further details on ANOVA Type-I estimation methods see \code{\link{anovaVCA}}.
 }
 \examples{
 \dontrun{
@@ -84,8 +87,8 @@ anovaVCA(y~day/run, dataEP05A2_2)
 # use different approaches to estimating the covariance of
 # variance components (covariance parameters)
 dat.ub <- dataEP05A2_2[-c(11,12,23,32,40,41,42),]			# get unbalanced data
-m1.ub <- anovaMM(y~day/(run), dat.ub, VarVC.method="scm")
-m2.ub <- anovaMM(y~day/(run), dat.ub, VarVC.method="gb")		# is faster
+m1.ub <- anovaMM(y~day/(run), dat.ub, SSQ.method="qf", VarVC.method="scm")
+m2.ub <- anovaMM(y~day/(run), dat.ub, SSQ.method="qf", VarVC.method="gb")		# is faster
 V1.ub <- round(vcovVC(m1.ub), 12)
 V2.ub <- round(vcovVC(m2.ub), 12)
 all(V1.ub == V2.ub)
@@ -93,8 +96,8 @@ all(V1.ub == V2.ub)
 # make it explicit that "gb" is faster than "scm"
 # compute variance-covariance matrix of VCs 10-times
 
-system.time(for(i in 1:100) vcovVC(m1.ub))	# "scm"
-system.time(for(i in 1:100) vcovVC(m2.ub))	# "gb"
+system.time(for(i in 1:500) vcovVC(m1.ub))	# "scm"
+system.time(for(i in 1:500) vcovVC(m2.ub))	# "gb"
 
 
 # fit a larger random model
@@ -156,6 +159,7 @@ system.time(anova.lm.Tab <- anova(lm(y~lot/calibration/day/run, datP1)))
 system.time(anovaMM.Tab1  <- anovaMM(y~lot/calibration/day/run, datP1, SSQ.method="qf"))
 # using the sweeping approach for estimating ANOVA Type-1 sums of squares
 # this is now the default setting (Note: only "gb" method works as VarVC.method)
+# Also see ?anovaVCA for a comparison of the computational efficiency of "qf" and "sweep".
 system.time(anovaMM.Tab2  <- anovaMM(y~lot/calibration/day/run, datP1, SSQ.method="sweep"))
 
 # compare results, note that the latter corresponds to a linear model,
@@ -171,6 +175,8 @@ Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
 \references{
 Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York
+
+Goodnight, J.H. (1979), A Tutorial on the SWEEP Operator, The American Statistician, 33:3, 149-158
 
 Giesbrecht, F.G. and Burns, J.C. (1985), Two-Stage Analysis Based on a Mixed Model: Large-Sample
 Asymptotic Theory and Small-Sample Simulation Results, Biometrics 41, p. 477-486

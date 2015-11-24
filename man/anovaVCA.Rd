@@ -18,14 +18,14 @@ i.e. by-processing}
 \item{NegVC}{(logical) FALSE = negative variance component estimates (VC) will be set to 0 and they will not contribute to the total variance
 (as done in SAS PROC NESTED, conservative estimate of total variance). The original ANOVA estimates can be found in attribute 'VCoriginal'.
 The degrees of freedom of the total variance are based on adapted mean squares (MS), i.e. adapted MS are computed as \eqn{D * VC}, where VC is
-the column vector with negative VCs set to 0. \cr}
+the column vector with negative VCs set to 0. \cr
+   TRUE = negative variance component estimates will not be set to 0 and they will contribute to the total variance (original definition of the total variance).}
 
 \item{SSQ.method}{(character) string specifying the method used for computing ANOVA Type-1 sum of squares and respective degrees of freedom.
-   In case of "sweep" funtion \code{\link{getSSQsweep}} will be called, otherwise, function \code{\link{getSSQqf}}
-TRUE = negative variance component estimates will not be set to 0 and they will contribute to the total variance (original definition of the total variance).}
+In case of "sweep" funtion \code{\link{getSSQsweep}} will be called, otherwise, function \code{\link{getSSQqf}}}
 
-\item{VarVC.method}{(character) string specifying whether to use the algorithm given in the
-   \eqn{1^{st}}{1st} reference ("scm") or in the \eqn{2^{nd}}{2nd} refernce ("gb"). Method "scm" (Searle, Casella, McCulloch)
+\item{VarVC.method}{(character) string specifying whether to use the algorithm given in Searle et al. (1992) which corresponds to \code{VarVC.method="scm"} or in
+   Giesbrecht and Burns (1985) which can be specified via "gb". Method "scm" (Searle, Casella, McCulloch)
 is the exact algorithm but slower, "gb" (Giesbrecht, Burns) is termed "rough approximation"
    by the authors, but sufficiently exact compared to e.g. SAS PROC MIXED (method=type1) which
    uses the inverse of the Fisher-Information matrix as approximation. For balanced designs all
@@ -40,22 +40,26 @@ methods give identical results, only in unbalanced designs differences occur.}
 (object) of class 'VCA'
 }
 \description{
-This function equates observed ANOVA sums of squares (\eqn{SS}) to their expected values and solves the resulting system of linear equations
-for variance components. ANOVA SS are computed via matrices \eqn{A_i}{A_i} expressing them as quadratic forms in \eqn{y} as \eqn{ss_i = y^{T}A_{i}y}{ss_i = y' * A_i * y}.
-Matrices \eqn{A_i} are also used to compute the variance-coveriance matrix of variance components (VC).
+This function equates observed ANOVA Type-I sums of squares (\eqn{SS}) to their expected values and solves the resulting system of linear equations
+for variance components.
 }
 \details{
+For diagnostics, a key parameter is "precision", i.e. the accuracy of a quantification method influenced by varying sources of random error.
+This type of experiments is requested by regulatory authorities to proof the quality of diagnostic tests, e.g. quantifying intermediate
+precision according to CLSI guideline EP5-A2/A3. No, fixed effects are allowed besides the intercept.
+Whenever fixed effects are part of the model to be analyzed, use function \code{\link{anovaMM}} instead.
+
 Function \code{anovaVCA} is tailored for performing Variance Component Analyses (VCA) for random models, assuming all VCs as factor variables, i.e. their levels
 correspond to distinct columns in the design matrix (dummy variables). Any predictor variables are automatically converted to factor variables, since continuous
 variables may not be used on the right side of the formula 'form'.
 
-For diagnostics, a key parameter is "precision", i.e. the accuracy of a quantification method influenced by varying sources of random error.
-This type of experiments is requested by regulatory authorities to proof the quality of diagnostic test, e.g. quantifying intermediate
-precision according to CLSI guideline EP5-A2/A3. No, fixed effects are allowed besides the intercept.
-Whenever fixed effects are part of the model to be analyzed, use function \code{\link{anovaMM}} instead.
+ANOVA \eqn{SS} are either computed employing the SWEEP-operator (Goodnight 1979, default) or by finding matrices \eqn{A_i}{A_i} expressing them as quadratic forms
+in \eqn{y} as \eqn{ss_i = y^{T}A_{i}y}{ss_i = y' * A_i * y}. Matrices \eqn{A_i} are also used to compute the variance-coveriance matrix of variance components (VC)
+according to Searle et al. (1992) which corresponds to \code{VarVC.method="scm"}. Whenever the SWEEP-operator is used, which is way faster and therefore the default method,
+the approximation according to Giesbrecht and Burns (1985) is automatically set (\code{VarVC.method="gb"}).
 
 Function \code{anovaVCA} represents a special form of the "method of moments" approach applicable to arbitrary random models either balanced or unbalanced.
-The system of linear equations, which is built from the ANOVA-Type 1 sums of squares, is closely related to the method used
+The system of linear equations, which is built from the ANOVA Type-I sums of squares, is closely related to the method used
 by SAS PROC VARCOMP, where ANOVA mean squares (\eqn{MS}) are used (see \code{\link{getCmatrix}}). The former can be written as \eqn{ss = C * s}
 and the latter as \eqn{ms = D * s}, where \eqn{C} and \eqn{D} denote the respective coefficient matrices, \eqn{s} the column-vector
 of variance components (VC) to be estimated/predicted, and \eqn{ss} and \eqn{ms} the column vector of ANOVA sum of squares, respectively, mean squares.
@@ -63,12 +67,10 @@ Mutliplying element \eqn{d_ij} of matrix \eqn{D} by element \eqn{c_in} of matrix
 matrix \eqn{C}. Thus, \eqn{C} can easily be converted to \eqn{D} by the inverse operation. Matrix \eqn{D} is used to estimate
 total degrees of freedom (DF) according to Satterthwaite (1946).
 
-If computing matrices \eqn{A_i} generating ANOVA \eqn{SS} as quadratic forms in \eqn{y}, i.e. \eqn{ss_i = y' * A_i * y} has two benefits.
-It allows obtaing ANOVA \eqn{SS} as well as computing the variance-covariance of VCs. Furthermore, it is much faster than fitting the linear model via
-\code{\link{lm}} and calling function \code{\link{anova}} on the 'lm' object for complex models, where complex refers to the number of columns of the
-design matrix and the degree of unbalancedness. Degrees of freedom for the \eqn{i}-th term are obtained by function \code{\link{anovaDF}}.
-Besides the algorithm for obtaining the variance-covariance matrix of VCs described in Searle et. al (1992), which is termed "exact", a \eqn{2^{nd}}{2nd} option
-for computing this matrix is implemented, which is described in Giesbrecht and Burns (1985). It can be chosen by setting 'VarVC.method="gb"'.
+Both methods for computing ANOVA Type-I \eqn{SS} are much faster than fitting the linear model via \code{\link{lm}} and calling function \code{\link{anova}} on the 'lm' object
+for complex models, where complex refers to the number of columns of the design matrix and the degree of unbalancedness. Degrees of freedom for the \eqn{i}-th term are obtained
+by function \code{\link{anovaDF}} in case of \code{VarVC.method="scm"}. Otherwise, \eqn{DF} are directly derived from the SWEEP-operator as the number of linearly independent
+columns of the partial design matrix corresponding to a specific \eqn{VC}.
 }
 \examples{
 \dontrun{
@@ -148,7 +150,7 @@ reproMat <- data.frame(
 
 # now plot the precision profile over all samples
 plot(reproMat[,"Mean"], reproMat[,"Rep_CV"], type="l", main="Precision Profile CA19-9",
-		xlab="Mean CA19-9 Value", ylab="CV[\%])
+		xlab="Mean CA19-9 Value", ylab="CV[\%]")
 grid()
 points(reproMat[,"Mean"], reproMat[,"Rep_CV"], pch=16)
 
@@ -173,13 +175,16 @@ lst
 # now fitting a nonsense model on the complete dataset "VCAdata1"
 # using both methods for fitting ANOVA Type-1 sum of squares
 # SSQ.method="qf" used to be the default up to package version 1.1.1
-# takes ~165s on a Intel Xeon E5-2687W (3.1GHz)
+# took ~165s on a Intel Xeon E5-2687W (3.1GHz) in V1.1.1, now takes ~95s
 system.time(res.qf <- anovaVCA(y~(sample+lot+device)/day/run, VCAdata1, SSQ.method="qf"))
 # the SWEEP-operator is the new default since package version 1.2
-# takes ~50s
+# takes ~5s
 system.time(res.sw <- anovaVCA(y~(sample+lot+device)/day/run, VCAdata1, SSQ.method="sweep"))
+# applying functions 'anova' and 'lm' in the same manner takes ~ 265s
+system.time(res.lm <- anova(lm(y~(sample+lot+device)/day/run, VCAdata1)))
 res.qf
 res.sw
+res.lm
 }
 }
 \author{
@@ -187,6 +192,8 @@ Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
 \references{
 Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York
+
+Goodnight, J.H. (1979), A Tutorial on the SWEEP Operator, The American Statistician, 33:3, 149-158
 
 Giesbrecht, F.G. and Burns, J.C. (1985), Two-Stage Analysis Based on a Mixed Model: Large-Sample
 Asymptotic Theory and Small-Sample Simulation Results, Biometrics 41, p. 477-486

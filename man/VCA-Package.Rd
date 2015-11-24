@@ -4,7 +4,7 @@
 \alias{VCA-package}
 \title{(V)ariance (C)omponent (A)nalysis.}
 \description{This package implements ANOVA-type estimation of variance components for linear mixed models.
-	     It uses a method of moments approach to estimate (predict) variance components (VC) implemented in functions
+	     It uses a special case of a method of moments approach to estimate (predict) variance components (VC) implemented in functions
 	     \code{\link{anovaMM}} and \code{\link{anovaVCA}}. The former represents a general, unrestricted approach to fitting
 	     linear mixed models, whereas the latter is tailored for performing a Variance Component Analysis (VCA) on random models.
 	     Experiments of this type frequently occur in performance evaluation analyses of diagnostic tests or analyzers (devices)
@@ -38,8 +38,8 @@
   \tabular{ll}{
     Package: \tab VCA\cr
     Type: \tab Package \cr
-    Version: \tab 1.2 \cr
-    Date: \tab 2015-07-20\cr
+    Version: \tab 1.2.1 \cr
+    Date: \tab 2015-11-24\cr
     License:  \tab GPL (>=3) \cr
     LazyLoad: \tab yes \cr
   }

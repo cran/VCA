@@ -59,8 +59,6 @@ system.time(anova.lm.Tab3 <- anova(lm(y~(lot+calibration)/day/run, datP1)))
 system.time(anovaMM.Tab3  <- anovaMM( y~(lot+calibration)/day/run, datP1))
 anova.lm.Tab3
 anovaMM.Tab3
-# calling the function directly (it is not exported)
-VCA:::anovaDF(lm(y~(lot+calibration)/day/run, datP1))
 }
 }
 \author{

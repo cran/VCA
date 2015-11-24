@@ -34,7 +34,7 @@ It is for internal use only, thus, not exported.
 \examples{
 \dontrun{
 data(dataEP05A2_3)
-res <- anovaVCA(y~day/run, dataEP05A2_3)
+res <- anovaVCA(y~day/run, dataEP05A2_3, SSQ.method="qf")
 res
 mat <- res$Matrices
 Var <- VCA:::getVCvar(Ci=mat$Ci.SS, A=mat$A, Z=mat$Z, VC=res$aov.tab[-1,"VC"])

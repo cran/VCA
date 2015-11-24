@@ -4,16 +4,16 @@
 \alias{Csweep}
 \title{Calling C-implementation of the SWEEP-Operator}
 \usage{
-Csweep(M, asgn, thresh = 1e-08, tol = 1e-12, Ncpu = 1)
+Csweep(M, asgn, thresh = 1e-12, tol = 1e-12, Ncpu = 1)
 }
 \arguments{
 \item{M}{(matrix) matrix, representing the augmented matrix \eqn{X'X}}
 
-\item{asgn}{(integer) vector, identifying columns in \eqn{M} corresponding variables,
+\item{asgn}{(integer) vector, identifying columns in \eqn{M} corresponding to variables,
 respectively, to their coefficients}
 
 \item{thresh}{(numeric) value used to check whether the influence of the a coefficient
-to reducing the error sum of squares is small enough to coclude that the
+to reducing the error sum of squares is small enough to conclude that the
 corresponding column in \eqn{X'X} is a linear combination of preceding
 columns}
 
@@ -38,5 +38,8 @@ This is an utility-function not intended to be called directly.
 }
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}
+\references{
+Goodnight, J.H. (1979), A Tutorial on the SWEEP Operator, The American Statistician, 33:3, 149-158
 }
 

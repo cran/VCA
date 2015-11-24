@@ -44,7 +44,7 @@
 #' fit <- solveMME(fit)
 #' plotRandVar(fit, "cond", "stand")	
 #' plotRandVar(fit, 1, "stud")						# 1st random term 'day'
-#' plotRandVar(fit, "day", "stud")					# equivalent to the above			
+#' plotRandVar(fit, "day", "stud")					# equivalent to the above
 #' 
 #' # for larger datasets residuals can hardly be identified
 #' # pick out interesting points with the mouse
@@ -597,7 +597,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		for(i in 1:length(VarLab.default))
 		{
 			if(class(VarLab[[i]]) == "list")
-				VarLab.default[[i]][names(VarLab[[1]])] <- VarLab[[i]]
+				VarLab.default[[i]][names(VarLab[[i]])] <- VarLab[[i]]
 		}
 	}
 	else																					# default settings used for each VC (no user-specification as list of lists)
@@ -974,7 +974,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 					if(i == length(lst))
 						drawVLine <- FALSE											# omit last vertical line for upper-most factor
 				}
-				
+		
 				if(drawVLine)														# do not draw last vertical line, this separates levels of the factor one level above
 				{
 					var.ind <- which(VLine$var == Factor)
@@ -1189,15 +1189,23 @@ varPlot <- function(form, Data, keep.order=TRUE,
 								VARtype=VARtype, VarLab=VarLab, MeanLine=MeanLine, Intercept=Intercept, VLine=VLine,
 								JoinLevels=JoinLevels)   
    
+		if(length(rec.env$VLineCollection) > 0)
+		{
+			for(i in 1:length(rec.env$VLineCollection))								# now actually draw vertical lines, avoiding BG-coloring to partially cover them
+				do.call("lines", rec.env$VLineCollection[[i]])
+			
+			rec.env$VLineCollection <- NULL											# should not be returned
+		}
+		
+		box()
+						
         if(!is.null(SDline))
         {
             SDline$x <- as.numeric(names(StatsList$SDvec))
             SDline$y <- StatsList$SDvec
             do.call("lines", args=SDline)
         }
-        
-        box()
-        
+                
         if(!is.null(VCnam))
         {
             VCnam$side=2
@@ -1222,12 +1230,17 @@ varPlot <- function(form, Data, keep.order=TRUE,
 
 	old.par$yaxs <- old.par$xaxs <- "i"						# unfortunatly need to be maintained in order to further add elements to the plot
 	old.par$mar <- par("mar")
-	par(old.par)
+	#par(old.par)
 
 	Data$Xcoord <- rec.env$dat$x
 
 	invisible(Data)
 }
+
+
+
+
+
 
 
 

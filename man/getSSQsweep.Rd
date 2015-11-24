@@ -2,7 +2,7 @@
 % Please edit documentation in R/vca.R
 \name{getSSQsweep}
 \alias{getSSQsweep}
-\title{ANOVA Sum of squares via Sweeping.}
+\title{ANOVA Sum of Squares via Sweeping.}
 \usage{
 getSSQsweep(Data, tobj, random = NULL)
 }
@@ -24,12 +24,13 @@ Compute ANOVA Type-1 sum of squares for linear models.
 }
 \details{
 This function performs estimation of ANOVA Type-1 sum of squares
-using the sweep-operator (see reference), operating on the augmented
-matrix X'X, where X represents the design matrix not differentiating
+using the SWEEP-operator (see reference), operating on the augmented
+matrix \eqn{X'X}, where \eqn{X} represents the design matrix not differentiating
 between fixed and random factors.
+
 This is an utility function not intended to be called directly.
-For each term in the formula the design-matrix \code{Z} is constructed.
-Matrix X corresponds to binding all these Z-matrices together column-wise.
+For each term in the formula the design-matrix \eqn{Z} is constructed.
+Matrix \eqn{X} corresponds to binding all these \eqn{Z}-matrices together column-wise.
 
 Degrees of freedom for each term are determined by subtracting the number of
 linearly dependent columns from the total number of column in X asigned to a

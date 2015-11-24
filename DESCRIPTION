@@ -1,6 +1,6 @@
 Package: VCA
-Version: 1.2
-Date: 2015-07-20
+Version: 1.2.1
+Date: 2015-11-24
 Title: Variance Component Analysis
 Author: Andre Schuetzenmeister <andre.schuetzenmeister@roche.com>
 Maintainer: Andre Schuetzenmeister <andre.schuetzenmeister@roche.com>
@@ -22,7 +22,7 @@ Description: ANOVA-type estimation (prediction) of random effects in linear mixe
              is useful for visualizing the variability in sub-classes emerging from the experimental design.
 License: GPL (>= 3)
 Collate: 'plot.R' 'vca.R'
-Packaged: 2015-07-20 12:43:17 UTC; schueta6
 NeedsCompilation: yes
+Packaged: 2015-11-24 13:22:37 UTC; schueta6
 Repository: CRAN
-Date/Publication: 2015-07-20 18:08:54
+Date/Publication: 2015-11-24 15:16:22

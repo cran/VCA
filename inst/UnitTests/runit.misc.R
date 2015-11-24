@@ -99,23 +99,21 @@ TF004.ddfm.LMM.unbalanced <- function()
 {
 	data(dataEP05A2_2)
 	dat2ub <- dataEP05A2_2[-c(11,12,23,32,40,41,42),]
-	fit2ub <- anovaMM(y~day/(run), dat2ub)
+	fit2ub <- anovaMM(y~day/(run), dat2ub, VarVC.method="scm")
 	
 	L <- getL(fit2ub, c("day1-day2", "day2-day3", "day3-day6", "day14-day20"), "fixef")
 	
 	# ddfm="contain" (default)	
 	tst.con <- test.fixef(fit2ub, L=L, ddfm="contain")	
-	checkEquals(as.numeric(tst.con[,"DF"]), c(18, 18, 18, NA))
+	checkEquals(as.numeric(tst.con[,"DF"]), c(18, 18, 18, 18))
 	
 	# ddfm="residual"
 	tst.res <- test.fixef(fit2ub, L=L, ddfm="residual")	
-	checkEquals(as.numeric(tst.res[,"DF"]), c(53, 53, 53, NA))
+	checkEquals(as.numeric(tst.res[,"DF"]), c(53, 53, 53, 53))
 	
 	# ddfm="satterthwaite"
-	fit <- fit2ub
-	fit$VarCov <- matrix(c(2.2481, -0.4157, -0.4157, 0.8144), 2, 2)			# extracted from SAS PROC MIXED output using options "asycov" in the proc mixed statement
-	tst.satt <- test.fixef(fit, L=L, ddfm="satt")	
-	checkEquals(as.numeric(round(tst.satt[,"DF"], c(1,1,0))), c(17.3, 17.3, 19, NA))
+	tst.satt <- test.fixef(fit2ub, L=L, ddfm="satt")	
+	checkEquals(as.numeric(tst.satt[,"DF"]), c(17.83, 17.83, 19.6, 17.83), tolerance=1)									# relax equivalence threshold
 }
 
 
@@ -665,4 +663,16 @@ TF030.anovaVCA.by_processing <- function()
 		tmp.inf <- VCAinference(tmp.fit, total.claim=total.specs[i], error.claim=error.specs[i])
 		print(checkEquals(inf.lst[[i]]$aov.tab, tmp.inf$aov.tab))
 	}
+}
+
+# check whether linear hypothesis of LSMeans including constrained fixed effects does return 
+# a value and does not give a warning any more.
+
+TF031.test.lsmeans <- function()
+{
+	data(dataEP05A2_1)
+	fit <- anovaMM(y~day/(run), dataEP05A2_1)
+	lc.mat <- getL(fit, "day19-day20", "lsm")		# day20 is contrained to 0
+	res    <- test.lsmeans(fit, lc.mat)
+	checkEquals(as.numeric(res), c(  -1.220903154324, 20.000000000000, -0.801356496568, 0.432343418432))
 }

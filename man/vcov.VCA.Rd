@@ -29,8 +29,11 @@ models.
 \examples{
 \dontrun{
 data(dataEP05A2_1)
-fit <- anovaVCA(y~day/(run), dataEP05A2_1)
-vcov(fit)
+fit1 <- anovaMM(y~day/(run), dataEP05A2_1)
+vcov(fit1)
+
+fit2 <- anovaVCAy~day/run, dataEP05A2_1)
+vcov(fit2)
 }
 }
 

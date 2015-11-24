@@ -10,12 +10,18 @@
 	library.dynam.unload(chname="VCA", libpath=lib)
 }	
 
+# create VCA message environment
+msgEnv <- new.env(parent=emptyenv())
+
 #' Solve System of Linear Equations using Inverse of Cholesky-Root.
 #' 
 #' This function is intended to reduce the computational time in function
 #' \code{\link{solveMME}} which computes the inverse of the square variance-
 #' covariance Matrix of observations. It is considerably faster than function
 #' \code{\link{solve}} (see example).
+#' Whenever an error occurs, which is the case for non positive definite matrices
+#' 'X', function \code{\link{MPinv}} is called automatically yielding a generalized
+#' inverse (Moore-Penrose inverse) of 'X'.
 #' 
 #' @param X			(matrix, Matrix) object to be inverted
 #' 
@@ -27,11 +33,13 @@
 #' \dontrun{
 #' # following complex (nonsense) model takes pretty long to fit
 #' system.time(res.sw <- anovaVCA(y~(sample+lot+device)/day/run, VCAdata1))
+#' # solve mixed model equations (not automatically done to be more efficient)
+#' system.time(res.sw <- solveMME(res.sw))
 #' # extract covariance matrix of observations V
 #' V1 <- getMat(res.sw, "V")
-#' V2 <- as.matrix(V)
+#' V2 <- as.matrix(V1)
 #' system.time(V2i <- solve(V2))
-#' system.time(V1i <- Solve(V))
+#' system.time(V1i <- VCA:::Solve(V1))
 #' V1i <- as.matrix(V1i)
 #' dimnames(V1i) <- NULL
 #' dimnames(V2i) <- NULL
@@ -48,7 +56,14 @@ Solve <- function(X)
 		cls <- class(X)
 		X <- as.matrix(X)
 	}
-	Xi <- chol2inv(chol(X))
+	Xi <- try(chol2inv(chol(X)), silent=TRUE)
+	
+	if(class(Xi) == "try-error")			# use Moore-Penrose inverse instead in case of an error
+	{										# using the Cholesky-decomposition approach
+		warning("Error in 'chol2inv'!\n\tUse generalized (Moore-Penrose) inverse (MPinv)!", sep="\n")
+		Xi <- MPinv(X)
+	}
+	
 	if(clsMatrix)
 	{
 		Xi <- as(Xi, "dgCMatrix")			# Solve used here for inverting V-matrix
@@ -68,10 +83,10 @@ Solve <- function(X)
 #' This is an utility-function not intended to be called directly.
 #' 
 #' @param M			(matrix) matrix, representing the augmented matrix \eqn{X'X}
-#' @param asgn		(integer) vector, identifying columns in \eqn{M} corresponding variables, 
+#' @param asgn		(integer) vector, identifying columns in \eqn{M} corresponding to variables, 
 #' 					respectively, to their coefficients
 #' @param thresh	(numeric) value used to check whether the influence of the a coefficient
-#' 					to reducing the error sum of squares is small enough to coclude that the
+#' 					to reducing the error sum of squares is small enough to conclude that the
 #' 					corresponding column in \eqn{X'X} is a linear combination of preceding 
 #' 					columns
 #' @param tol		(numeric) value used to check numerical equivalence to zero
@@ -83,8 +98,11 @@ Solve <- function(X)
 #' @return (list) with two elements:\cr
 #' 			\item{SSQ}{(numeric) vector of ANOVA sum of squares}
 #' 			\item{LC}{(integer) vector indicating linear dependence of each column}
+#' 
+#' @references 
+#' Goodnight, J.H. (1979), A Tutorial on the SWEEP Operator, The American Statistician, 33:3, 149-158
 
-Csweep <- function(M, asgn, thresh=1e-8, tol=1e-12, Ncpu=1)
+Csweep <- function(M, asgn, thresh=1e-12, tol=1e-12, Ncpu=1)
 {
 	nr <- nrow(M)
 	stopifnot(nr == ncol(M))
@@ -146,17 +164,18 @@ Sinv <- function(M, tol=.Machine$double.eps)
 
 
 
-#' ANOVA Sum of squares via Sweeping.
+#' ANOVA Sum of Squares via Sweeping.
 #' 
 #' Compute ANOVA Type-1 sum of squares for linear models.
 #' 
 #' This function performs estimation of ANOVA Type-1 sum of squares
-#' using the sweep-operator (see reference), operating on the augmented
-#' matrix X'X, where X represents the design matrix not differentiating
+#' using the SWEEP-operator (see reference), operating on the augmented
+#' matrix \eqn{X'X}, where \eqn{X} represents the design matrix not differentiating
 #' between fixed and random factors.
+#' 
 #' This is an utility function not intended to be called directly.
-#' For each term in the formula the design-matrix \code{Z} is constructed.
-#' Matrix X corresponds to binding all these Z-matrices together column-wise.
+#' For each term in the formula the design-matrix \eqn{Z} is constructed.
+#' Matrix \eqn{X} corresponds to binding all these \eqn{Z}-matrices together column-wise.
 #' 
 #' Degrees of freedom for each term are determined by subtracting the number of
 #' linearly dependent columns from the total number of column in X asigned to a
@@ -174,6 +193,7 @@ Sinv <- function(M, tol=.Machine$double.eps)
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #' 
 #' @references 
+#' 
 #' Goodnight, J.H., (1979), A Tutorial on the SWEEP Operator, The American Statistician, 33:3, p.149-158
 #' 
 #' @examples 
@@ -439,6 +459,8 @@ getSSQqf<- function(Data, tobj, random=NULL)
 #' 
 #' Note, that setting negative VCs equal to zero results in a conservative estimate of the total variance, i.e. it will be larger than
 #' the estimate including the negative VC(s). Use parameter 'NegVC=TRUE' to explicitly allow negative variance estimates. 
+#' 
+#' For further details on ANOVA Type-I estimation methods see \code{\link{anovaVCA}}.
 #'
 #' @param form				(formula) specifying the linear mixed model (fixed and random part of the model),
 #' 							all random terms need to be enclosed by brackets. Any variable not being bracketed
@@ -448,19 +470,20 @@ getSSQqf<- function(Data, tobj, random=NULL)
 #'                          of type "numeric", "factor" or "character". The latter will be automatically converted to "factor".
 #' @param by				(factor, character) variable specifying groups for which the analysis should be performed individually,
 #' 							i.e. by-processing
-#' @param VarVC.method		(character) string specifying whether to use the algorithm given in the
-#' 							1st reference ("scm") or in the 2nd refernce ("gb"). Method "scm" (Searle, Casella, McCulloch)
-#'                          is the exact algorithm but slower, "gb" (Giesbrecht, Burns) is termed "rough approximation"
+#' @param VarVC.method		(character) string specifying whether to use the algorithm given in Searle et al. (1992) which corresponds to \code{VarVC.method="scm"} or in
+#' 							Giesbrecht and Burns (1985) which can be specified via "gb". Method "scm" (Searle, Casella, McCulloch)
+#'                      	is the exact algorithm but slower, "gb" (Giesbrecht, Burns) is termed "rough approximation"
 #' 							by the authors, but sufficiently exact compared to e.g. SAS PROC MIXED (method=type1) which
 #' 							uses the inverse of the Fisher-Information matrix as approximation. For balanced designs all
-#'                          methods give identical results, only in unbalanced designs differences occur. 
+#'                      	methods give identical results, only in unbalanced designs differences occur. 
 #' @param SSQ.method		(character) string specifying the method used for computing ANOVA Type-1 sum of squares and respective degrees of freedom.
 #' 							In case of "sweep" funtion \code{\link{getSSQsweep}} will be called, otherwise, function \code{\link{getSSQqf}}
-#'                      	TRUE = negative variance component estimates will not be set to 0 and they will contribute to the total variance (original definition of the total variance).
 #' @param NegVC         	(logical) FALSE = negative variance component estimates (VC) will be set to 0 and they will not 
 #' 							contribute to the total variance (as done e.g. in SAS PROC NESTED, conservative estimate of total variance). 
 #' 							The original ANOVA estimates can be found in element 'VCoriginal'. 
 #'                      	The degrees of freedom of the total variance are based on adapted mean squares (MS) (see details).
+#' 							TRUE = negative variance component estimates will not be set to 0 and they will contribute to the total 
+#' 							variance (original definition of the total variance).
 #' @return (VCA) object
 #' 
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
@@ -468,6 +491,8 @@ getSSQqf<- function(Data, tobj, random=NULL)
 #' @references	
 #' 
 #' Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York	
+#' 
+#' Goodnight, J.H. (1979), A Tutorial on the SWEEP Operator, The American Statistician, 33:3, 149-158
 #' 
 #' Giesbrecht, F.G. and Burns, J.C. (1985), Two-Stage Analysis Based on a Mixed Model: Large-Sample
 #' Asymptotic Theory and Small-Sample Simulation Results, Biometrics 41, p. 477-486
@@ -498,8 +523,8 @@ getSSQqf<- function(Data, tobj, random=NULL)
 #' # use different approaches to estimating the covariance of 
 #' # variance components (covariance parameters)
 #' dat.ub <- dataEP05A2_2[-c(11,12,23,32,40,41,42),]			# get unbalanced data
-#' m1.ub <- anovaMM(y~day/(run), dat.ub, VarVC.method="scm")
-#' m2.ub <- anovaMM(y~day/(run), dat.ub, VarVC.method="gb")		# is faster
+#' m1.ub <- anovaMM(y~day/(run), dat.ub, SSQ.method="qf", VarVC.method="scm")
+#' m2.ub <- anovaMM(y~day/(run), dat.ub, SSQ.method="qf", VarVC.method="gb")		# is faster
 #' V1.ub <- round(vcovVC(m1.ub), 12)
 #' V2.ub <- round(vcovVC(m2.ub), 12)
 #' all(V1.ub == V2.ub)
@@ -507,8 +532,8 @@ getSSQqf<- function(Data, tobj, random=NULL)
 #' # make it explicit that "gb" is faster than "scm"
 #' # compute variance-covariance matrix of VCs 10-times
 #' 
-#' system.time(for(i in 1:100) vcovVC(m1.ub))	# "scm"
-#' system.time(for(i in 1:100) vcovVC(m2.ub))	# "gb"
+#' system.time(for(i in 1:500) vcovVC(m1.ub))	# "scm"
+#' system.time(for(i in 1:500) vcovVC(m2.ub))	# "gb"
 #' 
 #' 
 #' # fit a larger random model
@@ -570,6 +595,7 @@ getSSQqf<- function(Data, tobj, random=NULL)
 #' system.time(anovaMM.Tab1  <- anovaMM(y~lot/calibration/day/run, datP1, SSQ.method="qf"))
 #' # using the sweeping approach for estimating ANOVA Type-1 sums of squares
 #' # this is now the default setting (Note: only "gb" method works as VarVC.method)
+#' # Also see ?anovaVCA for a comparison of the computational efficiency of "qf" and "sweep".
 #' system.time(anovaMM.Tab2  <- anovaMM(y~lot/calibration/day/run, datP1, SSQ.method="sweep"))
 #' 
 #' # compare results, note that the latter corresponds to a linear model,
@@ -588,6 +614,7 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 {
 	if(!is.null(by))
 	{
+		stopifnot(is.character(by))
 		stopifnot(by %in% colnames(Data))
 		stopifnot(is.factor(by) || is.character(by))
 		
@@ -824,6 +851,7 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 	Lmat$Ci.SS  <- Ci
 	Lmat$Ci.MS  <- Ci2
 	
+	res$SSQ.method   <- SSQ.method
 	res$VarVC.method <- VarVC.method
 	res$aov.tab  <- aov.tab
 	res$Matrices <- Lmat
@@ -899,8 +927,6 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 #' system.time(anovaMM.Tab3  <- anovaMM( y~(lot+calibration)/day/run, datP1))
 #' anova.lm.Tab3
 #' anovaMM.Tab3
-#' # calling the function directly (it is not exported)
-#' VCA:::anovaDF(lm(y~(lot+calibration)/day/run, datP1))
 #' }
 
 anovaDF <- function(form, Data, Zmat, Amat, tol=1e-8)
@@ -1002,16 +1028,11 @@ solveMME <- function(obj)
 	y      	<- mats$y
 	V      	<- mats$V
 	Vi     	<- Solve(V)
-	K 		<- Sinv(t(X) %*% Vi %*% X)
-#	K		<- MPinv(t(X) %*% Vi %*% X)		# variance-covariance matrix of fixed effects
+	K 		<- Sinv(t(X) %*% Vi %*% X)		# variance-covariance matrix of fixed effects
 	T	   	<- K %*% t(X) %*% Vi
-#	H		<- X %*% T
-#	Q		<- Vi %*% (diag(nrow(H))-H)
 	fixef  	<- T %*% y
 	mats$Vi <- Vi
 	mats$T  <- T
-#	mats$H	<- H
-	#mats$Q  <- Q
 	rownames(fixef) <- colnames(X)
 	colnames(fixef) <- "Estimate"
 	if(is.null(Z))
@@ -1101,7 +1122,7 @@ ranef.VCA <- function(object, term=NULL, mode=c("raw", "student", "standard"), .
 	{
 		obj  <- solveMME(obj)
 
-		if(!grepl("\\(", ObjNam))
+		if(length(ObjNam) == 1 && ObjNam %in% names(as.list(.GlobalEnv)))
 		{
 			expr <- paste(ObjNam, "<<- obj")		# update object missing MME results
 			eval(parse(text=expr))
@@ -1120,7 +1141,7 @@ ranef.VCA <- function(object, term=NULL, mode=c("raw", "student", "standard"), .
 		mats$Q <- Q  <- Vi %*% (diag(nrow(H))-H)
 		obj$Matrices <- mats
 		
-		if(!grepl("\\(", ObjNam))
+		if(length(ObjNam) == 1 && ObjNam %in% names(as.list(.GlobalEnv)))
 		{
 			expr <- paste(ObjNam, "<<- obj")		# update object missing MME results
 			eval(parse(text=expr))
@@ -1243,7 +1264,7 @@ fixef.VCA <- function(object, type=c("simple", "complex"), ddfm=c("contain", "re
 		obj  <- solveMME(obj)
 		fe <- obj$FixedEffects
 		nam  <- as.character(as.list(Call)$object)
-		if(!grepl("\\(", nam))
+		if(length(nam) == 1 && nam %in% names(as.list(.GlobalEnv)))
 		{
 			expr <- paste(nam, "<<- obj")		# update object missing MME results
 			eval(parse(text=expr))
@@ -1345,8 +1366,8 @@ fixef.VCA <- function(object, type=c("simple", "complex"), ddfm=c("contain", "re
 lsmeans <- function(obj, var=NULL, type=c("simple", "complex"), ddfm=c("contain", "residual", "satterthwaite"), quiet=FALSE)
 {
 	stopifnot(class(obj) == "VCA")
-	stopifnot(obj$Type == "Mixed Model")		# won't work for random models
-	if(!is.null(var))							# does this fixed effects variable exist
+	stopifnot(obj$Type %in% c("Linear Model", "Mixed Model"))		# won't work for random models
+	if(!is.null(var))												# does this fixed effects variable exist
 		stopifnot(var %in% obj$fixed)
 	if(length(ddfm) > 1 && type == "complex")
 	{
@@ -1371,7 +1392,6 @@ lsmeans <- function(obj, var=NULL, type=c("simple", "complex"), ddfm=c("contain"
 		
 	}
 	vc <- vcov(obj)	
-
 	vc <- T %*% vc %*% t(T)
 	se <- sqrt(diag(vc))
 	
@@ -1670,7 +1690,7 @@ coef.VCA <- function(object, ...)
 		obj  <- solveMME(obj)
 		fe   <- fixef(obj)
 		nam  <- as.character(as.list(Call)$object)
-		if(!grepl("\\(", nam))
+		if(length(nam) == 1 && nam %in% names(as.list(.GlobalEnv)))
 		{
 			expr <- paste(nam, "<<- obj")		# update object missing MME results
 			eval(parse(text=expr))
@@ -1709,8 +1729,11 @@ coef.VCA <- function(object, ...)
 #' @examples 
 #' \dontrun{
 #' data(dataEP05A2_1)
-#' fit <- anovaVCA(y~day/(run), dataEP05A2_1)
-#' vcov(fit)
+#' fit1 <- anovaMM(y~day/(run), dataEP05A2_1)
+#' vcov(fit1)
+#' 
+#' fit2 <- anovaVCAy~day/run, dataEP05A2_1)
+#' vcov(fit2)
 #' }
 
 vcov.VCA <- function(object, ...)
@@ -1787,8 +1810,11 @@ getDF <- function(obj, L, method=c("contain", "residual", "satterthwaite"), ...)
 #' @examples 
 #' \dontrun{
 #' data(dataEP05A2_1)
-#' fit <- anovaVCA(y~day/(run), dataEP05A2_1)
-#' vcov(fit)
+#' fit1 <- anovaMM(y~day/(run), dataEP05A2_1)
+#' vcov(fit1)
+#' 
+#' fit2 <- anovaVCA(y~day/run, dataEP05A2_1)
+#' vcov(fit2)
 #' }
 
 vcovFixed <- function(obj)
@@ -1805,7 +1831,7 @@ vcovFixed <- function(obj)
 	{
 		obj  <- solveMME(obj)
 		nam  <- as.character(as.list(Call)$obj)
-		if(!grepl("\\(", nam))
+		if(length(nam) == 1 && nam %in% names(as.list(.GlobalEnv)))
 		{
 			expr <- paste(nam, "<<- obj")		# update object missing MME results
 			eval(parse(text=expr))
@@ -2054,9 +2080,9 @@ test.fixef <- function(	obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 	}	
 	else
 	{
-		ind <- which(L != 0)						# simple test for estimability (e.g. constrained fixed effects cannot be used)
+		ind <- which(L != 0)						# test whether fixef(obj, "complex") was called
 
-		if(any(abs(b[ind,]) < tol) && !lsmeans)
+		if(length(ind) == 1 && any(abs(b[ind,]) < tol) && !lsmeans)
 		{
 			if(!quiet)
 				warning("Linear contrast'", L ,"' not estimable!")
@@ -2277,7 +2303,12 @@ getDDFM <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"), tol=
 			}
 			else
 			{
-				return(obj$Nobs - rankMatrix(cbind(as.matrix(getMat(obj, "X")), as.matrix(getMat(obj, "Z")))))		# no random term including the fixed effects term --> residual DFs
+				tmpZ <-  getMat(obj, "Z")
+
+				if(!is.null(tmpZ))
+					return(obj$Nobs - rankMatrix(cbind(as.matrix(getMat(obj, "X")), as.matrix(tmpZ))))
+				else
+					return(obj$Nobs - rankMatrix(as.matrix(getMat(obj, "X"))))
 			}
 		}
 		else
@@ -2408,7 +2439,7 @@ vcovVC <- function(obj, method=NULL)
 		{
 			obj  <- solveMME(obj)
 			nam  <- as.character(as.list(Call)$obj)
-			if(!grepl("\\(", nam))
+			if(length(nam) == 1 && nam %in% names(as.list(.GlobalEnv)))
 			{
 				expr <- paste(nam, "<<- obj")		# update object missing MME results
 				eval(parse(text=expr))
@@ -2798,7 +2829,7 @@ MPinv <- function (X, tol = sqrt(.Machine$double.eps))
 #' @examples 
 #' \dontrun{
 #' data(dataEP05A2_3)
-#' res <- anovaVCA(y~day/run, dataEP05A2_3)
+#' res <- anovaVCA(y~day/run, dataEP05A2_3, SSQ.method="qf")
 #' res
 #' mat <- res$Matrices
 #' Var <- VCA:::getVCvar(Ci=mat$Ci.SS, A=mat$A, Z=mat$Z, VC=res$aov.tab[-1,"VC"])
@@ -3344,27 +3375,36 @@ print.VCA <- function(x, digits=6L, ...)
 #' }
 
 VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.type="VC", 
-						 VarVC=FALSE, excludeNeg=TRUE, constrainCI=TRUE, ci.method=c("sas", "satterthwaite"))
+						 VarVC=FALSE, excludeNeg=TRUE, constrainCI=TRUE, ci.method="sas")
 {
 	Call <- match.call()
-	
+
 	if(is.list(obj) && class(obj) != "VCA")
 	{
 		if(!all(sapply(obj, class) == "VCA"))
 			stop("Only lists of 'VCA' object are accepted!")
+		
+		obj.len <- length(obj)
+
+		assign("VCAinference.obj.is.list", TRUE, envir=msgEnv)			# indicate that a list-type object was passed intially
 		
 		res <- mapply(	FUN=VCAinference, obj=obj, alpha=alpha, 
 						total.claim=total.claim, error.claim=error.claim,
 						claim.type=claim.type, VarVC=VarVC, excludeNeg=excludeNeg,
 						constrainCI=constrainCI, ci.method=ci.method, 
 						SIMPLIFY=FALSE)
-				
 		names(res) <- names(obj)
+		
+		if(obj.len == 1)			# mapply returns a list of length 2 in case that length(obj) was equal to 1
+			res <- res[1]
+		
+		rm("VCAinference.obj.is.list", envir=msgEnv)
+		
 		return(res)
 	}	
 
     stopifnot(class(obj) == "VCA")
-	ci.method <- match.arg(ci.method)
+	ci.method <- match.arg(ci.method, c("sas", "satterthwaite"))
 	
 	MM <- obj$Type == "Mixed Model"					# only exists for mixed models
 	if(MM)
@@ -3392,18 +3432,21 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
     
     if( !is.null(obj$Matrices) && VarVC )
     {
-
 		if(is.null(obj$VarCov))						# solve mixed model equations first
 		{
 			obj  <- solveMME(obj)
 			nam  <- as.character(as.list(Call)$obj)
-			if(!grepl("\\(", nam))							# obj is function call
+
+			if(length(nam) == 1 && nam %in% names(as.list(.GlobalEnv)))		# obj is not function call
 			{
-				expr <- paste(nam, "<<- obj")				# update object missing MME results
+				expr <- paste(nam, "<<- obj")						# update object missing MME results
 				eval(parse(text=expr))	
 			}
-			else
-				warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+			else	# warning only if not called on list of VCA-objects
+			{
+				if( !"VCAinference.obj.is.list" %in% names(as.list(msgEnv)) )
+					warning("Mixed model equations solved locally. Results could not be assigned to object!")
+			}
 		}
 		
         Lmat  <- obj$Matrices                               # different matrices needed for VCA
@@ -3767,7 +3810,6 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 	attr(result, "ci.method")   <- ci.method
     return(result)
 }
-
 
 
 #' Standard Print Method for Objects of Class 'VCAinference'.
@@ -4177,21 +4219,25 @@ as.matrix.VCA <- function(x, ...)
 
 #' ANOVA-Type Estimation of Variance Components for Random Models.
 #' 
-#' This function equates observed ANOVA sums of squares (\eqn{SS}) to their expected values and solves the resulting system of linear equations
-#' for variance components. ANOVA SS are computed via matrices \eqn{A_i}{A_i} expressing them as quadratic forms in \eqn{y} as \eqn{ss_i = y^{T}A_{i}y}{ss_i = y' * A_i * y}. 
-#' Matrices \eqn{A_i} are also used to compute the variance-coveriance matrix of variance components (VC). 
-#' 
-#' Function \code{anovaVCA} is tailored for performing Variance Component Analyses (VCA) for random models, assuming all VCs as factor variables, i.e. their levels
-#' correspond to distinct columns in the design matrix (dummy variables). Any predictor variables are automatically converted to factor variables, since continuous
-#' variables may not be used on the right side of the formula 'form'. 
+#' This function equates observed ANOVA Type-I sums of squares (\eqn{SS}) to their expected values and solves the resulting system of linear equations
+#' for variance components. 
 #' 
 #' For diagnostics, a key parameter is "precision", i.e. the accuracy of a quantification method influenced by varying sources of random error. 
-#' This type of experiments is requested by regulatory authorities to proof the quality of diagnostic test, e.g. quantifying intermediate
+#' This type of experiments is requested by regulatory authorities to proof the quality of diagnostic tests, e.g. quantifying intermediate
 #' precision according to CLSI guideline EP5-A2/A3. No, fixed effects are allowed besides the intercept. 
 #' Whenever fixed effects are part of the model to be analyzed, use function \code{\link{anovaMM}} instead.
 #' 
+#' Function \code{anovaVCA} is tailored for performing Variance Component Analyses (VCA) for random models, assuming all VCs as factor variables, i.e. their levels
+#' correspond to distinct columns in the design matrix (dummy variables). Any predictor variables are automatically converted to factor variables, since continuous
+#' variables may not be used on the right side of the formula 'form'.
+#' 
+#' ANOVA \eqn{SS} are either computed employing the SWEEP-operator (Goodnight 1979, default) or by finding matrices \eqn{A_i}{A_i} expressing them as quadratic forms 
+#' in \eqn{y} as \eqn{ss_i = y^{T}A_{i}y}{ss_i = y' * A_i * y}. Matrices \eqn{A_i} are also used to compute the variance-coveriance matrix of variance components (VC)
+#' according to Searle et al. (1992) which corresponds to \code{VarVC.method="scm"}. Whenever the SWEEP-operator is used, which is way faster and therefore the default method,
+#' the approximation according to Giesbrecht and Burns (1985) is automatically set (\code{VarVC.method="gb"}). 
+#' 
 #' Function \code{anovaVCA} represents a special form of the "method of moments" approach applicable to arbitrary random models either balanced or unbalanced.
-#' The system of linear equations, which is built from the ANOVA-Type 1 sums of squares, is closely related to the method used 
+#' The system of linear equations, which is built from the ANOVA Type-I sums of squares, is closely related to the method used 
 #' by SAS PROC VARCOMP, where ANOVA mean squares (\eqn{MS}) are used (see \code{\link{getCmatrix}}). The former can be written as \eqn{ss = C * s}
 #' and the latter as \eqn{ms = D * s}, where \eqn{C} and \eqn{D} denote the respective coefficient matrices, \eqn{s} the column-vector
 #' of variance components (VC) to be estimated/predicted, and \eqn{ss} and \eqn{ms} the column vector of ANOVA sum of squares, respectively, mean squares. 
@@ -4199,12 +4245,10 @@ as.matrix.VCA <- function(x, ...)
 #' matrix \eqn{C}. Thus, \eqn{C} can easily be converted to \eqn{D} by the inverse operation. Matrix \eqn{D} is used to estimate
 #' total degrees of freedom (DF) according to Satterthwaite (1946).
 #' 
-#' If computing matrices \eqn{A_i} generating ANOVA \eqn{SS} as quadratic forms in \eqn{y}, i.e. \eqn{ss_i = y' * A_i * y} has two benefits.
-#' It allows obtaing ANOVA \eqn{SS} as well as computing the variance-covariance of VCs. Furthermore, it is much faster than fitting the linear model via 
-#' \code{\link{lm}} and calling function \code{\link{anova}} on the 'lm' object for complex models, where complex refers to the number of columns of the
-#' design matrix and the degree of unbalancedness. Degrees of freedom for the \eqn{i}-th term are obtained by function \code{\link{anovaDF}}.
-#' Besides the algorithm for obtaining the variance-covariance matrix of VCs described in Searle et. al (1992), which is termed "exact", a \eqn{2^{nd}}{2nd} option
-#' for computing this matrix is implemented, which is described in Giesbrecht and Burns (1985). It can be chosen by setting 'VarVC.method="gb"'.
+#' Both methods for computing ANOVA Type-I \eqn{SS} are much faster than fitting the linear model via \code{\link{lm}} and calling function \code{\link{anova}} on the 'lm' object
+#' for complex models, where complex refers to the number of columns of the design matrix and the degree of unbalancedness. Degrees of freedom for the \eqn{i}-th term are obtained 
+#' by function \code{\link{anovaDF}} in case of \code{VarVC.method="scm"}. Otherwise, \eqn{DF} are directly derived from the SWEEP-operator as the number of linearly independent
+#' columns of the partial design matrix corresponding to a specific \eqn{VC}.
 #' 
 #' @param form          (formula) specifying the model to be fit, a response variable left of the '~' is mandatory
 #' @param Data          (data.frame) storing all variables referenced in 'form'
@@ -4214,11 +4258,11 @@ as.matrix.VCA <- function(x, ...)
 #'                      (as done in SAS PROC NESTED, conservative estimate of total variance). The original ANOVA estimates can be found in attribute 'VCoriginal'. 
 #'                      The degrees of freedom of the total variance are based on adapted mean squares (MS), i.e. adapted MS are computed as \eqn{D * VC}, where VC is 
 #'                      the column vector with negative VCs set to 0. \cr
+#' 						TRUE = negative variance component estimates will not be set to 0 and they will contribute to the total variance (original definition of the total variance).
 #' @param SSQ.method	(character) string specifying the method used for computing ANOVA Type-1 sum of squares and respective degrees of freedom.
-#' 						In case of "sweep" funtion \code{\link{getSSQsweep}} will be called, otherwise, function \code{\link{getSSQqf}}
-#'                      TRUE = negative variance component estimates will not be set to 0 and they will contribute to the total variance (original definition of the total variance).
-#' @param VarVC.method	(character) string specifying whether to use the algorithm given in the
-#' 						\eqn{1^{st}}{1st} reference ("scm") or in the \eqn{2^{nd}}{2nd} refernce ("gb"). Method "scm" (Searle, Casella, McCulloch)
+#' 						In case of "sweep" funtion \code{\link{getSSQsweep}} will be called, otherwise, function \code{\link{getSSQqf}}                      
+#' @param VarVC.method	(character) string specifying whether to use the algorithm given in Searle et al. (1992) which corresponds to \code{VarVC.method="scm"} or in
+#' 						Giesbrecht and Burns (1985) which can be specified via "gb". Method "scm" (Searle, Casella, McCulloch)
 #'                      is the exact algorithm but slower, "gb" (Giesbrecht, Burns) is termed "rough approximation"
 #' 						by the authors, but sufficiently exact compared to e.g. SAS PROC MIXED (method=type1) which
 #' 						uses the inverse of the Fisher-Information matrix as approximation. For balanced designs all
@@ -4239,6 +4283,8 @@ as.matrix.VCA <- function(x, ...)
 #' 
 #' Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York
 #' 
+#' Goodnight, J.H. (1979), A Tutorial on the SWEEP Operator, The American Statistician, 33:3, 149-158
+#' 
 #' Giesbrecht, F.G. and Burns, J.C. (1985), Two-Stage Analysis Based on a Mixed Model: Large-Sample
 #' Asymptotic Theory and Small-Sample Simulation Results, Biometrics 41, p. 477-486
 #' 
@@ -4254,8 +4300,7 @@ as.matrix.VCA <- function(x, ...)
 #' 
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #' 
-#' @examples
-#' 
+#' @examples 
 #' \dontrun{
 #' 
 #' # load data (CLSI EP05-A2 Within-Lab Precision Experiment) 
@@ -4333,7 +4378,7 @@ as.matrix.VCA <- function(x, ...)
 #' 
 #' # now plot the precision profile over all samples
 #' plot(reproMat[,"Mean"], reproMat[,"Rep_CV"], type="l", main="Precision Profile CA19-9",
-#' 		xlab="Mean CA19-9 Value", ylab="CV[%])
+#' 		xlab="Mean CA19-9 Value", ylab="CV[%]")
 #' grid()
 #' points(reproMat[,"Mean"], reproMat[,"Rep_CV"], pch=16)
 #' 
@@ -4358,13 +4403,16 @@ as.matrix.VCA <- function(x, ...)
 #' # now fitting a nonsense model on the complete dataset "VCAdata1" 
 #' # using both methods for fitting ANOVA Type-1 sum of squares
 #' # SSQ.method="qf" used to be the default up to package version 1.1.1
-#' # takes ~165s on a Intel Xeon E5-2687W (3.1GHz)
+#' # took ~165s on a Intel Xeon E5-2687W (3.1GHz) in V1.1.1, now takes ~95s
 #' system.time(res.qf <- anovaVCA(y~(sample+lot+device)/day/run, VCAdata1, SSQ.method="qf"))
 #' # the SWEEP-operator is the new default since package version 1.2
-#' # takes ~50s
+#' # takes ~5s
 #' system.time(res.sw <- anovaVCA(y~(sample+lot+device)/day/run, VCAdata1, SSQ.method="sweep"))
+#' # applying functions 'anova' and 'lm' in the same manner takes ~ 265s
+#' system.time(res.lm <- anova(lm(y~(sample+lot+device)/day/run, VCAdata1)))
 #' res.qf
 #' res.sw
+#' res.lm
 #' }
 
 anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "qf"), 
@@ -4372,6 +4420,7 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 {
 	if(!is.null(by))
 	{
+		stopifnot(is.character(by))
 		stopifnot(by %in% colnames(Data))
 		stopifnot(is.factor(by) || is.character(by))
 		
@@ -4625,7 +4674,7 @@ residuals.VCA <- function(object, type=c("conditional", "marginal"), mode=c("raw
 	{
 		obj  <- solveMME(obj)
 		nam  <- as.character(as.list(Call)$object)
-		if(!grepl("\\(", nam))
+		if(length(nam) == 1 && nam %in% names(as.list(.GlobalEnv)))
 		{
 			expr <- paste(nam, "<<- obj")		# update object missing MME results
 			eval(parse(text=expr))
@@ -4684,7 +4733,7 @@ residuals.VCA <- function(object, type=c("conditional", "marginal"), mode=c("raw
 				
 				nam  <- as.character(as.list(Call)$object)			
 	
-				if(!grepl("\\(", nam))								# write back to object in the calling env
+				if(length(nam) == 1 && nam %in% names(as.list(.GlobalEnv)))	# write back to object in the calling env
 				{
 					obj$Matrices <- mats
 					expr <- paste(nam, "<<- obj")
