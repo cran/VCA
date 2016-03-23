@@ -89,7 +89,8 @@ set equal to NULL to omit.}
 The factor variable for which mean-values of factor-levels are plotted can be specified via list-element "var" accepting any factor
 variable specified in 'form'. List element "mar" takes values in [0;.5] setting the left and right margin size of mean-lines.
 Set equal to NULL to omit. Use 'var="int"' for specifying the overall mean (grand mean, intercept).
-If this list contains logical 'join' which is set to TRUE, these mean lines will be joined.}
+If this list contains logical 'join' which is set to TRUE, these mean lines will be joined. If list-element "top" is set to TRUE,
+these lines will be plotted on top, which is particularily useful for very large datasets.}
 
 \item{VCnam}{(list) specifying the text-labels (names of variance components) appearing as axis-labels. These parameters are passed to function
 'mtext'. Set to NULL to omit VC-names.}

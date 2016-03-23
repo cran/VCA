@@ -43,51 +43,51 @@ data(dataEP05A3_MS_3)
 TF001.VCAinference.constrained_CIs.balanced <- function()
 {
 	fit1 <- anovaVCA(y~day/run, Data=dataEP05A2_1, NegVC=TRUE, MME=TRUE)
-    INF1 <- VCAinference(fit1, VarVC=TRUE, excludeNeg=FALSE, constrainCI=TRUE) 
-    
-    checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "LCL"]), 4), c(2.4156,        0,      0, 1.3167))            # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "UCL"]), 4), c(4.7767,  1.0322,  2.8455, 3.1980))            # CI VC two-sided upper limits
-    
+	INF1 <- VCAinference(fit1, VarVC=TRUE, excludeNeg=FALSE, constrainCI=TRUE) 
+	
+	checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "LCL"]), 4), c(2.4156,        0,      0, 1.3167))            # CI VC two-sided lower limits
+	checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "UCL"]), 4), c(4.7767,  1.0322,  2.8455, 3.1980))            # CI VC two-sided upper limits
+	
 	fit2 <- anovaVCA(y~day/run, Data=dataEP05A2_2, NegVC=TRUE, MME=TRUE)
-    INF2 <- VCAinference(fit2, VarVC=TRUE, excludeNeg=FALSE, constrainCI=TRUE)
-     
-    checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[, "LCL"]), 4), c(5.9669,       0,       0, 2.5077))            # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[, "UCL"]), 4), c(12.7046, 4.8921,  5.8428, 6.0906))            # CI VC two-sided upper limits
-    
+	INF2 <- VCAinference(fit2, VarVC=TRUE, excludeNeg=FALSE, constrainCI=TRUE)
+	
+	checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[, "LCL"]), 4), c(5.9669,       0,       0, 2.5077))            # CI VC two-sided lower limits
+	checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[, "UCL"]), 4), c(12.7046, 4.8921,  5.8428, 6.0906))            # CI VC two-sided upper limits
+	
 	fit3 <- anovaVCA(y~day/run, Data=dataEP05A2_3, NegVC=TRUE, MME=TRUE)
-    INF3 <- VCAinference(fit3, VarVC=TRUE, excludeNeg=FALSE, constrainCI=TRUE)
-   
-    checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[, "LCL"]), 4), c(24.8957,  0,       0,       10.9764))          # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[, "UCL"]), 4), c(54.8935,  25.6818, 17.0897, 26.6590))         # CI VC two-sided upper limits
+	INF3 <- VCAinference(fit3, VarVC=TRUE, excludeNeg=FALSE, constrainCI=TRUE)
+	
+	checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[, "LCL"]), 4), c(24.8957,  0,       0,       10.9764))          # CI VC two-sided lower limits
+	checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[, "UCL"]), 4), c(54.8935,  25.6818, 17.0897, 26.6590))         # CI VC two-sided upper limits
 }    
 
 TF002.VCAinference.unconstrained_CIs.balanced <- function()
 {
-    fit1 <- anovaVCA(y~day/run, Data=dataEP05A2_1, NegVC=TRUE, MME=TRUE)
-    INF1 <- VCAinference(fit1, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE) 
-    
-    checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "LCL"]), 4), c(2.4156, -1.0300, -0.1565, 1.3167))            # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "UCL"]), 4), c(4.7767,  1.0322,  2.8455, 3.1980))            # CI VC two-sided upper limits
-    
+	fit1 <- anovaVCA(y~day/run, Data=dataEP05A2_1, NegVC=TRUE, MME=TRUE)
+	INF1 <- VCAinference(fit1, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE) 
+	
+	checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "LCL"]), 4), c(2.4156, -1.0300, -0.1565, 1.3167))            # CI VC two-sided lower limits
+	checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "UCL"]), 4), c(4.7767,  1.0322,  2.8455, 3.1980))            # CI VC two-sided upper limits
+	
 	fit2 <- anovaVCA(y~day/run, Data=dataEP05A2_2, NegVC=TRUE, MME=TRUE)
-    INF2 <- VCAinference(fit2, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)
-    
-    checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[, "LCL"]), 4), c(5.9669, -1.1845, -0.1907, 2.5077))            # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[, "UCL"]), 4), c(12.7046, 4.8921,  5.8428, 6.0906))            # CI VC two-sided upper limits
-    
+	INF2 <- VCAinference(fit2, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)
+	
+	checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[, "LCL"]), 4), c(5.9669, -1.1845, -0.1907, 2.5077))            # CI VC two-sided lower limits
+	checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[, "UCL"]), 4), c(12.7046, 4.8921,  5.8428, 6.0906))            # CI VC two-sided upper limits
+	
 	fit3 <- anovaVCA(y~day/run, Data=dataEP05A2_3, NegVC=TRUE, MME=TRUE)
-    INF3 <- VCAinference(fit3, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)
-    
-    checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[, "LCL"]), 4), c(24.8957, -1.2196, -3.0273, 10.9764))          # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[, "UCL"]), 4), c(54.8935,  25.6818, 17.0897, 26.6590))         # CI VC two-sided upper limits
+	INF3 <- VCAinference(fit3, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)
+	
+	checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[, "LCL"]), 4), c(24.8957, -1.2196, -3.0273, 10.9764))          # CI VC two-sided lower limits
+	checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[, "UCL"]), 4), c(54.8935,  25.6818, 17.0897, 26.6590))         # CI VC two-sided upper limits
 }
 
 
 TF003.VCAinference.negative_VC.balanced <- function()
 {
-
-    # constrainCI has to be TRUE whenever any VC-estimates were set to 0
-    
+	
+	# constrainCI has to be TRUE whenever any VC-estimates were set to 0
+	
 	fit1 <- anovaVCA(y~day/run, data1, MME=TRUE)
 	INF1 <- VCAinference(fit1, VarVC=TRUE, constrainCI=FALSE)                                                 
 	checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "LCL"]), 4), c( 24.2184, NA, 0.0000, 14.4422))
@@ -112,28 +112,28 @@ TF003.VCAinference.negative_VC.balanced <- function()
 	INF4 <- VCAinference(fit4, VarVC=TRUE, excludeNeg=FALSE)                                                  
 	checkEquals(round(as.numeric(INF4$ConfInt$VC$TwoSided[, "LCL"]), 4), c(19.2231, -14.1191, -3.0623, 14.4422))
 }
-    
-    # check EP05-A3 3/5/5 Multi-Site output for balanced data (total variance, error variance)
+
+# check EP05-A3 3/5/5 Multi-Site output for balanced data (total variance, error variance)
 
 TF004.VCAinference.VC_CI.balanced <- function()
 {
 	fit1 <- anovaVCA(y~site/day, Data=dataEP05A3_MS_1, NegVC=TRUE, MME=TRUE)
-    INF1 <- VCAinference(fit1, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)
-    
-    checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "LCL"]), 4), c(2.0437, -1.2939, -0.3148, 1.6365))            # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "UCL"]), 4), c(8.1959,  3.3287,  1.0065, 3.3674))            # CI VC two-sided upper limits
-    
+	INF1 <- VCAinference(fit1, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)
+	
+	checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "LCL"]), 4), c(2.0437, -1.2939, -0.3148, 1.6365))            # CI VC two-sided lower limits
+	checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "UCL"]), 4), c(8.1959,  3.3287,  1.0065, 3.3674))            # CI VC two-sided upper limits
+	
 	fit2 <- anovaVCA(y~site/day, Data=dataEP05A3_MS_2, NegVC=TRUE, MME=TRUE)
-    INF2 <- VCAinference(fit2, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)                                         # total not tested
-    
-    checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[-1, "LCL"]), 4), c(-1.6806, -0.4157, 2.6842))                  # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[-1, "UCL"]), 4), c( 3.7022,  2.4723, 5.5231))                  # CI VC two-sided upper limits
-    
+	INF2 <- VCAinference(fit2, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)                                         # total not tested
+	
+	checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[-1, "LCL"]), 4), c(-1.6806, -0.4157, 2.6842))                  # CI VC two-sided lower limits
+	checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[-1, "UCL"]), 4), c( 3.7022,  2.4723, 5.5231))                  # CI VC two-sided upper limits
+	
 	fit3 <- anovaVCA(y~site/day, Data=dataEP05A3_MS_3, NegVC=TRUE, MME=TRUE)
-    INF3 <- VCAinference(fit3, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)                                         # total not tested
-    
-    checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[-1, "LCL"]), 4), c(-20.5980, -1.4056, 10.8222))                # CI VC two-sided lower limits
-    checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[-1, "UCL"]), 4), c( 56.5796, 12.2530, 22.2685))                # CI VC two-sided upper limits
+	INF3 <- VCAinference(fit3, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)                                         # total not tested
+	
+	checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[-1, "LCL"]), 4), c(-20.5980, -1.4056, 10.8222))                # CI VC two-sided lower limits
+	checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[-1, "UCL"]), 4), c( 56.5796, 12.2530, 22.2685))                # CI VC two-sided upper limits
 }
 
 
@@ -143,8 +143,8 @@ TF004.VCAinference.VC_CI.balanced <- function()
 TF005.VCAinference.WinCAEv_PrecPerf.SD_CI <- function()
 {
 	data_1 <- data.frame(day=c(1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 9, 9, 9, 9, 10, 10, 10, 10, 11, 11, 11, 11, 12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 15, 15, 16, 16, 16, 16, 17, 17, 17, 17, 18, 18, 18, 18, 19, 19, 19, 19, 20, 20, 20, 20, 21, 21, 21, 21),
-						 run=c(1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2),
-						 y=c(106.2, 106.6, 106.2, 106.1, 106.8, 106.9, 107.1, 107, 107.5, 107.5, 107.2, 107, 107.8, 107.5, 106.9, 106.8, 107.1, 106.9, 106.1, 105.7, 106.5, 106.3, 105.8, 105.8, 106, 106, 105.4, 105.4, 105.4, 105.3, 104.6, 104.5, 105.2, 105.3, 104.9, 104.8, 105.1, 105.1, 104.3, 104.3, 104.5, 104.7, 104.1, 104, 104.1, 104.1, 103.4, 103.3, 103.3, 103.2, 102.6, 102.6, 103, 103.1, 102.5, 102.6, 102.9, 102.9, 102.3, 101.9, 102.5, 102.6, 102.2, 102.2, 102.5, 102.5, 102.3, 102.1, 105.5, 105.6, 105.3, 105.5, 106.5, 106.5, 106.5, 106.5, 108.1, 108.1, 108.3, 108.5, 104.9, 105.7, 105.2, 105.7))
+			run=c(1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2),
+			y=c(106.2, 106.6, 106.2, 106.1, 106.8, 106.9, 107.1, 107, 107.5, 107.5, 107.2, 107, 107.8, 107.5, 106.9, 106.8, 107.1, 106.9, 106.1, 105.7, 106.5, 106.3, 105.8, 105.8, 106, 106, 105.4, 105.4, 105.4, 105.3, 104.6, 104.5, 105.2, 105.3, 104.9, 104.8, 105.1, 105.1, 104.3, 104.3, 104.5, 104.7, 104.1, 104, 104.1, 104.1, 103.4, 103.3, 103.3, 103.2, 102.6, 102.6, 103, 103.1, 102.5, 102.6, 102.9, 102.9, 102.3, 101.9, 102.5, 102.6, 102.2, 102.2, 102.5, 102.5, 102.3, 102.1, 105.5, 105.6, 105.3, 105.5, 106.5, 106.5, 106.5, 106.5, 108.1, 108.1, 108.3, 108.5, 104.9, 105.7, 105.2, 105.7))
 	
 	res1 <- anovaVCA(y~day/run, data_1)
 	inf1 <- VCAinference(res1)
@@ -187,7 +187,7 @@ TF007.VCAinference.CrossedNested.VC_CI.balanced <- function()
 	sample1$device <- gl(3,28,252)                                      # add device variable
 	set.seed(505)
 	sample1$y <- sample1$y + rep(rep(rnorm(3,,.25), c(28,28,28)),3)     # add error component for device
-
+	
 	# write.table(sample1UB, file="sample1UB.txt", quote=FALSE, row.names=FALSE, col.names=TRUE, sep="\t")      # export data, import to SAS and apply SAS-code given above
 	
 	res1 <- anovaVCA(y~lot+device+(lot:device:day)/run, sample1)
@@ -231,7 +231,7 @@ TF008.VCAinference.CrossedNested.VC_CI.unbalanced <- function()
 	CIs  <- inf1$ConfInt$VC$TwoSided
 	CIs  <- as.matrix(CIs[,-1])
 	colnames(CIs) <- NULL
-
+	
 	cat("\n\nSAS PROC MIXED uses the inverse of the Fisher-Information Matrix as approximation of Covariance-Matrix of Variance Components.")
 	cat("\nThis is equal to the one obtained via ANOVA-approach stated in \"Variance Components\" (Searle et al. 1991) in case")
 	cat("\nof balanced designs, otherwise Var(VC) of both results may differ:\n\n")
@@ -385,7 +385,7 @@ TF012.VCAinference.CrossedNested.VC_CI.unbalanced <- function()
 	
 	print(CImat)
 }
-	
+
 
 # Test Satterthwaite methodology for confidence intervals of all variance components. This is different from the SAS PROC MIXED
 # methodology, whenever Type1 estimation method is chosen, which is tested in all other test functions above. Here, all VC CIs
@@ -437,11 +437,107 @@ TF016.anovaMM.Satt_methodology.balanced <- function()
 }
 
 
+# This test checks whether point estimates exceeding the bounds of a confidence interval
+# are correctly set to NA.
+
+TF017.anovaVCA.Est_outsided_CI <- function()
+{
+	data(ReproData1)										# input data
+	fit <- anovaVCA(value~Site/Day/Run, ReproData1)
+	inf <- tryCatch(VCAinference(fit, ci.method="satterthwaite"),		# warning should be issued
+			warning=function(w) w )
+	checkTrue(is(inf, "warning"))
+	inf 	<- VCAinference(fit, ci.method="satterthwaite")
+	infVC	<- print(inf, what="VC")
+	checkTrue(is.na(infVC["Site:Day:Run", "CI LCL"]))
+	checkTrue(is.na(infVC["Site:Day:Run", "CI UCL"]))
+	checkTrue(is.na(infVC["Site:Day:Run", "One-Sided LCL"]))
+}
+
+
+# check EP05-A2 20/2/2 output for balanced data (total variance, error variance)
+
+TF018.VCAinference.constrained_CIs.balanced <- function()
+{
+	fit1 <- remlVCA(y~day/run, Data=dataEP05A2_1)
+	INF1 <- VCAinference(fit1, VarVC=TRUE, excludeNeg=FALSE, constrainCI=TRUE) 
+	
+	checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "LCL"]), 4), c(2.4156,        0,      0, 1.3167))            # CI VC two-sided lower limits
+	checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "UCL"]), 4), c(4.7767,  1.0322,  2.8455, 3.1980))            # CI VC two-sided upper limits
+	
+	fit2 <- remlVCA(y~day/run, Data=dataEP05A2_2)
+	INF2 <- VCAinference(fit2, VarVC=TRUE, excludeNeg=FALSE, constrainCI=TRUE)
+	
+	checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[, "LCL"]), 4), c(5.9669,       0,       0, 2.5077))            # CI VC two-sided lower limits
+	checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[, "UCL"]), 4), c(12.7046, 4.8921,  5.8428, 6.0906))            # CI VC two-sided upper limits
+	
+	fit3 <- remlVCA(y~day/run, Data=dataEP05A2_3)
+	INF3 <- VCAinference(fit3, VarVC=TRUE, excludeNeg=FALSE, constrainCI=TRUE)
+	
+	checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[, "LCL"]), 4), c(24.8957,  0,       0,       10.9764))          # CI VC two-sided lower limits
+	checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[, "UCL"]), 4), c(54.8935,  25.6818, 17.0897, 26.6590))         # CI VC two-sided upper limits
+}    
+
+TF019.VCAinference.unconstrained_CIs.balanced <- function()
+{
+	fit1 <- remlVCA(y~day/run, Data=dataEP05A2_1)
+	INF1 <- VCAinference(fit1, excludeNeg=FALSE, constrainCI=FALSE) 
+	
+	checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "LCL"]), 4), c(2.4156, -1.0300, -0.1565, 1.3167))            # CI VC two-sided lower limits
+	checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "UCL"]), 4), c(4.7767,  1.0322,  2.8455, 3.1980))            # CI VC two-sided upper limits
+	
+	fit3 <- remlVCA(y~day/run, Data=dataEP05A2_3)
+	INF3 <- VCAinference(fit3, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)
+	
+	checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[, "LCL"]), 4), c(24.8957, -1.2196, -3.0273, 10.9764))          # CI VC two-sided lower limits
+	checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[, "UCL"]), 4), c(54.8935,  25.6818, 17.0897, 26.6590))         # CI VC two-sided upper limits
+}
+
+
+TF020.VCAinference.balanced.REML.satterthwaite <- function()
+{
+	
+	# constrainCI has to be TRUE whenever any VC-estimates were set to 0
+	
+	fit1 <- remlVCA(y~day/run, data1)
+	INF1 <- VCAinference(fit1, ci.method="satt") 		# need Satterthwaite here to have SAS PROC MIXED reference results                                                
+	checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "LCL"]), 2), c( 19.64, NA, 1.51, 14.44))
+	checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "UCL"]), 2), c( 37.24, NA, 89.63, 35.08))
+	
+	fit2 <- remlVCA(y~day/run, data2)
+	INF2 <- VCAinference(fit2, ci.method="satt")
+	checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[, "LCL"]), 4), c( 63.1044 , NA, NA, 63.1044 ))
+	checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[, "UCL"]), 4), c( 118.2015, NA, NA, 118.2015))
+}
+
+# check EP05-A3 3/5/5 Multi-Site output for balanced data (total variance, error variance)
+
+TF021.VCAinference.VC_CI.balanced.REML <- function()
+{
+	fit1 <- remlVCA(y~site/day, Data=dataEP05A3_MS_1)
+	INF1 <- VCAinference(fit1, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)
+	
+	checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "LCL"]), 4), c(2.0437, -1.2939, -0.3148, 1.6365))            # CI VC two-sided lower limits
+	checkEquals(round(as.numeric(INF1$ConfInt$VC$TwoSided[, "UCL"]), 4), c(8.1959,  3.3287,  1.0065, 3.3674))            # CI VC two-sided upper limits
+	
+	fit2 <- remlVCA(y~site/day, Data=dataEP05A3_MS_2)
+	INF2 <- VCAinference(fit2, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)                                         # total not tested
+	
+	checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[-1, "LCL"]), 4), c(-1.6806, -0.4157, 2.6842))                  # CI VC two-sided lower limits
+	checkEquals(round(as.numeric(INF2$ConfInt$VC$TwoSided[-1, "UCL"]), 4), c( 3.7022,  2.4723, 5.5231))                  # CI VC two-sided upper limits
+	
+	fit3 <- remlVCA(y~site/day, Data=dataEP05A3_MS_3)
+	INF3 <- VCAinference(fit3, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)                                         # total not tested
+	
+	checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[-1, "LCL"]), 4), c(-20.5980, -1.4056, 10.8222))                # CI VC two-sided lower limits
+	checkEquals(round(as.numeric(INF3$ConfInt$VC$TwoSided[-1, "UCL"]), 4), c( 56.5796, 12.2530, 22.2685))                # CI VC two-sided upper limits
+}
+
 
 
 # check test case collection against SAS PROC MIXED method=type1 results 
 
-noTF <- 16			# number of next test function
+noTF <- 22			# number of next test function
 
 
 

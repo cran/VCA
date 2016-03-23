@@ -4,10 +4,12 @@
 \alias{Solve}
 \title{Solve System of Linear Equations using Inverse of Cholesky-Root.}
 \usage{
-Solve(X)
+Solve(X, quiet = FALSE)
 }
 \arguments{
 \item{X}{(matrix, Matrix) object to be inverted}
+
+\item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
 }
 \value{
 (matrix, Matrix) corresponding to the inverse of X

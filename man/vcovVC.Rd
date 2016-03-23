@@ -4,14 +4,16 @@
 \alias{vcovVC}
 \title{Calculate Variance-Covariance Matrix of Variance Components of 'VCA' objects.}
 \usage{
-vcovVC(obj, method = NULL)
+vcovVC(obj, method = NULL, quiet = FALSE)
 }
 \arguments{
-\item{obj}{... (VCA) object}
+\item{obj}{(VCA) object}
 
-\item{method}{... (character) string, optionally specifying whether to use the algorithm given in the
-                            1st reference ("scm") or in the 2nd refernce ("gb"). If not not supplied, the
-                            option is used coming with the 'VCA' object.}
+\item{method}{(character) string, optionally specifying whether to use the algorithm given in the
+1st reference ("scm") or in the 2nd refernce ("gb"). If not not supplied, the
+option is used coming with the 'VCA' object.}
+
+\item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
 }
 \value{
 (matrix) corresponding to variance-covariance matrix of variance components

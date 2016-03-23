@@ -6,7 +6,7 @@
 \usage{
 VCAinference(obj, alpha = 0.05, total.claim = NA, error.claim = NA,
   claim.type = "VC", VarVC = FALSE, excludeNeg = TRUE,
-  constrainCI = TRUE, ci.method = "sas")
+  constrainCI = TRUE, ci.method = "sas", quiet = FALSE)
 }
 \arguments{
 \item{obj}{(object) of class 'VCA' or, alternatively, a list of 'VCA' objects, where all other argument can be
@@ -25,7 +25,7 @@ specified as vectors, where the i-th vector element applies to the i-th element 
 and are specified as percentages.\cr
 If set to "SD" or "CV", claim-values will be converted to variances before applying the Chi-Squared test (see examples).}
 
-\item{VarVC}{(logical) TRUE = if attribute "Matrices" exists (see \code{\link{anovaVCA}}), the covariance
+\item{VarVC}{(logical) TRUE = if element "Matrices" exists (see \code{\link{anovaVCA}}), the covariance
 matrix of the estimated VCs will be computed (see \code{\link{vcovVC}}, which is used in CIs for
    intermediate VCs if 'method.ci="sas"'.
 Note, this might take very long for larger datasets, since there are many matrix operations involved.
@@ -41,9 +41,11 @@ which will preserve the original width of CIs.
 See the details section for a thorough explanation.}
 
 \item{ci.method}{(character) string or abbreviation specifying which approach to use for computing confidence intervals of variance components (VC).
-   "sas" (default) uses Chi-Squared based CIs for total and error and normal approximation for all other VCs,
-   "satterthwaite" will approximate DFs for each VC using the Satterthwaite approach (see \code{\link{SattDF}} and all Cis are
-based on the Chi-Squared distribution. This approach is conservative but avoids negative values for the lower bounds.}
+"sas" (default) uses Chi-Squared based CIs for total and error and normal approximation for all other VCs (Wald-limits, option "NOBOUND"
+in SAS PROC MIXED); "satterthwaite" will approximate DFs for each VC using the Satterthwaite approach (see \code{\link{SattDF}} for models
+fitted by ANOVA) and all Cis are based on the Chi-Squared distribution. This approach is conservative but avoids negative values for the lower bounds.}
+
+\item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
 }
 \value{
 (VCAinference) object, a list with elements:
@@ -89,7 +91,8 @@ of variance components. The default is only to compute and report CIs for total 
 }
 \note{
 Original CIs will always be available independent of parameter-settings of \code{excludeNeg} and
-                         \code{constrainCI}. Original CIs are stored in attribute "CIoriginal" of the returned 'VCAinference'-object.
+                         \code{constrainCI}. Original CIs are stored in attribute "CIoriginal" of the returned 'VCAinference'-object, e.g.
+							'attr(obj$ConfInt$SD$OneSided, "CIoriginal")' or 'attr(obj$ConfInt$CV$TwoSided, "CIoriginal")'.
 }
 \examples{
 \dontrun{

@@ -5,7 +5,7 @@
 \title{ANOVA-Type Estimation of Mixed Models.}
 \usage{
 anovaMM(form, Data, by = NULL, VarVC.method = c("gb", "scm"),
-  SSQ.method = c("sweep", "qf"), NegVC = FALSE)
+  SSQ.method = c("sweep", "qf"), NegVC = FALSE, quiet = FALSE)
 }
 \arguments{
 \item{form}{(formula) specifying the linear mixed model (fixed and random part of the model),
@@ -35,6 +35,8 @@ In case of "sweep" funtion \code{\link{getSSQsweep}} will be called, otherwise, 
 The degrees of freedom of the total variance are based on adapted mean squares (MS) (see details).
    TRUE = negative variance component estimates will not be set to 0 and they will contribute to the total
    variance (original definition of the total variance).}
+
+\item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
 }
 \value{
 (VCA) object
@@ -192,8 +194,8 @@ SAS Help and Documentation PROC MIXED, SAS Institute Inc., Cary, NC, USA
 \seealso{
 \code{\link{anovaVCA}}
 
-\code{\link{anovaVCA}}, \code{\link{VCAinference}}, \code{\link{ranef}}, \code{\link{fixef}},
-         \code{\link{vcov}}, \code{\link{vcovVC}}, \code{\link{test.fixef}}, \code{\link{test.lsmeans}},
-			\code{\link{plotRandVar}}
+\code{\link{anovaVCA}}, \code{\link{VCAinference}}, \code{\link{remlVCA}}, \code{\link{remlMM}}
+			\code{\link{ranef}}, \code{\link{fixef}}, \code{\link{vcov}}, \code{\link{vcovVC}},
+			\code{\link{test.fixef}}, \code{\link{test.lsmeans}}, \code{\link{plotRandVar}}
 }
 

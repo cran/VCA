@@ -3,6 +3,9 @@
 .onLoad <- function(lib, pkg)
 {
 	library.dynam(chname="VCA", package=pkg, lib.loc=lib)
+	# create VCA message environment
+	msgEnv <<- new.env(parent=emptyenv())
+	check4MKL()
 }
 
 .onUnload <- function(lib)
@@ -10,8 +13,1049 @@
 	library.dynam.unload(chname="VCA", libpath=lib)
 }	
 
-# create VCA message environment
-msgEnv <- new.env(parent=emptyenv())
+
+#' Load 'RevoUtilsMath'-package if available.
+#' 
+#' This function is taken from the Rprofile.site file of Microsoft R Open.
+#' It was added to the package namespace to avoid a NOTE during the R CMD check
+#' process stating that this function is not gobally defined.
+#' 
+#' Only change to the original version is a different bracketing scheme to match
+#' the one used in the remaining source-code of the package. 
+#' 
+#' @param package		(character) package name to load, usually this will be package
+#' 						'RevoUtilsMath' if available
+#' 
+#' @author Authors of the Rprofile.site file in Microsoft R Open.
+
+load_if_installed <- function(package) 
+{
+	if (!identical(system.file(package="RevoUtilsMath"), "")) 
+	{
+		do.call('library', list(package))
+		return(TRUE)
+	} 
+	else
+		return(FALSE)
+}
+
+
+
+#' Check for Availability of Intel's Math Kernel Library.
+#' 
+#' Majority of the code is borrowed from the Microsoft R Open Rprofile.site file.
+#' In case MKL can be detected this information will be stored in a separate envrionment, which
+#' other function know about. If so, an optimized version of function \code{\link{getGB}}
+#' will be used which used ordinary matrix-objects instead of matrices defined by the
+#' \code{Matrix}-package. This seems to accelerate computation time for large datasets
+#' by up to factor 30.
+#' 
+#' This function is for internal use only and therefore not exported.
+#' 
+#' @return variable 'MKL' in envir "msgEnv" will be set to TRUE/FALSE
+#' 
+#' @author 	Authors of the Rprofile.site file in Microsoft R Open,
+#' 			Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+
+check4MKL <- function()
+{
+	if(Sys.info()["sysname"] == "Darwin")				# Mac OSx
+	{
+		local(
+				{
+					options(download.file.method = "libcurl")
+					hw.ncpu <- try(system('sysctl hw.physicalcpu', intern = TRUE))
+					if (!inherits(hw.ncpu, "try-error"))
+						assign("MKL", TRUE, envir=msgEnv)
+					else
+						assign("MKL", FALSE, envir=msgEnv)
+				})
+	} 
+	else 												# other operating systems
+	{		
+		MRO <- FALSE
+		try(MRO <- load_if_installed("RevoUtilsMath"), silent=TRUE)			# function only exists in MRO environment
+		if(!inherits(MRO, "try-error") && MRO)
+			assign("MKL", TRUE, envir=msgEnv)
+		else 
+			assign("MKL", FALSE, envir=msgEnv)
+	}
+}
+
+#' Giesbrecht & Burns Approximation of the Variance-Covariance Matrix of Variance Components.
+#'
+#' Compute variance covariance matrix of variance components of a linear mixed model
+#' via the method stated in Giesbrecht and Burns (1985). 
+#' 
+#' This function is not intended to be called by users and therefore not exported.
+#'
+#' @param obj		(object) with list-type structure, e.g. \code{VCA} object fitted by ANOVA
+#' 					or a premature \code{VCA} object fitted by REML
+#' @param tol		(numeric) values < 'tol' will be considered being equal to zero
+#' 
+#' @return 	(matrix) corresponding to the Giesbrecht & Burns approximation
+#'			of the variance-covariance matrix of variance components
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @seealso \code{\link{vcovVC}}, \code{\link{remlVCA}}, \code{\link{remlMM}}
+#'
+#' @references
+#' Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York
+#' 
+#' Giesbrecht, F.G. and Burns, J.C. (1985), Two-Stage Analysis Based on a Mixed Model: Large-Sample
+#' Asymptotic Theory and Small-Sample Simulation Results, Biometrics 41, p. 477-486 
+
+getGB <- function(obj, tol=1e-12)
+{
+	Nvc	<- obj$Nvc
+	Z	<- obj$Matrices$Zre
+	Q	<- obj$Matrices$Q
+	
+	if(is.null(Q))							# should only be missing when fitted by ANOVA
+	{
+		X   <- getMat(obj, "X")
+		Vi  <- getMat(obj, "Vi")
+		T   <- getMat(obj, "T")				# P %*% t(X) %*% Vi
+		Q   <- Vi - Vi %*% X %*% T			
+	}
+	VCvar <- matrix(0, Nvc, Nvc)	
+	ZxZt  <- vector("list", Nvc)
+	nze   <- NULL							# non-zero elements
+	
+	for(i in 1:Nvc)
+	{		
+		VCi <- obj$VCoriginal[i]			# for model fitted via ANOVA, decide on basis of orignal (unconstrained) estimates 
+		
+		if(is.null(VCi))
+			VCi <- obj$aov.tab[obj$re.assign$terms[i],"VC"]
+		
+		if(i < Nvc && abs(VCi) < tol)	
+		{
+			VCvar[i,] <- VCvar[,i] <- 0 
+			next
+		}
+		else
+			nze <- c(nze, i)
+		
+		for(j in i:Nvc)
+		{		
+			if(is.null(ZxZt[[i]]))
+			{
+				if( i == Nvc)				# if all previous i-loops were skipped via "next", this condition-handling is required here for i
+				{
+					ZxZt[[i]] <- Q 
+				}
+				else
+				{
+					Zi  <- Z[, which(obj$re.assign$ind == i)]
+					ZiT <- t(Zi) 	
+					ZxZt[[i]] <- Zi %*% ZiT %*% Q
+				}
+			}
+			
+			if(is.null(ZxZt[[j]]))
+			{
+				if( j == Nvc)
+				{
+					ZxZt[[j]] <- Q 
+				}
+				else
+				{
+					Zj  <- Z[,which(obj$re.assign$ind == j)]
+					ZjT <- t(Zj) 
+					ZxZt[[j]] <- Zj %*% ZjT %*% Q
+				}
+			}
+			VCvar[i,j] <- VCvar[j,i] <- round(sum(diag(ZxZt[[i]] %*% ZxZt[[j]])), 12)
+		}
+	}	
+	nze 	<- unique(nze)
+	VCnames	<- obj$VCnames
+	
+	if(!"error" %in% VCnames)					# e.g. missing if 'VarVC=FALSE' in 'remlVCA()'
+		VCnames <- c(VCnames, "error")
+	
+	rownames(VCvar) <- colnames(VCvar) <- VCnames
+	VCvar[nze, nze] <- 2 * solve(VCvar[nze, nze])
+	VCvar <- VCvar
+	
+	attr(VCvar, "method") <- "gb"
+	VCvar
+}
+
+
+#' Construct Variance-Covariance Matrix of Random Effects for Models Fitted by Function 'lmer'.
+#' 
+#' This function either restricts the variance-covariance matrix of random effects G to be either
+#' diagonal ('cov=FALSE') or to take any non-zero covariances into account (default, 'cov=TRUE').
+#' 
+#' This function is not intended to be called directly by users and therefore not exported!
+#' 
+#' @param obj		(object) inheriting from class 'lmerMod'
+#' @param cov		(logical) TRUE = in case of non-zero covariances a block diagonal matrix will be constructed,
+#'                  FALSE = a diagonal matrix with all off-diagonal element being equal to zero will be contructed
+#' 
+#' @return (Matrix) representing the variance-covariance structure of random effects G
+#' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+
+lmerG <- function(obj, cov=FALSE)
+{
+	stopifnot(inherits(obj, "lmerMod"))
+	
+	vc  <- VarCorr(obj)
+	Nre <- unlist(lapply(lme4::ranef(obj), nrow))					# number of random effects per variance component 
+	
+	lst <- list()
+	for(i in 1:length(Nre))
+	{
+		tmp.vc <- vc[[i]]
+		
+		if(!cov && nrow(tmp.vc) > 1)
+		{
+			tmp.vc <- diag(diag(tmp.vc))
+		}
+		
+		lst <- c(lst, replicate(Nre[i], tmp.vc, simplify=FALSE))	# remove covariances from off-diagonal
+		
+	}
+	G <- bdiag(lst)
+	G
+}
+
+
+#' Derive and Compute Matrices for Objects Fitted by Function 'lmer'.
+#' 
+#' Function derives and computes all matrices required for down-stream
+#' analyses of VCA-objects fitted with REML via function \code{\link{lmer}}.
+#' 
+#' Mixed Model Equations (MME) are solved for fixed and random effects applying the same
+#' constraints as in \code{\link{anovaMM}}. 
+#' The most elaborate and therefore time consuming part is to prepare all matrices required for 
+#' approximating the variance-covariance matrix of variance components (\code{\link{getGB}}.
+#' To reduce the computational time, this function tries to optimize object-classes depending
+#' on whether Intel's (M)ath (K)ernel (L)ibrary could be loaded or not. MKL appears to be more
+#' performant with ordinary matrix-objects, whereas all other computations are perfomred using
+#' matrix-representations of the \code{Matrix}-package.
+#' 
+#' This function is not intended to be called directly by users and therefore not exported.
+#' 
+#' @param obj		(object) inheriting form 'lmerMod'
+#' @param tab		(data.frame) representing the basic VCA-table
+#' @param terms		(character) vector used for ordering variance components
+#' @param cov		(logical) take non-zero covariances among random effects into account (TRUE) or
+#' 					not (FALSE), the latter is the default in this package and also implemented in
+#' 					\code{\link{remlVCA}}, \code{\link{anovaVCA}}, and \code{\link{anovaMM}}.
+#' @param X			(matrix) design matrix of fixed effects as constructed to meet VCA-package requirements
+#' 
+#' @return (list), a premature 'VCA' object
+#' 
+#' @seealso \code{\link{remlVCA}}, \code{\link{remlMM}}
+#' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+
+lmerMatrices <- function(obj, tab=NULL, terms=NULL, cov=FALSE, X=NULL)
+{
+	stopifnot(inherits(obj, "lmerMod"))
+	
+	re.org <- re <- lme4::ranef(obj)	# use lme4's ranef S3-method
+	
+	VCnam  <- NULL
+	reInd  <- list()
+	last   <- 0
+	count  <- 1
+	REnam  <- names(re)
+	REnamZ <- NULL
+	
+	for(i in 1:length(re))				# transform random effects into VCA-compatible structure and derive					
+	{									# column-index in random effects design matrix Z for all random effects
+		if(ncol(re[[i]]) > 1)			# regression model, i.e. random effects in multi-column matrix
+		{
+			REi 	<- re[[i]]
+			NRi 	<- nrow(REi)
+			NCi 	<- ncol(REi)
+			trm 	<- names(re)[i]
+			tmp.re 	<- ind <- NULL			
+			
+			for(j in 1:NCi)
+			{
+				reInd[[count]] <- seq(last+1, last+NRi*NCi, by=NCi)		# columns in Z corresponding to a specific random effect
+				
+				if(j == 1)
+				{
+					tmp.nam <- paste(trm, rownames(re[[i]]), sep="")
+					names(reInd)[count] <- REnam[count]
+				}
+				else
+				{
+					tmp.nam <- c(tmp.nam, paste(colnames(REi)[j], tmp.nam, sep=":"))
+					names(reInd)[count] <- paste(colnames(REi)[j], REnam[i], sep=":")
+				}
+				last  <- last + 1
+				count <- count + 1
+				
+				if(j == 1)
+					ind <- eval(parse(text=paste("((",j,"-1)*",NRi,"+1):(", j,"*", NRi, ")", sep="")))
+				else
+					ind <- paste(ind, eval(parse(text=paste("((",j,"-1)*",NRi,"+1):(", j,"*", NRi, ")", sep=""))), sep=", ")
+			}
+			ind 	<- paste("c(", paste(ind, collapse=","), ")", sep="")
+			ind 	<- eval(parse(text=ind))
+			REnamZ 	<- c(REnamZ, tmp.nam[ind])							# column names in Z-matrix			
+			cn 		<- colnames(REi)
+			cn 		<- paste(names(re)[i], cn, sep=":")
+			cn 		<- gsub(":\\(Intercept\\)", "", cn)					# get rif of ()
+			VCnam 	<- c(VCnam, cn)										# names of Variance components
+		}
+		else		# single column random effects matrix
+		{
+			reInd[[count]] <- (last+1):(last+nrow(re[[i]]))
+			names(reInd)[count] <- REnam[count]
+			last   <- last + nrow(re[[i]])
+			count  <- count + 1
+			nami   <- unlist(strsplit(REnam[i], ":"))
+			rni    <- rownames(re[[i]])
+			VCnam  <- c(VCnam, REnam[i])			
+			REnamZ <- c(REnamZ, sapply(rni, function(x) paste(paste(nami, unlist(strsplit(x, ":")), sep=""), collapse=":")))
+		}
+	}
+	REnamZ 		<- as.character(REnamZ)						# names for the random effects and the columns in Z
+	reInd  		<- reInd[terms]								# order according to order of variables in user-specified formula
+	reInd  		<- reInd[which(!is.na(names(reInd)))]
+	Nre	   		<- as.numeric(unlist(lapply(re.org, nrow)))
+	sNre   		<- sum(Nre)
+	re.assign 	<- list(ind=integer(sNre), terms=names(reInd))
+	VC	  	  	<- tab[-c(1, nrow(tab)), "VC"]
+	
+	for(i in 1:length(reInd))
+		re.assign$ind[reInd[[i]]] <- i
+	
+	Nvc	  <- nrow(tab)-1							# minus total and error								
+	Zt 	  <- obj@pp$Zt
+	
+	if(msgEnv$MKL)
+		Zt <- as.matrix(Zt)
+	
+	if(is.null(X) || class(X) != "matrix")
+		X <- model.matrix(obj, type="fixed")
+	
+	Xt <- t(X)
+	Z  <- t(Zt)
+	colnames(Z) <- REnamZ
+	G  <- lmerG(obj, cov=cov)						# construct G-matrix
+	
+	if(msgEnv$MKL)
+		R	<- diag(nrow(obj@frame))* tab[nrow(tab),"VC"]
+	else
+		R	<- Diagonal(nrow(obj@frame))* tab[nrow(tab),"VC"]
+	
+	V	 <- Z %*% G %*% Zt + R						# variance-covariance matrix of observations
+	Vi	 <- solve(V)
+	ViX  <- Vi %*% X
+	XtVi <- Xt %*% Vi
+	P 	 <- MPinv(Xt %*% ViX)   					# re-compute since 'vcov(obj)' differs from e.g. SAS PROC MIXED
+	Q	 <- Vi - ViX %*% P %*% XtVi
+	T    <- P %*% XtVi
+	
+	res 		 <- list()
+	res$Nvc 	 <- Nvc
+	res$VCnames  <- c(terms, "error") 
+	y  <- obj@resp$y
+	fe <- P %*% XtVi %*% y						# solve mixed model equations for fixed effects
+	
+	colnames(fe) <- "Estimate"
+	rownames(fe) <- colnames(X)
+	iind <- which(names(fe) == "(Intercept)")
+	
+	if(length(iind) > 0)
+		names(fe)[iind] <- "int"
+	
+	res$Matrices 		<- list(Zre=Z, G=G, R=R, V=V, Vi=Vi, Q=Q, X=X, T=T, y=y)
+	res$FixedEffects  	<- fe	
+	re  				<- G %*% Zt %*% Vi %*% (y - X %*% fe) 		# estimate random effects solving Mixed Model Equations
+	re 					<- Matrix(re)								# re-order random effects accordingly
+	rownames(re) 		<- REnamZ
+	res$RandomEffects 	<- re
+	res$re.assign 		<- re.assign
+	res$VarFixed  		<- P
+	res$ColOrderZ 		<- reInd			# keep information about original col-indexing
+	res
+}
+
+#' Derive VCA-Summary Table from an object fitted via function \code{\link{lmer}}.
+#'
+#' This function builds a variance components analysis results table
+#' from an object representing a model fitted by \code{\link{lmer}} of the
+#' \code{lme4} R-package. It applies the approximation of the variance-covariance
+#' matrix of variance components according to Giesbrecht & Burns (1985) and uses this
+#' information to approximate the degrees of freedom according to Satterthwaite
+#' (see SAS PROC MIXED documentation option 'CL').
+#' 
+#' This function is not intended to be called directly by users and therefore not exported.
+#'
+#' @param obj		(lmerMod) object as returned by function lmer
+#' @param VarVC		(logical) TRUE = the variance-covariance matrix of variance components will be approximated
+#' 					following the Giesbrecht & Burns approach, FALSE = it will not be approximated	
+#' @param terms		(character) vector, optionally defining the order of variance terms to be used
+#' @param Mean		(numeric) mean value used for CV-calculation
+#' @param cov		(logical) TRUE = in case of non-zero covariances a block diagonal matrix will be constructed,
+#'                  FALSE = a diagonal matrix with all off-diagonal element being equal to zero will be contructed
+#' @param X			(matrix) design matrix of fixed effects as constructed to meet VCA-package requirements
+#' 
+#' @return (list) still a premature 'VCA' object but close to a
+#' 
+#' @seealso \code{\link{remlVCA}}, \code{\link{remlMM}}
+#' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#'
+#' @references
+#' Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York
+#' 
+#' Giesbrecht, F.G. and Burns, J.C. (1985), Two-Stage Analysis Based on a Mixed Model: Large-Sample
+#' Asymptotic Theory and Small-Sample Simulation Results, Biometrics 41, p. 477-486 
+
+lmerSummary <- function(obj, VarVC=TRUE, terms=NULL, Mean=NULL, cov=FALSE, X=NULL)
+{
+	stopifnot(inherits(obj, "lmerMod"))	
+#check4MKL() # remove it before building the package
+	Sum  <- as.data.frame(summary(obj)$varcor)
+	Sum[which(Sum[,"var1"] %in% c(NA, "(Intercept)")), "var1"] <- ""
+	
+	Sum[,"grp"] <- apply(Sum[,c("grp", "var1")], 1, function(x){
+				if(x[2] == "")
+					return(x[1])
+				else
+					return(paste(rev(x), collapse=":"))
+			})
+	re.cor <- NULL
+	
+	if(any(!is.na(Sum[,"var2"])))
+	{
+		ind.cor <- which(!is.na(Sum[,"var2"]))
+		re.cor  <- Sum[ind.cor,,drop=FALSE]
+		Sum <- Sum[-ind.cor,]
+	}
+	
+	Sum  <- Sum[,-c(2,3)]
+	rownames(Sum) <- Sum[,"grp"]
+	Sum <- Sum[c(terms, "Residual"), ]
+	colnames(Sum) <- c("Name", "VC", "SD")
+	Sum <- rbind(c(Name="total", VC=sum(Sum[,"VC"]), SD=sqrt(sum(Sum[,"VC"]))), Sum)
+	rownames(Sum) <- Sum[,"Name"]
+	Sum$VC <- as.numeric(Sum$VC)
+	Sum$SD <- as.numeric(Sum$SD)
+	Sum$Perc <- 100*Sum$VC/Sum$VC[1]
+	Sum$CV	 <- 100*Sum$SD/Mean
+	obj <- lmerMatrices(obj, tab=Sum, terms=terms, 		# compute some required matrices
+			cov=cov, X=X)	
+	obj$aov.tab <- Sum
+	
+	if(VarVC)
+	{
+		varVC <- obj$VarCov <- getGB(obj)				# apply Giesbrecht & Burns approximation optimized for MKL
+		varVC <- diag(varVC)
+		varVC <- c(sum(obj$VarCov), varVC)				# variance of total is sum of all elements of the variance-covariance matrix
+		seVC  <- sqrt(varVC)
+		Sum$varVC <- varVC
+		Sum$Wald <- Sum$VC/seVC							# Wald-statistic
+		Sum$DF	 <- 2*Sum$Wald^2						# see SAS-Doc of PROC MIXED
+		Sum 	 <- Sum[,c(8,2,4,3,5,6)]
+		colnames(Sum)[c(3,5,6)] <- c("%Total", "CV[%]", "Var(VC)")
+	}
+	else
+	{	
+		Sum <- Sum[,c(2,4,3,5)]
+		colnames(Sum)[c(2,4)] <- c("%Total", "CV[%]")
+		obj$aov.tab <- Sum
+	}
+	
+	if(msgEnv$MKL)			# remaining part of the package computes with Matrix-package
+	{
+		obj$Matrices$Zre 	<- Matrix(obj$Matrices$Zre)
+		obj$Matrices$G   	<- Matrix(obj$Matrices$G)
+		obj$Matrices$R 		<- Matrix(obj$Matrices$R)
+		obj$Matrices$V 		<- Matrix(obj$Matrices$V)
+		obj$Matrices$Vi 	<- Matrix(obj$Matrices$Vi)
+		obj$Matrices$Q 		<- Matrix(obj$Matrices$Q)
+		obj$Matrices$X	    <- Matrix(obj$Matrices$X)
+		obj$Matrices$T	    <- Matrix(obj$Matrices$T)
+	}	
+	
+	rownames(Sum)[nrow(Sum)] <- "error"
+	obj$aov.tab <- Sum
+	obj$re.cor <- re.cor					# save correlation among random terms
+	obj
+}
+
+
+#' Perform (V)ariance (C)omponent (A)nalysis via REML-Estimation.
+#' 
+#' Function performs a Variance Component Analysis (VCA) using Restricted Maximum Likelihood (REML)
+#' to fit the random model, i.e. a linear mixed model (LMM) where the intercept is the only fixed effect.
+#' 
+#' Here, a variance component model is fitted by REML using the \code{\link{lmer}} function of the
+#' \code{lme4}-package. For all models the Giesbrechnt & Burns (1985) approximation of the variance-covariance
+#' matrix of variance components (VC) is applied. A Satterthwaite approximation of the degrees of freedom
+#' for all VC and total variance is based on this approximated matrix using \eqn{df=2Z^2}, where
+#' \eqn{Z} is the Wald statistic \eqn{Z=\sigma^2/se(\sigma^2)}, and \eqn{\sigma^2} is here used for an
+#' estimated variance. The variance of total variability, i.e. the sum of all VC is computed via summing
+#' up all elements of the variance-covariance matrix of the VC.
+#' Note, that for large datasets approximating the variance-covariance matrix of VC is computationally expensive
+#' and may take very long. There is no Fisher-information matrix available for 'merMod' objects, which can
+#' serve as approximation. To avoid this time-consuming step, use argument 'VarVC=FALSE' but remember,
+#' that no confidence intervals for any VC will be available. If you use Microsoft's R Open, formerly known
+#' as Revolution-R, which comes with Intel's Math Kernel Library (MKL), this will be automatically detected
+#' and an environment-optimized version will be used, reducing the computational time very much (see examples).
+#' 
+#' @param form          (formula) specifying the model to be fit, a response variable left of the '~' is mandatory
+#' @param Data          (data.frame) storing all variables referenced in 'form'
+#' @param by			(factor, character) variable specifying groups for which the analysis should be performed individually,
+#' 						i.e. by-processing
+#' @param VarVC			(logical) TRUE = the variance-covariance matrix of variance components will be approximated using 
+#' 						the method found in Giesbrecht & Burns (1985), which also serves as basis for applying a Satterthwaite
+#' 						approximation of the degrees of freedom for each variance component, FALSE = leaves out this step, 
+#' 						no confidence intervals for VC will be available
+#' @param quiet			(logical) TRUE = will suppress any warning, which will be issued otherwise 
+#' 
+#' @seealso \code{\link{remlMM}}, \code{\link{VCAinference}}, \code{\link{ranef.VCA}}, \code{\link{residuals.VCA}},
+#' 			\code{\link{anovaVCA}}, \code{\link{anovaMM}}, \code{\link{plotRandVar}}, \code{\link{lmer}}
+#' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @examples
+#' \dontrun{
+#' 
+#' # a VCA standard example
+#' data(dataEP05A2_3)
+#' 
+#' # fit it by ANOVA first, then by REML
+#' fit0 <- anovaVCA(y~day/run, dataEP05A2_3) 
+#' fit1 <- remlVCA(y~day/run, dataEP05A2_3)
+#' fit0
+#' fit1
+#'  
+#' # make example unbalanced
+#' set.seed(107)
+#' dat.ub <- dataEP05A2_3[-sample(1:80, 7),]
+#' fit0ub <- anovaVCA(y~day/run, dat.ub) 
+#' fit1ub <- remlVCA(y~day/run, dat.ub) 
+#' 
+#' # not that ANOVA- and REML-results now differ
+#' fit0ub
+#' fit1ub
+#' 
+#' ### Use the six sample reproducibility data from CLSI EP5-A3
+#' ### and fit per sample reproducibility model
+#' data(CA19_9)
+#' fit.all <- remlVCA(result~site/day, CA19_9, by="sample")
+#' 
+#' reproMat <- data.frame(
+#'  Sample=c("P1", "P2", "Q3", "Q4", "P5", "Q6"),
+#'  Mean= c(fit.all[[1]]$Mean, fit.all[[2]]$Mean, fit.all[[3]]$Mean, 
+#' 	        fit.all[[4]]$Mean, fit.all[[5]]$Mean, fit.all[[6]]$Mean),
+#' 	Rep_SD=c(fit.all[[1]]$aov.tab["error","SD"], fit.all[[2]]$aov.tab["error","SD"],
+#' 	         fit.all[[3]]$aov.tab["error","SD"], fit.all[[4]]$aov.tab["error","SD"],
+#'           fit.all[[5]]$aov.tab["error","SD"], fit.all[[6]]$aov.tab["error","SD"]),
+#' 	Rep_CV=c(fit.all[[1]]$aov.tab["error","CV[%]"],fit.all[[2]]$aov.tab["error","CV[%]"],
+#'           fit.all[[3]]$aov.tab["error","CV[%]"],fit.all[[4]]$aov.tab["error","CV[%]"],
+#'           fit.all[[5]]$aov.tab["error","CV[%]"],fit.all[[6]]$aov.tab["error","CV[%]"]),
+#'  WLP_SD=c(sqrt(sum(fit.all[[1]]$aov.tab[3:4,"VC"])),sqrt(sum(fit.all[[2]]$aov.tab[3:4, "VC"])),
+#'           sqrt(sum(fit.all[[3]]$aov.tab[3:4,"VC"])),sqrt(sum(fit.all[[4]]$aov.tab[3:4, "VC"])),
+#'           sqrt(sum(fit.all[[5]]$aov.tab[3:4,"VC"])),sqrt(sum(fit.all[[6]]$aov.tab[3:4, "VC"]))),
+#'  WLP_CV=c(sqrt(sum(fit.all[[1]]$aov.tab[3:4,"VC"]))/fit.all[[1]]$Mean*100,
+#'           sqrt(sum(fit.all[[2]]$aov.tab[3:4,"VC"]))/fit.all[[2]]$Mean*100,
+#'           sqrt(sum(fit.all[[3]]$aov.tab[3:4,"VC"]))/fit.all[[3]]$Mean*100,
+#'           sqrt(sum(fit.all[[4]]$aov.tab[3:4,"VC"]))/fit.all[[4]]$Mean*100,
+#'           sqrt(sum(fit.all[[5]]$aov.tab[3:4,"VC"]))/fit.all[[5]]$Mean*100,
+#'           sqrt(sum(fit.all[[6]]$aov.tab[3:4,"VC"]))/fit.all[[6]]$Mean*100),
+#'  Repro_SD=c(fit.all[[1]]$aov.tab["total","SD"],fit.all[[2]]$aov.tab["total","SD"],
+#'             fit.all[[3]]$aov.tab["total","SD"],fit.all[[4]]$aov.tab["total","SD"],
+#'             fit.all[[5]]$aov.tab["total","SD"],fit.all[[6]]$aov.tab["total","SD"]),
+#'  Repro_CV=c(fit.all[[1]]$aov.tab["total","CV[%]"],fit.all[[2]]$aov.tab["total","CV[%]"],
+#'             fit.all[[3]]$aov.tab["total","CV[%]"],fit.all[[4]]$aov.tab["total","CV[%]"],
+#'             fit.all[[5]]$aov.tab["total","CV[%]"],fit.all[[6]]$aov.tab["total","CV[%]"]))
+#'  
+#'  for(i in 3:8) reproMat[,i] <- round(reproMat[,i],digits=ifelse(i%%2==0,1,3))
+#'  reproMat
+#' 
+#' # now plot the precision profile over all samples
+#' plot(reproMat[,"Mean"], reproMat[,"Rep_CV"], type="l", main="Precision Profile CA19-9",
+#' 		xlab="Mean CA19-9 Value", ylab="CV[%]")
+#' grid()
+#' points(reproMat[,"Mean"], reproMat[,"Rep_CV"], pch=16)
+#' 
+#' 
+#' # REML-estimation not yes optimzed to the same degree as
+#' # ANOVA-estimation. Note, that no variance-covariance matrix
+#' # for the REML-fit is computed (VarVC=FALSE)!
+#' # Note: A correct analysis would be done per-sample, this is just
+#' #       for illustration.
+#' data(VCAdata1)
+#' system.time(fit0 <- anovaVCA(y~sample+(device+lot)/day/run, VCAdata1))
+#' system.time(fit1 <- remlVCA(y~sample+(device+lot)/day/run, VCAdata1, VarVC=FALSE))
+#' 
+#' # The previous example will also be interesting for environments using MKL.
+#' # Run it once in a GNU-R environment and once in a MKL-environment
+#' # and compare computational time of both. Note, that 'VarVC' is now set to TRUE
+#' # and variable "sample" is put into the brackets increasing the number of random
+#' # effects by factor 10. On my Intel Xeon E5-2687W 3.1 GHz workstation it takes
+#' # ~ 400s with GNU-R and ~25s with MKL support (MRO) both run under Windows.
+#' system.time(fit2 <- remlVCA(y~(sample+device+lot)/day/run, VCAdata1, VarVC=TRUE))
+#' 
+#' # using the SWEEP-Operator is even faster but the variance-covariance matrix of
+#' # VC is not automatically approximated as for fitting via REML
+#' system.time(fit3 <- anovaVCA(y~(sample+device+lot)/day/run, VCAdata1))
+#' fit2
+#' fit3
+#' }
+
+remlVCA <- function(form, Data, by=NULL, VarVC=TRUE, quiet=FALSE)
+{
+	Call <- match.call()
+	
+	if(!is.null(by))
+	{
+		stopifnot(is.character(by))
+		stopifnot(by %in% colnames(Data))
+		stopifnot(is.factor(by) || is.character(by))
+		
+		levels  <- unique(Data[,by])
+		res <- lapply(levels, function(x) remlVCA(form=form, Data[Data[,by] == x,], VarVC=VarVC, quiet=quiet))
+		names(res) <- paste(by, levels, sep=".")
+		return(res)
+	}
+	
+	stopifnot(class(form) == "formula")
+	stopifnot(is.logical(VarVC))
+	stopifnot(is.logical(quiet))
+	stopifnot(is.data.frame(Data))
+	stopifnot(nrow(Data) > 2)                                               # at least 2 observations for estimating a variance
+	
+	trms <- terms(form)														# convert VCA-formula to valid lmer-formula
+	stopifnot(attr(trms, "response") == 1)
+	lab  <- attr(trms, "term.labels")
+	if(length(lab) == 0)
+	{
+		if(!quiet)
+			warning("No random effects specified! Call function 'anovaVCA' instead!")
+		return(anovaVCA(form, Data))
+	}
+	lab  <- paste("(1|", lab, ")", sep="")
+	resp <- rownames(attr(trms, "factors"))[1]
+	form <- as.formula(paste(resp, "~", paste(lab, collapse="+"), sep=""))
+	
+	stopifnot(resp %in% colnames(Data))
+	stopifnot(is.numeric(Data[,resp]))
+	
+	vcol <- rownames(attr(trms, "factors"))
+	if(is.null(vcol))
+		vcol <- resp
+	Ndata <- nrow(Data)
+	Data  <- na.omit(Data[,vcol, drop=F])
+	Nobs <- nrow(Data)
+	
+	fit <- lmer(form, Data)													# fit via 'lmer'
+	
+	res <- list(call=Call, Type="Random Model", EstMethod="REML", data=Data, terms=trms,
+			intercept=as.logical(attr(trms, "intercept")), response=resp)
+	
+	res$Mean 	 	 <- mean(Data[,resp], na.rm=TRUE)
+	res$form 	 	 <- form
+	res$Nvc  	 	 <- length(lab) + 1											# error is one additional VC
+	res$VCnames  	 <- c(attr(trms, "term.labels", "error"))
+	res$NegVCmsg 	 <- ""														# there will never be anything to report
+	res$VarVC.method <- "gb"
+	res$balanced <- if(isBalanced(as.formula(trms), Data)) 
+				"balanced"  
+			else 
+				"unbalanced" 
+	
+	if(Nobs != Ndata)
+		res$Nrm <- Ndata - Nobs                         # save number of observations that were removed due to missing data
+	
+	res$Nobs <- Nobs
+	
+	tmp <- lmerSummary(	obj=fit, VarVC=VarVC, 			# construct table similar to aov-table and approximate vcovVC
+			terms=attr(trms, "term.labels"),
+			Mean=res$Mean)	
+	res <- c(res, tmp)
+	class(res) <- "VCA"
+	res
+}
+
+
+#' Fit Linear Mixed Models via REML.
+#' 
+#' Function fits Linear Mixed Models (LMM) using Restricted Maximum Likelihood (REML).
+#' 
+#' Here, a LMM is fitted by REML using the \code{\link{lmer}} function of the \code{lme4}-package. 
+#' For all models the Giesbrechnt & Burns (1985) approximation of the variance-covariance
+#' matrix of variance components (VC) can be applied ('VarVC=TRUE'). A Satterthwaite approximation of the degrees of freedom
+#' for all VC and total variance is based on this approximated matrix using \eqn{df=2Z^2}, where
+#' \eqn{Z} is the Wald statistic \eqn{Z=\sigma^2/se(\sigma^2)}, and \eqn{\sigma^2} is here used for an
+#' estimated variance. The variance of total variability, i.e. the sum of all VC is computed via summing
+#' up all elements of the variance-covariance matrix of the VC.
+#' One can constrain the variance-covariance matrix of random effects \eqn{G} to be either diagonal ('cov=FALSE'), i.e.
+#' all random effects are indpendent of each other (covariance is 0). If 'cov=TRUE' (the default) matrix \eqn{G} will be
+#' constructed as implied by the model returned by function \code{\link{lmer}}. 
+#' 
+#' As for objects returned by function \code{\link{anovaMM}} linear hypotheses of fixed effects or LS Means can be
+#' tested with functions \code{\link{test.fixef}} and \code{\link{test.lsmeans}}. Note, that option "contain" does
+#' not work for LMM fitted via REML.
+#' 
+#' Note, that for large datasets approximating the variance-covariance matrix of VC is computationally expensive
+#' and may take very long. There is no Fisher-information matrix available for 'merMod' objects, which can
+#' serve as approximation. To avoid this time-consuming step, use argument 'VarVC=FALSE' but remember,
+#' that no confidence intervals for any VC will be available. If you use Microsoft's R Open, formerly known
+#' as Revolution-R, which comes with Intel's Math Kernel Library (MKL), this will be automatically detected
+#' and an environment-optimized version will be used, reducing the computational time considerably (see examples).
+#' 
+#' @param form          (formula) specifying the model to be fit, a response variable left of the '~' is mandatory
+#' @param Data          (data.frame) storing all variables referenced in 'form'
+#' @param by			(factor, character) variable specifying groups for which the analysis should be performed individually,
+#' 						i.e. by-processing
+#' @param VarVC			(logical) TRUE = the variance-covariance matrix of variance components will be approximated using 
+#' 						the method found in Giesbrecht & Burns (1985), which also serves as basis for applying a Satterthwaite
+#' 						approximation of the degrees of freedom for each variance component, FALSE = leaves out this step, 
+#' 						no confidence intervals for VC will be available
+#' @param cov			(logical) TRUE = in case of non-zero covariances a block diagonal matrix will be constructed,
+#'                  	FALSE = a diagonal matrix with all off-diagonal element being equal to zero will be contructed
+#' @param quiet			(logical) TRUE = will suppress any warning, which will be issued otherwise 
+#' 
+#' @seealso \code{\link{remlVCA}}, \code{\link{VCAinference}}, \code{\link{ranef.VCA}}, \code{\link{residuals.VCA}},
+#' 			\code{\link{anovaVCA}}, \code{\link{anovaMM}}, \code{\link{plotRandVar}},  \code{\link{test.fixef}},  
+#' 			\code{\link{test.lsmeans}}, \code{\link{lmer}}
+#' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @examples
+#' \dontrun{
+#' data(dataEP05A2_2)
+#' 
+#' # assuming 'day' as fixed, 'run' as random
+#' remlMM(y~day/(run), dataEP05A2_2)
+#' 
+#' # assuming both as random leads to same results as
+#' # calling anovaVCA
+#' remlMM(y~(day)/(run), dataEP05A2_2)
+#' anovaVCA(y~day/run, dataEP05A2_2)
+#' 
+#' # use different approaches to estimating the covariance of 
+#' # variance components (covariance parameters)
+#' dat.ub <- dataEP05A2_2[-c(11,12,23,32,40,41,42),]			# get unbalanced data
+#' m1.ub <- remlMM(y~day/(run), dat.ub, SSQ.method="qf", VarVC.method="scm")
+#' m2.ub <- remlMM(y~day/(run), dat.ub, SSQ.method="qf", VarVC.method="gb")		# is faster
+#' V1.ub <- round(vcovVC(m1.ub), 12)
+#' V2.ub <- round(vcovVC(m2.ub), 12)
+#' all(V1.ub == V2.ub)
+#' 
+#' # make it explicit that "gb" is faster than "scm"
+#' # compute variance-covariance matrix of VCs 10-times
+#' 
+#' system.time(for(i in 1:500) vcovVC(m1.ub))	# "scm"
+#' system.time(for(i in 1:500) vcovVC(m2.ub))	# "gb"
+#' 
+#' 
+#' # fit a larger random model
+#' data(VCAdata1)
+#' fitMM1 <- remlMM(y~((lot)+(device))/(day)/(run), VCAdata1[VCAdata1$sample==1,])
+#' fitMM1
+#' # now use function tailored for random models
+#' fitRM1 <- anovaVCA(y~(lot+device)/day/run, VCAdata1[VCAdata1$sample==1,])
+#' fitRM1
+#' 
+#' # there are only 3 lots, take 'lot' as fixed 
+#' fitMM2 <- remlMM(y~(lot+(device))/(day)/(run), VCAdata1[VCAdata1$sample==2,])
+#' 
+#' # the following model definition is equivalent to the one above,
+#' # since a single random term in an interaction makes the interaction
+#' # random (see the 3rd reference for details on this topic)
+#' fitMM3 <- remlMM(y~(lot+(device))/day/run, VCAdata1[VCAdata1$sample==2,])
+#' 
+#' # fit same model for each sample using by-processing
+#' lst <- remlMM(y~(lot+(device))/day/run, VCAdata1, by="sample")
+#' lst
+#' 
+#' # fit mixed model originally from 'nlme' package
+#'  
+#' library(nlme)
+#' data(Orthodont)
+#' fit.lme <- lme(distance~Sex*I(age-11), random=~I(age-11)|Subject, Orthodont) 
+#' 
+#' # re-organize data for using 'remlMM'
+#' Ortho <- Orthodont
+#' Ortho$age2 <- Ortho$age - 11
+#' Ortho$Subject <- factor(as.character(Ortho$Subject))
+#' fit.remlMM1 <- remlMM(distance~Sex*age2+(Subject)*age2, Ortho)
+#' 
+#' # use simplified formula avoiding unnecessary terms
+#' fit.remlMM2 <- remlMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho)
+#' 
+#' # and exclude intercept
+#' fit.remlMM3 <- remlMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2-1, Ortho)
+#' 
+#' # now use exclude covariance of per-subject intercept and slope
+#' # as for models fitted by function 'anovaMM'
+#' fit.remlMM4 <- remlMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2-1, Ortho, cov=FALSE)
+#' 
+#' # compare results
+#' fit.lme
+#' fit.remlMM1
+#' fit.remlMM2
+#' fit.remlMM3
+#' fit.remlMM4
+#' 
+#' # are there a sex-specific differences?
+#' cmat <- getL(fit.remlMM3, c("SexMale-SexFemale", "SexMale:age2-SexFemale:age2")) 
+#' cmat
+#' 			 
+#' test.fixef(fit.remlMM3, L=cmat)
+#' }
+
+remlMM <- function(form, Data, by=NULL, VarVC=TRUE, cov=TRUE, quiet=FALSE)
+{
+	Call <- match.call()
+	
+	if(!is.null(by))
+	{
+		stopifnot(is.character(by))
+		stopifnot(by %in% colnames(Data))
+		stopifnot(is.factor(by) || is.character(by))
+		
+		levels  <- unique(Data[,by])
+		res <- lapply(levels, function(x) remlMM(form=form, Data[Data[,by] == x,], VarVC=VarVC, cov=cov, quiet=quiet))
+		names(res) <- paste(by, levels, sep=".")
+		return(res)
+	}
+	
+	stopifnot(class(form) == "formula")
+	stopifnot(is.logical(VarVC))
+	stopifnot(is.logical(quiet))
+	stopifnot(is.data.frame(Data))
+	stopifnot(nrow(Data) > 2)                                               # at least 2 observations for estimating a variance
+	
+	trms <- terms(form)														# convert VCA-formula to valid lmer-formula
+	stopifnot(attr(trms, "response") == 1)
+	resp <- rownames(attr(trms, "factors"))[1]
+	org.form <- form
+	
+	stopifnot(resp %in% colnames(Data))
+	stopifnot(is.numeric(Data[,resp]))
+	
+	res <- list(call=Call,  EstMethod="REML", data=Data, terms=trms,
+			response=resp)
+	
+	int <- res$intercept <- attr(trms, "intercept") == 1						# has intercept	
+	rf  <- gregexpr("\\([[:alnum:]]*\\)", as.character(org.form)[3])			# check for random effects
+	
+	if(rf[[1]][1] != -1)														# identify random variables
+	{
+		len <- attr(rf[[1]], "match.length")
+		pos <- rf[[1]]
+		tmp <- NULL
+		for(i in 1:length(len))
+		{
+			tmp <- c(tmp, substr(as.character(org.form)[3], pos[i]+1, pos[i]+len[i]-2))				# remember random factors, exclude brackets
+		}
+		rf <- tmp
+	}
+	
+	Ndata <- nrow(Data)	
+	rmInd <- integer()	
+	resp.NA <- is.na(Data[,resp])
+	
+	if(any(resp.NA))								# remove missing data and warn
+	{    
+		rmInd <- c(rmInd, which(resp.NA))
+		if(!quiet)
+			warning("There are ", length(which(resp.NA))," missing values for the response variable (obs: ", paste(which(resp.NA), collapse=", "), ")!")
+		res$resp.NA <- rmInd
+	}    
+	
+	fac  	<- attr(trms, "term.labels")
+	if(length(fac) > 1)
+	{
+		rf.ind  <- which(apply(sapply(rf, function(x) regexpr(x, fac)), 1, function(x) any(x>0)))		
+	}
+	else
+	{
+		if(length(rf) > 0)
+		{
+			if(rf == fac)
+				rf.ind <- 1
+			else
+				rf.ind <- numeric(0)
+		}
+	}
+	vars    <- rownames(attr(trms, "factors"))[-1]	                        # remove response
+	Nvc     <- length(fac) + 1 
+	
+	for(i in vars)															# check Data for consistency
+	{
+		if( any(is.na(Data[,i])))
+		{
+			NAind <- which(is.na(Data[,i]))
+			rmInd <- c(rmInd, NAind)
+			if(!quiet)
+				warning("Variable '", i,"' has ",length(NAind)," missing values (obs: ", paste(NAind, collapse=", "), ")!" )
+		}
+		if(!class(Data[,i]) %in% c("numeric", "character", "factor"))
+			stop("Variable ",i," is neither one of \"numeric\", \"character\" or \"factor\"!")
+		
+		if(class(Data[,i]) != "numeric")
+		{
+			if(!quiet && is.character(Data[,i]))
+				warning("Convert variable ", i," from \"charater\" to \"factor\"!")
+			
+			tmp <- Data[,i]
+			tmp.num <- suppressWarnings(as.numeric(as.character(tmp)))		# warnings are very likely here
+			
+			if(!any(is.na(tmp.num)))										# all levels are numbers
+				Data[,i] <- factor(Data[,i], ordered=TRUE)					# do not order			
+			else
+				Data[,i] <- factor(Data[,i])								# automatically orders
+		}
+	}
+	
+	if(length(rf.ind) > 0)													# at least one random term in 'form'
+	{
+		res$random <- fac[rf.ind]
+		res$fixed  <- fac[-rf.ind]
+	}
+	else
+	{
+		res$random <- character(0)											# only fixed effects
+		res$fixed  <- fac
+	}
+	
+	res$terms.classes <- sapply(Data[,rownames(attr(trms, "factors"))[-1]], class)
+	
+	res$Type <- if(length(res$fixed) == 0)
+				"Random Model"
+			else
+				"Mixed Model"			
+	
+	lab       <- attr(trms, "term.labels")	
+	fixed     <- paste(res$fixed, collapse="+")	
+	var.num   <- names(res$terms.classes[which(res$terms.classes == "numeric")])
+	fac 	  <- attr(trms, "factors")[var.num,res$fixed,drop=FALSE]		# restrict to columns of fixed effects variables and rows with numeric variables
+	fe.num 	  <- character()
+	fac 	  <- fac[which(apply(fac, 1, any)),,drop=FALSE]
+	fac 	  <- fac[,which(apply(fac, 2, any)),drop=FALSE]
+	fe.num 	  <- colnames(fac)
+	iacs      <- which(grepl(":", res$random))										# interaction terms in the formula
+	num.rand  <- sapply(var.num, function(x) grepl(x, res$random)) 
+	num.rand  <- as.matrix(num.rand)
+	num.fixed <- sapply(var.num, function(x) grepl(x, res$fixed))
+	random 	  <- ""
+	trmMat    <- matrix(nrow=length(res$random), ncol=2, dimnames=list(NULL, c("form", "subject")))
+	
+	for(i in 1:length(res$random))			# process each random term
+	{
+		if(nchar(random) == 0)
+			sep <- ""
+		else
+			sep <- "+"
+		
+		if(length(num.rand) > 0 && any(num.rand[i,]))				# random term with numeric variable found
+		{
+			if(i %in% iacs)
+			{
+				splt 	<- unlist(strsplit(res$random[i], ":"))
+				tmp.num <- which(splt %in% var.num)
+				numVar 	<- splt[ tmp.num]
+				others  <- paste(splt[-tmp.num], collapse=":")				
+				ind 	<- which(trmMat[,2] == others)				# subject terms may only occur once
+				
+				if(length(ind) > 0)
+					trmMat[ind,2] <- NA
+				
+				trmMat[i,] <- c(numVar, others)	
+			}
+			else
+				stop("Numeric variables may only occur in random interaction terms!")
+		}
+		else
+			trmMat[i,] <- c("1", res$random[i])
+	}
+	trmMat 	<- na.omit(trmMat)
+	random 	<- paste( apply(trmMat, 1, function(x) paste("(", x[1], "|", x[2], ")", sep="")), collapse="+")	
+	form 	<- paste(  resp, "~", fixed, "+", random, sep="")
+	form 	<- as.formula(form)
+	vcol 	<- rownames(attr(trms, "factors"))
+	
+	if(is.null(vcol))
+		vcol <- resp
+	
+	Ndata <- nrow(Data)
+	Data  <- na.omit(Data[,vcol, drop=F])
+	Nobs  <- nrow(Data)
+	
+	fit <- lmer(form, Data)								# fit via 'lmer'
+	
+	res$Mean 		 <- mean(Data[,resp], na.rm=TRUE)
+	res$form 	 	 <- form
+	res$NegVCmsg 	 <- ""
+	res$VarVC.method <- "gb"
+	
+	if(int)
+	{
+		X <- matrix(1, ncol=1, nrow=nrow(Data))			# design matrix of fixed effects: include intercept --> needs a restriction
+		colnames(X) <- "int"
+		fe.assign <- 0									# '0' indicates intercept
+	}
+	else
+	{
+		fe.assign <- NULL
+		X <- matrix(1, ncol=0, nrow=nrow(Data))	
+	}
+	
+	if(length(res$fixed) > 0)									# construct design matrix of fixed effects according to usual structure used in VCA-package
+	{		
+		for(i in 1:length(res$fixed))							# complete design matrix of fixed effects
+		{
+			tmp <- model.matrix(as.formula(paste(resp, "~", res$fixed[i], "-1", sep="")), Data)
+			
+			all0 <- apply(tmp, 2, function(x) all(x==0))
+			if(any(all0))
+				tmp <- tmp[,-which(all0)]
+			
+			if(int && !res$fixed[i] %in% fe.num)	
+				tmp[,ncol(tmp)] <- 0							# use same restriction as in SAS PROC MIXED set last fe=0
+			
+			X <- cbind(X, tmp)								
+			fe.assign <- c(fe.assign, rep(i, ncol(tmp)))
+		}		
+	}
+	
+	if(!is.null(fe.assign))
+	{
+		attr(fe.assign, "terms") <- if(int)
+					c("int", res$fixed)
+				else
+					res$fixed
+	}
+	res$fe.assign <- fe.assign											# mapping columns of X to fixed terms in the model formula
+	res$balanced <- if(isBalanced(as.formula(trms), Data)) 
+				"balanced"  
+			else 
+				"unbalanced" 
+	
+	if(Nobs != Ndata)
+		res$Nrm <- Ndata - Nobs                         # save number of observations that were removed due to missing data
+	
+	res$Nobs <- Nobs
+	
+	tmp <- lmerSummary(	obj=fit, VarVC=VarVC, 			# construct table similar to aov-table and approximate vcovVC
+			terms=res$random,
+			Mean=res$Mean,
+			cov=cov, X=X)					
+	tmp$Matrices$y <- Matrix(Data[,resp], ncol=1)
+	res <- c(res, tmp)
+	class(res) <- "VCA"
+	res
+}
+
 
 #' Solve System of Linear Equations using Inverse of Cholesky-Root.
 #' 
@@ -24,6 +1068,7 @@ msgEnv <- new.env(parent=emptyenv())
 #' inverse (Moore-Penrose inverse) of 'X'.
 #' 
 #' @param X			(matrix, Matrix) object to be inverted
+#' @param quiet		(logical) TRUE = will suppress any warning, which will be issued otherwise 
 #' 
 #' @return (matrix, Matrix) corresponding to the inverse of X
 #' 
@@ -46,7 +1091,7 @@ msgEnv <- new.env(parent=emptyenv())
 #' all.equal(V1i, V2i)
 #' } 
 
-Solve <- function(X)
+Solve <- function(X, quiet=FALSE)
 {
 	stopifnot(ncol(X) == nrow(X))
 	
@@ -60,7 +1105,8 @@ Solve <- function(X)
 	
 	if(class(Xi) == "try-error")			# use Moore-Penrose inverse instead in case of an error
 	{										# using the Cholesky-decomposition approach
-		warning("Error in 'chol2inv'!\n\tUse generalized (Moore-Penrose) inverse (MPinv)!", sep="\n")
+		if(!quiet)
+			warning("Error in 'chol2inv'!\n\tUse generalized (Moore-Penrose) inverse (MPinv)!", sep="\n")
 		Xi <- MPinv(X)
 	}
 	
@@ -107,19 +1153,19 @@ Csweep <- function(M, asgn, thresh=1e-12, tol=1e-12, Ncpu=1)
 	nr <- nrow(M)
 	stopifnot(nr == ncol(M))
 	LC <- ZeroK <- rep(0, length(asgn))
-
+	
 	ind <- is.nan(M) | is.na(M) | M == Inf | M == -Inf;
 	if(any(ind))
 		M[which(ind)] <- 0
 	
 	swept <- .C("Tsweep", M=as.double(t(M)), k=as.integer(asgn), thresh=as.double(thresh), 
-				NumK=as.integer(length(asgn)), nr=as.integer(nr), LC=as.integer(LC), 
-				tol=as.double(tol), SSQ=as.double(rep(0, length(unique(asgn)))), 
-				PACKAGE="VCA")
-
+			NumK=as.integer(length(asgn)), nr=as.integer(nr), LC=as.integer(LC), 
+			tol=as.double(tol), SSQ=as.double(rep(0, length(unique(asgn)))), 
+			PACKAGE="VCA")
+	
 	res <- list(SSQ=swept$SSQ, 
-				LC=tapply(swept$LC, asgn, function(x) length(which(x==1))))
-
+			LC=tapply(swept$LC, asgn, function(x) length(which(x==1))))
+	
 	return(res)
 }
 
@@ -154,7 +1200,7 @@ Sinv <- function(M, tol=.Machine$double.eps)
 #		M[which(ind)] <- 0
 #	
 	swept <- .C("TsweepFull", M=as.double(t(M)), nr=as.integer(nr), 
-				tol=as.double(tol*max(abs(diag(M)))), PACKAGE="VCA")
+			tol=as.double(tol*max(abs(diag(M)))), PACKAGE="VCA")
 	
 	if(class(M) == "matrix")
 		return(matrix(round(swept$M, abs(log10(tol))), nrow=nr, ncol=nr, byrow=TRUE))
@@ -208,7 +1254,7 @@ getSSQsweep <- function(Data, tobj, random=NULL)
 	resp     <- as.character(form)[2]
 	fac      <- attr(tobj, "term.labels")
 	int      <- attr(tobj, "intercept") == 1 
-
+	
 	N        <- nrow(Data)															
 	SS       <- numeric()
 	DF       <- numeric()
@@ -216,7 +1262,7 @@ getSSQsweep <- function(Data, tobj, random=NULL)
 	Lmat$Z   <- list()
 	Lmat$Zre <- Matrix(nrow=N, ncol=0)
 	y        <- Matrix(Data[,resp], ncol=1)
-
+	
 	ord <- attr(tobj, "order")
 	vars <- rownames(attr(tobj, "factors"))
 	fac <- c(fac, "error")
@@ -240,7 +1286,7 @@ getSSQsweep <- function(Data, tobj, random=NULL)
 		Lmat$Zre <- Matrix(0, nrow=N, ncol=0)
 	
 	NumK <- c(rep(0, Nvc-1), N)
-
+	
 	for(i in 1:Nvc)                 				# construct design-matrices Z for each term, and matrix X (here Zre)                       
 	{
 		if(i < Nvc)
@@ -269,7 +1315,7 @@ getSSQsweep <- function(Data, tobj, random=NULL)
 			attr(Lmat$Z[[Nvc]], "term") <- "error"
 		}
 	}
-
+	
 	attr(Lmat$Zre, "assign") <- asgn
 	X <- Lmat$Zre
 	Xt <- t(X)
@@ -277,8 +1323,8 @@ getSSQsweep <- function(Data, tobj, random=NULL)
 	yt <- t(y)
 	
 	M <- rbind(	cbind(as.matrix(Xt%*%X), as.matrix(Xt%*%y)), 
-				cbind(as.matrix(yt%*%X), as.matrix(yt%*%y)))	
-
+			cbind(as.matrix(yt%*%X), as.matrix(yt%*%y)))	
+	
 	uind <- unique(asgn)							# all factors
 	SS <- LC <- NULL
 	nr <- nrow(M)
@@ -290,10 +1336,10 @@ getSSQsweep <- function(Data, tobj, random=NULL)
 	swept <- Csweep(M, asgn=asgn)					# sweep matrix M
 	LC    <- swept$LC
 	SS	  <- swept$SSQ
-
+	
 	if(int)											# no DF-adjustment for intercept
 		LC <- LC[-1]
-
+	
 	if(Nvc > 1)
 	{
 		DF[1:(Nvc-1)] <- NumK[1:(Nvc-1)]-LC				# adjust for linearly dependent variables --> resulting in degrees of freedom
@@ -309,7 +1355,7 @@ getSSQsweep <- function(Data, tobj, random=NULL)
 	SSQ <- c(SSQ, tail(SS,1))
 	
 	aov.tab <- data.frame(DF=DF, SS=SSQ, MS=SSQ/DF)	# basic ANOVA-table
-
+	
 	return(list(aov.tab=aov.tab, Lmat=Lmat))
 }
 
@@ -350,7 +1396,7 @@ getSSQqf<- function(Data, tobj, random=NULL)
 	resp     <- as.character(form)[2]
 	fac      <- attr(tobj, "term.labels")
 	int      <- attr(tobj, "intercept") == 1 
-
+	
 	N        <- nrow(Data)															
 	SS       <- numeric()
 	DF       <- numeric()
@@ -414,7 +1460,7 @@ getSSQqf<- function(Data, tobj, random=NULL)
 			attr(Lmat$Z[[i]], "term") <- "error"
 			attr(Lmat$A[[i]], "term") <- "error"
 		}
-
+		
 		SS <- c(SS, as.numeric(t(y) %*% Lmat$A[[i]] %*% y))					# calculate ANOVA sum of squares
 	}
 	
@@ -484,6 +1530,7 @@ getSSQqf<- function(Data, tobj, random=NULL)
 #'                      	The degrees of freedom of the total variance are based on adapted mean squares (MS) (see details).
 #' 							TRUE = negative variance component estimates will not be set to 0 and they will contribute to the total 
 #' 							variance (original definition of the total variance).
+#' @param quiet				(logical) TRUE = will suppress any warning, which will be issued otherwise 
 #' @return (VCA) object
 #' 
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
@@ -606,11 +1653,12 @@ getSSQqf<- function(Data, tobj, random=NULL)
 #' anovaMM.Tab2
 #' }
 #' 
-#' @seealso \code{\link{anovaVCA}}, \code{\link{VCAinference}}, \code{\link{ranef}}, \code{\link{fixef}},
-#'          \code{\link{vcov}}, \code{\link{vcovVC}}, \code{\link{test.fixef}}, \code{\link{test.lsmeans}},
-#' 			\code{\link{plotRandVar}}
+#' @seealso \code{\link{anovaVCA}}, \code{\link{VCAinference}}, \code{\link{remlVCA}}, \code{\link{remlMM}}
+#' 			\code{\link{ranef}}, \code{\link{fixef}}, \code{\link{vcov}}, \code{\link{vcovVC}}, 
+#' 			\code{\link{test.fixef}}, \code{\link{test.lsmeans}}, \code{\link{plotRandVar}}
 
-anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method=c("sweep", "qf"), NegVC=FALSE)
+anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method=c("sweep", "qf"), 
+		NegVC=FALSE, quiet=FALSE)
 {
 	if(!is.null(by))
 	{
@@ -619,7 +1667,7 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 		stopifnot(is.factor(by) || is.character(by))
 		
 		levels  <- unique(Data[,by])
-		res <- lapply(levels, function(x) anovaMM(form=form, Data[Data[,by] == x,], NegVC=NegVC, SSQ.method=SSQ.method, VarVC.method=VarVC.method))
+		res <- lapply(levels, function(x) anovaMM(form=form, Data[Data[,by] == x,], NegVC=NegVC, SSQ.method=SSQ.method, VarVC.method=VarVC.method, quiet=quiet))
 		names(res) <- paste(by, levels, sep=".")
 		return(res)
 	}
@@ -637,14 +1685,14 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 	res$data <- Data															# as provided 
 	org.form <- form
 	tobj <- terms(form, simplify=TRUE, keep.order=TRUE)                    		# expand nested factors if necessary retain order of terms in the formula
-
+	
 	if(length(attr(tobj, "term.labels")) == 0)									# handle pure-error models with 'anovaVCA'
 		return(anovaVCA(form, Data))
 	
 	int   <- res$intercept <- attr(tobj, "intercept") == 1						# has intercept
 	form  <- formula(tobj)
 	res$terms <- tobj
-
+	
 	if(!attr(tobj, "response"))
 		stop("You need to include a response variable in the fixed effects formula!")
 	resp <- as.character(form)[2]
@@ -654,7 +1702,7 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 	stopifnot(is.numeric(Data[,resp]))
 	
 	rf <- gregexpr("\\([[:alnum:]]*\\)", as.character(org.form)[3])				# check for random effects
-
+	
 	if(rf[[1]][1] != -1)														# identify random variables
 	{
 		len <- attr(rf[[1]], "match.length")
@@ -666,7 +1714,7 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 		}
 		rf <- tmp
 	}
-
+	
 	Ndata <- nrow(Data)	
 	rmInd <- integer()	
 	resp.NA <- is.na(Data[,resp])
@@ -674,7 +1722,8 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 	if(any(resp.NA))
 	{    
 		rmInd <- c(rmInd, which(resp.NA))
-		warning("There are ", length(which(resp.NA))," missing values for the response variable (obs: ", paste(which(resp.NA), collapse=", "), ")!")
+		if(!quiet)
+			warning("There are ", length(which(resp.NA))," missing values for the response variable (obs: ", paste(which(resp.NA), collapse=", "), ")!")
 		res$resp.NA <- rmInd
 	}    
 	
@@ -706,38 +1755,51 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 		res$random <- character(0)											# only fixed effects
 		res$fixed  <- fac
 	}
-
-	res$Type <- if(length(res$fixed) == 0)
-					"Random Model"
-				else
-					"Mixed Model"		
-
-	for(i in vars)                                                          # convert all nested factors as factor-objects
+	
+	res$VCnames <- c(res$random, "error")
+	res$Nvc  	<- length(res$VCnames)											# error is one additional VC
+	res$Type 	<- if(length(res$fixed) == 0)
+				"Random Model"
+			else
+				"Mixed Model"	
+	
+	for(i in vars)															# check Data for consitency
 	{
 		if( any(is.na(Data[,i])))
 		{
 			NAind <- which(is.na(Data[,i]))
 			rmInd <- c(rmInd, NAind)
-			warning("Variable '", i,"' has ",length(NAind)," missing values (obs: ", paste(NAind, collapse=", "), ")!" )
+			if(!quiet)
+				warning("Variable '", i,"' has ",length(NAind)," missing values (obs: ", paste(NAind, collapse=", "), ")!" )
 		}
 		if(!class(Data[,i]) %in% c("numeric", "character", "factor"))
 			stop("Variable ",i," is neither one of \"numeric\", \"character\" or \"factor\"!")
-		if(class(Data[,i]) == "character")
+		
+		if(class(Data[,i]) != "numeric")
 		{
-			Data[,i] <- factor(Data[,i])
-			warning("Convert variable ", i," from \"charater\" to \"factor\"!")
+			if(!quiet && is.character(Data[,i]))
+				warning("Convert variable ", i," from \"charater\" to \"factor\"!")
+			
+			tmp <- Data[,i]
+			tmp.num <- suppressWarnings(as.numeric(as.character(tmp)))
+			
+			if(!any(is.na(tmp.num)))										# all levels are numbers
+				Data[,i] <- factor(Data[,i], ordered=TRUE)					# do not order			
+			else
+				Data[,i] <- factor(Data[,i])								# automatically orders
 		}
 	}
+	
 	rmInd <- unique(rmInd)
-
+	
 	if(length(rmInd) > 0)
 		Data <- Data[-rmInd,]												
-
+	
 	Data <- na.omit(Data[,rownames(attr(tobj, "factors"))])					# get rid of incomplete observations
 	Mean <- mean(Data[,resp], na.rm=TRUE)                                   # mean computed after removing incomplete observations
 	Nobs <- N <- nrow(Data)
 	y    <- matrix(Data[,resp], ncol=1)										# vector of observations
-
+	
 	if(SSQ.method == "qf")
 		tmp.res <- getSSQqf(Data, tobj, res$random)
 	else
@@ -747,17 +1809,17 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 	aov.tab <- tmp.res$aov.tab
 	DF		<- aov.tab[,"DF"]
 	SS		<- aov.tab[,"SS"]
-
+	
 	rownames(aov.tab) <- c(attr(tobj, "term.labels"), "error")
-
+	
 	res$Mean <- Mean
 	res$Nobs <- Nobs
 	res$aov.org <- aov.tab
-
+	
 	rf.ind  <- c(rf.ind, nrow(aov.tab))
-
+	
 	C <- getCmatrix(form, Data, aov.tab[,"DF"], "SS", MM=Lmat$Zre)          # compute coefficient matrix C in ss = C * s
-																			# at this point Zre comprises fixed and random effects
+	# at this point Zre comprises fixed and random effects
 	Ci  <- solve(C)
 	C2  <- apply(C, 2, function(x) x/DF)                                    # coefficient matrix for mean squares (MS)
 	Ci2 <- solve(C2)
@@ -785,14 +1847,14 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 			res$NegVCmsg <- "* VC set to 0"
 		}
 	} 
-	 
+	
 	totVC  <- sum(aov.tab$VC)
-
+	
 	aov.tab <- rbind(total=c(NA, NA, NA, totVC), aov.tab) 	
 	aov.tab["total", "DF"] <- SattDF(c(C2[rf.ind, rf.ind] %*% aov.tab[-1, "VC"]), 	# will automatically adapt ANOVA-MS if any VCs were set to 0 
-									 Ci=Ci2[rf.ind, rf.ind, drop=F], DF=DF[rf.ind])  
-
-	suppressWarnings(aov.tab <- cbind(aov.tab, SD=sqrt(aov.tab[,"VC"])))    # warnings suppressed because sqrt of negative numbers doese not exists
+			Ci=Ci2[rf.ind, rf.ind, drop=F], DF=DF[rf.ind])  
+	
+	suppressWarnings(aov.tab <- cbind(aov.tab, SD=sqrt(aov.tab[,"VC"])))    		# warnings suppressed because sqrt of negative numbers doese not exists
 	aov.tab <- cbind(aov.tab, "CV[%]"=aov.tab[,"SD"]*100/Mean)
 	aov.tab <- cbind(aov.tab, "%Total"=aov.tab[,"VC"]*100/totVC)
 	aov.tab <- aov.tab[,c("DF", "SS", "MS", "VC", "%Total", "SD", "CV[%]")]    
@@ -800,7 +1862,7 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 	aov.tab <- apply(aov.tab, 1:2, function(x) ifelse(is.nan(x), NA, x))
 	
 	res$EstMethod <- "ANOVA"
-
+	
 	if(Nobs != Ndata)
 		res$Nrm <- Ndata - Nobs                            				# save number of observations that were removed due to missing data
 	
@@ -815,22 +1877,32 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 		fe.assign <- NULL
 	
 	fe <- fac[-rf.ind]
-
-	if(length(fe) > 0)
+	
+	if(length(fe) > 0)													# construct design matrix of fixed effects according to usual structure used in VCA-package
 	{
+		var.cls <- sapply(Data, class)									# determine mode of each fixed variable
+		
+		var.num <- var.cls[which(var.cls == "numeric")]
+		fac <- attr(tobj, "factors")[names(var.num),fe,drop=FALSE]		# restrict to columns of fixed effects variables and rows with numeric variables
+		fe.num <- character()
+		fac <- fac[which(apply(fac, 1, any)),,drop=FALSE]
+		fac <- fac[,which(apply(fac, 2, any)),drop=FALSE]
+		fe.num <- colnames(fac)
+		
 		for(i in 1:length(fe))											# complete design matrix of fixed effects
 		{
 			tmp <- model.matrix(as.formula(paste(resp, "~", fe[i], "-1", sep="")), Data)
+			
 			all0 <- apply(tmp, 2, function(x) all(x==0))
 			if(any(all0))
 				tmp <- tmp[,-which(all0)]
-			if(res$aov.org[fe[i], "DF"] < ncol(tmp))				
-				tmp[,ncol(tmp)] <- 0
 			
-			Lmat$X    <- cbind(Lmat$X, tmp)								# use same restriction as in SAS PROC MIXED method=type1 set last fe=0
+			if(int && !fe[i] %in% fe.num)	
+				tmp[,ncol(tmp)] <- 0							# use same restriction as in SAS PROC MIXED set last fe=0
+			
+			Lmat$X    <- cbind(Lmat$X, tmp)								
 			fe.assign <- c(fe.assign, rep(i, ncol(tmp)))
-		}
-		
+		}		
 	}
 	else
 		Lmat$X <- Matrix(0, nrow=nrow(Data), ncol=1)
@@ -838,12 +1910,12 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 	if(!is.null(fe.assign))
 	{
 		attr(fe.assign, "terms") <- if(int)
-										c("int", fe)
-									else
-										fe
+					c("int", fe)
+				else
+					fe
 	}
 	res$fe.assign <- fe.assign											# mapping columns of X to fixed terms in the model formula
-
+	
 	Lmat$rf.ind <- rf.ind												# indices of random effects
 	Lmat$VCall  <- VCorg												# VC-estimates as if all factors were random
 	Lmat$C.SS   <- C
@@ -856,12 +1928,12 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 	res$aov.tab  <- aov.tab
 	res$Matrices <- Lmat
 	res$balanced <- if(isBalanced(form, Data)) 
-						"balanced"  
-					else 
-						"unbalanced"
-
+				"balanced"  
+			else 
+				"unbalanced"
+	
 	class(res)     <- "VCA"
-
+	
 	if(length(Lmat$rf.ind) == 1)										# contains only the residual error
 	{
 		res$Type <- "Linear Model"
@@ -871,7 +1943,7 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 		tmp[nrow(tmp), c("F value", "Pr(>F)")] <- NA	
 		res$aov.org <- tmp
 	}
-
+	
 	res <- solveMME(res)
 	gc(verbose=FALSE)													# trigger garbage collection
 	return(res)
@@ -916,37 +1988,61 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 #' anova.lm.Tab1
 #' anovaMM.Tab1
 #' 
+#' # use SSQ.method="qf" (based on quadratic forms)
+#' system.time(anovaMM.Tab1.qf  <- anovaMM(y~lot/calibration/day/run, datP1, SSQ.method="qf"))
+#' 
+#' # compute degrees of freedom
+#' VCA:::anovaDF( y~lot/calibration/day/run, datP1,
+#' 				  Zmat=anovaMM.Tab1.qf$Matrices$Z,
+#' 				  Amat=anovaMM.Tab1.qf$Matrices$A)
+#' 
 #' # design with only main-factors
 #' system.time(anova.lm.Tab2 <- anova(lm(y~lot+calibration+day+run, datP1)))
 #' system.time(anovaMM.Tab2  <- anovaMM(y~lot+calibration+day+run, datP1))
 #' anova.lm.Tab2
 #' anovaMM.Tab2
 #' 
+#' # use SSQ.method="qf" (based on quadratic forms)
+#' system.time(anovaMM.Tab2.qf  <- anovaMM(y~lot+calibration+day+run, datP1, SSQ.method="qf"))
+#' 
+#' # compute degrees of freedom
+#' VCA:::anovaDF( y~lot+calibration+day+run, datP1,
+#' 				  Zmat=anovaMM.Tab2.qf$Matrices$Z,
+#' 				  Amat=anovaMM.Tab2.qf$Matrices$A)
+#' 
 #' # design with main-factors and interactions
 #' system.time(anova.lm.Tab3 <- anova(lm(y~(lot+calibration)/day/run, datP1)))
 #' system.time(anovaMM.Tab3  <- anovaMM( y~(lot+calibration)/day/run, datP1))
 #' anova.lm.Tab3
 #' anovaMM.Tab3
+#' 
+#' # use SSQ.method="qf" (based on quadratic forms)
+#' system.time(anovaMM.Tab3.qf  <- anovaMM(y~(lot+calibration)/day/run, datP1, SSQ.method="qf"))
+#' 
+#' # compute degrees of freedom
+#' VCA:::anovaDF( y~(lot+calibration)/day/run, datP1,
+#' 				  Zmat=anovaMM.Tab3.qf$Matrices$Z,
+#' 				  Amat=anovaMM.Tab3.qf$Matrices$A)
 #' }
 
 anovaDF <- function(form, Data, Zmat, Amat, tol=1e-8)
 {
 	form <- terms(form, simplify=TRUE, keep.order=TRUE)
-
+	
 	fac  <- attr(form, "term.labels")
-
+	
 	if(length(fac) == 0)										# handle pure intercept models
 		return(nrow(Data)-1)
 	fmat <- attr(form, "factors")[-1,,drop=FALSE]				# remove row corresponding to the response
 	csum <- apply(fmat, 2, function(x) length(which(x>0)))
 	fn   <- all(diff(csum) == 1)								# fully-nested model? ( i-th term part of (i+1)-th term --> csum[i]+1 == csum[i+1] )
-
+	
 	DF <- numeric(length(fac))
 	Split <- list()
 	
 	Nlvl <- sapply(Zmat, ncol)									# number of unique factor levels
 	names(Nlvl) <- fac
-
+	
 	if(fn)														# very fast DF-algorithm applicable
 	{
 		for(i in 1:length(fac))
@@ -961,7 +2057,7 @@ anovaDF <- function(form, Data, Zmat, Amat, tol=1e-8)
 	{
 		ia <- csum > 1											# interactions? 
 		mf <- !ia												# main factors
-
+		
 		if(!any(ia))											# only main-factors in the model
 		{
 			DF <- anova(lm(form, Data))
@@ -972,13 +2068,13 @@ anovaDF <- function(form, Data, Zmat, Amat, tol=1e-8)
 			if(any(mf))											# get DFs for all main factors
 			{
 				resp <- as.character(form)[2]					# response variable
-		
+				
 				tmp <- anova(lm(paste(resp, "~", paste(fac[which(mf)], collapse="+"), 
-								ifelse(attr(form, "intercept"),"", "-1"), sep=""), Data))
-
+										ifelse(attr(form, "intercept"),"", "-1"), sep=""), Data))
+				
 				DF[which(mf)]  <- tmp[-nrow(tmp), "Df"]
 			}
-					
+			
 			if(any(ia))											# apply computationally expensive DF-algorithm on interactions
 			{
 				for(i in which(ia))
@@ -1019,32 +2115,49 @@ anovaDF <- function(form, Data, Zmat, Amat, tol=1e-8)
 solveMME <- function(obj)
 {
 	stopifnot(class(obj) == "VCA")
-	obj    	<- getV(obj)
 	mats   	<- obj$Matrices
+	V      	<- mats[["V"]]
+	
+	if(is.null(V))						# will be the case for ANOVA-type fitted models
+	{
+		obj  <- getV(obj)
+		mats <- obj$Matrices
+		V	 <- mats[["V"]]
+	}
 	Z      	<- mats$Zre
 	R 	   	<- mats$R
 	G      	<- mats$G
 	X      	<- Matrix(mats$X)
 	y      	<- mats$y
-	V      	<- mats$V
-	Vi     	<- Solve(V)
+	
+	if(is.null(mats$Vi))
+		Vi  <- Solve(V)
+	else
+		Vi	<- mats$Vi
+	
 	K 		<- Sinv(t(X) %*% Vi %*% X)		# variance-covariance matrix of fixed effects
 	T	   	<- K %*% t(X) %*% Vi
-	fixef  	<- T %*% y
+	fixed  	<- T %*% y
+	
 	mats$Vi <- Vi
 	mats$T  <- T
-	rownames(fixef) <- colnames(X)
-	colnames(fixef) <- "Estimate"
+	rownames(fixed) <- colnames(X)
+	colnames(fixed) <- "Estimate"
+	re		<- obj$RandomEffects
+	
 	if(is.null(Z))
-		ranef <- NULL
+		re <- NULL
 	else
 	{
-		ranef  <- G %*% t(Z) %*% Vi %*% (y - X %*% fixef) 
-		rownames(ranef) <- colnames(Z)
-		colnames(ranef) <- "Estimate"
+		if(is.null(re))
+		{
+			re  <- G %*% t(Z) %*% Vi %*% (y - X %*% fixed) 
+			rownames(re) <- colnames(Z)
+			colnames(re) <- "Estimate"
+		}
 	}
-	obj$RandomEffects <- ranef
-	obj$FixedEffects  <- fixef
+	obj$RandomEffects <- re
+	obj$FixedEffects  <- fixed
 	obj$Matrices	  <- mats
 	obj$VarFixed      <- K
 	return(obj)
@@ -1076,6 +2189,7 @@ ranef <- function(object, ...)
 #'                      as i-th element of 'obj$res.assign$terms'
 #' @param mode			(character) string or abbreviation specifying whether "raw" residuals
 #'                      should be returned or a transformed version c("student" or "standard")
+#' @param quiet			(logical) TRUE = will suppress any warning, which will be issued otherwise 
 #' @param ...			additional parameters
 #' 
 #' @method ranef VCA
@@ -1108,27 +2222,61 @@ ranef <- function(object, ...)
 #' ranef(fit, 2, "stu")
 #' }
 
-ranef.VCA <- function(object, term=NULL, mode=c("raw", "student", "standard"), ...)
+ranef.VCA <- function(object, term=NULL, mode=c("raw", "student", "standard"), quiet=FALSE, ...)
 {
 	Call <- match.call()
 	
 	obj <- object
+	
+	if(is.list(obj) && class(obj) != "VCA")
+	{
+		if(!all(sapply(obj, class) == "VCA"))
+			stop("Only lists of 'VCA' object are accepted!")
+		
+		obj.len <- length(obj)
+		
+		assign("VCAinference.obj.is.list", TRUE, envir=msgEnv)			# indicate that a list-type object was passed intially
+		
+		if(is.null(term))
+		{
+			res <- mapply(	FUN=ranef.VCA, object=obj,
+					mode=mode[1], SIMPLIFY=FALSE)
+		}
+		else
+		{
+			res <- mapply(	FUN=ranef.VCA, object=obj, term=term,
+					mode=mode[1], SIMPLIFY=FALSE)
+		}
+		names(res) <- names(obj)
+		
+		if(obj.len == 1)			# mapply returns a list of length 2 in case that length(obj) was equal to 1
+			res <- res[1]
+		
+		rm("VCAinference.obj.is.list", envir=msgEnv)
+		
+		return(res)
+	}	
+	
 	stopifnot(class(obj) == "VCA")
 	mode <- match.arg(mode)
-
-	ObjNam  <- as.character(as.list(Call)$object)
+	
+	ObjNam  <- deparse(Call$object)
+	ObjNam2 <- sub("\\[.*", "", ObjNam)
 	
 	if(is.null(obj$RandomEffects))
 	{
 		obj  <- solveMME(obj)
-
-		if(length(ObjNam) == 1 && ObjNam %in% names(as.list(.GlobalEnv)))
+		
+		if(length(ObjNam2) == 1 && ObjNam2 %in% names(as.list(.GlobalEnv)))
 		{
 			expr <- paste(ObjNam, "<<- obj")		# update object missing MME results
 			eval(parse(text=expr))
 		}
 		else
-			warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+		{
+			if( !"VCAinference.obj.is.list" %in% names(as.list(msgEnv)) && !quiet)
+				warning("Mixed model equations were solved but results could not be assigned to 'VCA' object!")
+		}
 	}
 	
 	if(mode == "student" && is.null(obj$Matrices$Q))
@@ -1141,14 +2289,16 @@ ranef.VCA <- function(object, term=NULL, mode=c("raw", "student", "standard"), .
 		mats$Q <- Q  <- Vi %*% (diag(nrow(H))-H)
 		obj$Matrices <- mats
 		
-		if(length(ObjNam) == 1 && ObjNam %in% names(as.list(.GlobalEnv)))
+		if(length(ObjNam2) == 1 && ObjNam2 %in% names(as.list(.GlobalEnv)))
 		{
 			expr <- paste(ObjNam, "<<- obj")		# update object missing MME results
 			eval(parse(text=expr))
 		}
 		else
-			warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
-		
+		{
+			if( !"VCAinference.obj.is.list" %in% names(as.list(msgEnv)) && !quiet)
+				warning("Matrices 'H' and 'Q' were comuted but could not be assigned to 'VCA' object!")
+		}
 	}
 	
 	re <- obj$RandomEffects
@@ -1157,11 +2307,14 @@ ranef.VCA <- function(object, term=NULL, mode=c("raw", "student", "standard"), .
 	{
 		term <- obj$re.assign$terms[as.integer(term)]
 	}
-		
+	
 	if(mode == "standard")
 	{
-		re <- unlist(tapply(re, obj$re.assign$ind, scale))
-		re <- as.matrix(re)
+		tmp <- tapply(re, obj$re.assign$ind, scale)
+		re  <- matrix(nrow=nrow(re))
+		for(i in 1:length(obj$re.assign$terms))
+			re[which(obj$re.assign$ind == i)] <- tmp[[i]]
+		
 		rownames(re) <- nam
 	}
 	else if(mode == "student")
@@ -1177,17 +2330,25 @@ ranef.VCA <- function(object, term=NULL, mode=c("raw", "student", "standard"), .
 	
 	if(is.null(term) || !term %in% obj$re.assign$terms)
 	{
-		if(!is.null(term) && !term %in% obj$re.assign$terms)
+		if(!is.null(term) && !term %in% obj$re.assign$terms && !quiet)
 		{
 			warning("There is no term in the random part of the formula corresponding to specified 'term'!")
 		}
+		
+		ind <- NULL
+		for(i in 1:length(obj$re.assign$terms))
+			ind <- c(ind, which(obj$re.assign$ind == i))
+		
+		re <- re[ind,,drop=FALSE]
+		
 		attr(re, "mode") <- mode
 		attr(re, "term") <- "all"
+		
 		return(re)
 	}
 	else
 	{
-		ind <- obj$re.assign$ind == which(obj$re.assign$terms == term) 
+		ind <- which(obj$re.assign$ind == which(obj$re.assign$terms == term)) 
 		re  <- re[ind,,drop=F]
 		attr(re, "mode") <- mode
 		attr(re, "term") <- term
@@ -1242,10 +2403,35 @@ fixef <- function(object, ...)
 #' }
 
 fixef.VCA <- function(object, type=c("simple", "complex"), ddfm=c("contain", "residual", "satterthwaite"), 
-					  tol=1e-12, quiet=FALSE, ...)
+		tol=1e-12, quiet=FALSE, ...)
 {
 	Call <- match.call()
+	
 	obj <- object
+	
+	if(is.list(obj) && class(obj) != "VCA")
+	{
+		if(!all(sapply(obj, class) == "VCA"))
+			stop("Only lists of 'VCA' object are accepted!")
+		
+		obj.len <- length(obj)
+		
+		assign("VCAinference.obj.is.list", TRUE, envir=msgEnv)			# indicate that a list-type object was passed intially
+		
+		res <- mapply(	FUN=fixef.VCA, obj=obj, type=type[1],
+				ddfm=ddfm[1], tol=tol, quiet=quiet,
+				SIMPLIFY=FALSE)
+		
+		names(res) <- names(obj)
+		
+		if(obj.len == 1)			# mapply returns a list of length 2 in case that length(obj) was equal to 1
+			res <- res[1]
+		
+		rm("VCAinference.obj.is.list", envir=msgEnv)
+		
+		return(res)
+	}	
+	
 	stopifnot(class(obj) == "VCA")
 	type <- match.arg(type)
 	if(length(ddfm) > 1 && type == "complex")
@@ -1259,18 +2445,24 @@ fixef.VCA <- function(object, type=c("simple", "complex"), ddfm=c("contain", "re
 	vc <- vcov(obj)
 	se <- suppressWarnings(sqrt(diag(vc)))
 	fe <- obj$FixedEffects
+	
 	if(is.null(fe))								# solve mixed model equations first
 	{
 		obj  <- solveMME(obj)
-		fe <- obj$FixedEffects
-		nam  <- as.character(as.list(Call)$object)
-		if(length(nam) == 1 && nam %in% names(as.list(.GlobalEnv)))
+		fe   <- obj$FixedEffects
+		nam0 <- deparse(Call$object)
+		
+		nam1 <- sub("\\[.*", "", nam0)			# remove any index-operators 
+		if(length(nam1) == 1 && nam1 %in% names(as.list(.GlobalEnv)))
 		{
-			expr <- paste(nam, "<<- obj")		# update object missing MME results
+			expr <- paste(nam0, "<<- obj")		# update object missing MME results
 			eval(parse(text=expr))
 		}
-		else
-			warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+		else			# warning only if not called on list of VCA-objects
+		{
+			if( !"VCAinference.obj.is.list" %in% names(as.list(msgEnv)) && !quiet)
+				warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+		}
 	}
 	nam <- rownames(fe)
 	
@@ -1363,33 +2555,75 @@ fixef.VCA <- function(object, type=c("simple", "complex"), ddfm=c("contain", "re
 #' lsm2 
 #' }
 
-lsmeans <- function(obj, var=NULL, type=c("simple", "complex"), ddfm=c("contain", "residual", "satterthwaite"), quiet=FALSE)
+lsmeans <- function(obj, var=NULL, type=c("simple", "complex"), ddfm=c("contain", "residual", "satterthwaite"), 
+		quiet=FALSE)
 {
+	Call <- match.call()
+	
+	if(is.list(obj) && class(obj) != "VCA")
+	{
+		if(!all(sapply(obj, class) == "VCA"))
+			stop("Only lists of 'VCA' object are accepted!")
+		
+		obj.len <- length(obj)
+		
+		if(is.null(var))
+		{
+			res <- mapply(	FUN=lsmeans, obj=obj, 
+					type=type[1], ddfm=ddfm[1], quiet=quiet,
+					SIMPLIFY=FALSE)
+		}
+		else
+		{
+			res <- mapply(	FUN=lsmeans, obj=obj, var=var, 
+					type=type, ddfm=ddfm, quiet=quiet,
+					SIMPLIFY=FALSE)
+		}
+		
+		names(res) <- names(obj)
+		
+		if(obj.len == 1)			# mapply returns a list of length 2 in case that length(obj) was equal to 1
+			res <- res[1]
+		
+		return(res)
+	}	
+	
 	stopifnot(class(obj) == "VCA")
 	stopifnot(obj$Type %in% c("Linear Model", "Mixed Model"))		# won't work for random models
+	
+	type <- match.arg(type)
+	
 	if(!is.null(var))												# does this fixed effects variable exist
 		stopifnot(var %in% obj$fixed)
+	
 	if(length(ddfm) > 1 && type == "complex")
 	{
+		
 		ddfm <- "satterthwaite"
 		if(!quiet)
 			warning("Note: 'ddfm' not specified, option \"satterthwaite\" was used!")
 	}
 	ddfm <- match.arg(ddfm)
 	
+	if(obj$EstMethod == "REML" && ddfm == "contain")
+	{
+		ddfm <- "satterthwaite"
+		if(!quiet)
+			warning("Note: 'ddfm' set to \"satterthwaite\", currently option \"contain\" does not work for REML-estimation!")
+	}
+	
 	if(obj$Type != "Mixed Model" && !obj$intercept)
 	{
-		warning("There are no fixed effects for which LS Means could be calculated!")
+		if(!quiet)
+			warning("There are no fixed effects for which LS Means could be calculated!")
 		return(NA)
 	}
-	type <- match.arg(type)
 	
-	T <- lsmMat(obj, var=var)					# LS Means generating contrast matrix
+	T <- lsmMat(obj, var=var, quiet=quiet)					# LS Means generating contrast matrix
 	x   <- obj
 	if(x$intercept)
 	{
-		x$intercept <- FALSE
-		
+		x$intercept <- FALSE		
 	}
 	vc <- vcov(obj)	
 	vc <- T %*% vc %*% t(T)
@@ -1425,6 +2659,7 @@ lsmeans <- function(obj, var=NULL, type=c("simple", "complex"), ddfm=c("contain"
 #' @param obj			(VCA) object
 #' @param var			(character) string specifyig the fixed effects variable for which
 #'                      the LS Means generating matrices should be computed
+#' @param quiet			(logical) TRUE = will suppress any warning, which will be issued otherwise 
 #' 
 #' @return	(matrix) where each row corresponds to a LS Means generating contrast
 #'          for each factor level of one or multiple fixed effects variable(s)
@@ -1449,22 +2684,23 @@ lsmeans <- function(obj, var=NULL, type=c("simple", "complex"), ddfm=c("contain"
 #' VCA:::lsmMat(fit2, c("lot", "device"))
 #' }
 
-lsmMat <- function(obj, var=NULL)
+lsmMat <- function(obj, var=NULL, quiet=FALSE)
 {
 	stopifnot(class(obj) == "VCA")
 	if(!is.null(var))
 		stopifnot(var %in% obj$fixed)
 	X <- getMat(obj, "X")
+	
 	if(is.null(var))
 		var <- obj$fixed
-
+	
 	terms 	  <- attr(obj$terms, "factors")
 	dat.cls   <- sapply(obj$data[,rownames(terms)[-1]], class)	
 	variables <- names(dat.cls)
 	fe.assign <- obj$fe.assign						# assignment by integers
 	fe.terms  <- attr(fe.assign, "terms")	
 	fe.class  <- list()
-
+	
 	for(i in 1:length(fe.terms))
 	{
 		if(fe.assign[i] == 0)
@@ -1475,11 +2711,12 @@ lsmMat <- function(obj, var=NULL)
 		fe.class[[i]] <- dat.cls[tmp]
 	}
 	names(fe.class) <- fe.terms
-
+	
 	if(!all(var %in% fe.terms))
 		stop("At least one element of 'var' is not a fixed term!")
 	
 	fe.tvec   <- fe.terms[fe.assign+ifelse(obj$intercept, 1, 0)]				# assignment by names
+	
 	terms.cls <- rep("factor", length(fe.terms))
 	names(terms.cls) <- fe.terms
 	fe.tab    <- table(fe.tvec)
@@ -1522,17 +2759,18 @@ lsmMat <- function(obj, var=NULL)
 			{
 				tmp  <- eval(parse(text=paste("c(tmp,",names(fac.var[j]),"=length(unique(obj$data[,\"",names(fac.var[j]),"\"])))", sep="")))
 			}
-						
+			
 			eval(parse(text=paste("Means[[\"", fe.terms[ind[i]], "\"]] <- tmp", sep="")))	# add to list 'Means' and use name of the numeric variable as name of the list element
 		}
 	}
-
+	
 	for(i in 1:length(var))							# over all fixed terms for which LS Means shall be computed
 	{
 		tsplt <- unlist(strsplit(var[i], ":"))
 		if(any(dat.cls[tsplt] == "numeric"))
 		{
-			warning("'",var[i],"' is non-\"numeric\", LS Means cannot be estimated,'",var[i],"' will be skipped!")
+			if(!quiet)
+				warning("'",var[i],"' is non-\"numeric\", LS Means cannot be estimated,'",var[i],"' will be skipped!")
 			next
 		}
 		lvl.ind  <- which(fe.tvec == var[i])				# indices of all columns representing levels of var[i]
@@ -1543,17 +2781,17 @@ lsmMat <- function(obj, var=NULL)
 		rem.ind.init  <- which(fe.tvec != var[i])			# (init)ial (rem)aining columns which need to be treated differently
 		rem.nam.init  <- cn[rem.ind.init]
 		rem.asgn.init <- fe.assign[rem.ind.init] 
-
+		
 		for(j in 1:length(lvl.ind))							# over levels of the current factor
 		{
-			rem.ind  <- rem.ind.init							# re-set for each level of the current (i-th) term
+			rem.ind  <- rem.ind.init						# re-set for each level of the current (i-th) term
 			rem.nam  <- rem.nam.init
 			rem.asgn <- rem.asgn.init
 			
 			con.mat <- matrix(0, nrow=1, ncol=ncol(X))
 			colnames(con.mat) <- cn
 			splt <- unlist(strsplit(lvl.nam[j], ":"))		# get all sub-terms
-
+			
 			if(obj$intercept)
 			{
 				con.mat[1,"int"] <- 1
@@ -1562,7 +2800,7 @@ lsmMat <- function(obj, var=NULL)
 				rem.asgn <- rem.asgn[-which(cn == "int")]
 			}
 			covar <- fe.cls[rem.ind] == "numeric"			# covariates involved?
-
+			
 			if(any(covar))									# [rule 1] (SAS PROC GLM documentation contrast matrix for LS Means)
 			{
 				cov.ind   <- rem.ind[ which(covar)]
@@ -1571,17 +2809,17 @@ lsmMat <- function(obj, var=NULL)
 				rem.asgn  <- rem.asgn[-which(covar)]
 				cov.asgn  <- fe.assign[cov.ind]
 				ucov.asgn <- unique(cov.asgn)
-
+				
 				for(k in 1:length(ucov.asgn))				# over all terms representing covariates
 				{
 					tmp.term <- fe.terms[ucov.asgn[k] + ifelse(obj$intercept, 1, 0)]
-
+					
 					tmp.info <- Means[[tmp.term]]
-
+					
 					tmp.ind  <- cov.ind[which(cov.asgn == ucov.asgn[k])]
 					
 					cn.splt <- t(sapply(cn[tmp.ind], function(x) unlist(strsplit(x, ":"))))
-
+					
 					if(nrow(cn.splt) == 1)													# atomic covariate use mean value
 					{
 						con.mat[,which(fe.assign == ucov.asgn[k])] <- tmp.info["mean"]
@@ -1589,7 +2827,7 @@ lsmMat <- function(obj, var=NULL)
 					}
 					
 					cov.cont <- apply(cn.splt, 1, function(x) any(splt %in% x))				# any sub-terms of the current term found in the levels of the current covariate
-			
+					
 					if(any(cov.cont))														# covariate is distributed according to a term that is also a sub-term  of the current factor-level 
 					{
 						con.mat[1,tmp.ind[which(cov.cont)]] <- tmp.info["mean"]/length(which(cov.cont))
@@ -1600,11 +2838,11 @@ lsmMat <- function(obj, var=NULL)
 					}
 				}
 			}
-		
+			
 			tmp.splt  <- unlist(strsplit(lvl.nam[j], ":"))									# [rule 2] handling all effects that are contained by the current effect
 			contained <- sapply(rem.nam, function(x) 
-											all(unlist(strsplit(x, ":")) %in% tmp.splt))				
-
+						all(unlist(strsplit(x, ":")) %in% tmp.splt))				
+			
 			if(any(contained))
 			{
 				tmp.asgn  <- rem.asgn[which(contained)]										# this might be multiple elements and this might be different values, e.g. 
@@ -1614,24 +2852,24 @@ lsmMat <- function(obj, var=NULL)
 				rem.asgn  <- rem.asgn[-which(rem.asgn %in% tmp.asgn)] 
 				con.mat[,contained] <- 1
 			}
-
+			
 			con.mat[1,lvl.ind[j]] <- 1														# [rule 3] setting the columns corresponding to the current effect to 1, all others remain 0
-
+			
 			contain <- sapply(rem.nam, function(x) 											# [rule 4] consider effects that contain the current effect
-								all(tmp.splt %in% unlist(strsplit(x, ":"))))  
-					
+						all(tmp.splt %in% unlist(strsplit(x, ":"))))  
+			
 			if(any(contain))
 			{
 				tmp.asgn  <- rem.asgn[which(contain)]
 				utmp.asgn <- unique(tmp.asgn)
-
+				
 				for(k in 1:length(utmp.asgn))	
 				{
 					tmp.ind <- rem.ind[which(contain)]
 					tmp.ind <- tmp.ind[which(tmp.asgn == utmp.asgn[k])]						# only those indices that belong to the k-th term (assignment value)
 					con.mat[1, tmp.ind] <- 1 / length(tmp.ind)								
 				}
-
+				
 				rem.ind  <- rem.ind[ -which(rem.asgn %in% utmp.asgn)]
 				rem.nam  <- rem.nam[ -which(rem.asgn %in% utmp.asgn)]
 				rem.asgn <- rem.asgn[-which(rem.asgn %in% utmp.asgn)]
@@ -1646,7 +2884,7 @@ lsmMat <- function(obj, var=NULL)
 					con.mat[1, which(fe.assign == ufac.asgn[k])] <- 1/fe.tab[fe.terms[ufac.asgn[k] + ifelse(obj$intercept, 1, 0)] ]
 				}
 			}
-									
+			
 			tmp.lsm <- rbind(tmp.lsm, con.mat)		
 		}
 		rownames(tmp.lsm) <- lvl.nam
@@ -1665,6 +2903,7 @@ lsmMat <- function(obj, var=NULL)
 #' models.
 #' 
 #' @param object		(VCA) object where fixed effects shall be extracted
+#' @param quiet			(logical) TRUE = will suppress any warning, which will be issued otherwise 
 #' @param ...			additional parameters
 #'
 #' @method coef VCA 
@@ -1679,7 +2918,7 @@ lsmMat <- function(obj, var=NULL)
 #' coef(fit2)
 #' }
 
-coef.VCA <- function(object, ...)
+coef.VCA <- function(object, quiet=FALSE, ...)
 {
 	Call <- match.call()
 	obj <- object
@@ -1696,7 +2935,10 @@ coef.VCA <- function(object, ...)
 			eval(parse(text=expr))
 		}
 		else
-			warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+		{
+			if(!quiet)
+				warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+		}
 	}
 	fe  <- fe[,"Estimate", drop=F]
 	nam <- rownames(fe)
@@ -1719,6 +2961,7 @@ coef.VCA <- function(object, ...)
 #' 
 #' @param object		 	(VCA) object for which the variance-covariance matrix of
 #'                          fixed effects shall be calculated
+#' @param quiet				(logical) TRUE = will suppress any warning, which will be issued otherwise 
 #' @param ...				additional parameters
 #' 
 #' @return (matrix) corresponding to the variance-covariance matrix of fixed effects
@@ -1736,13 +2979,14 @@ coef.VCA <- function(object, ...)
 #' vcov(fit2)
 #' }
 
-vcov.VCA <- function(object, ...)
+vcov.VCA <- function(object, quiet=FALSE, ...)
 {
 	obj <- object
 	stopifnot(class(obj) == "VCA")
 	if(!obj$intercept && length(obj$fixed) == 0)
 	{
-		warning("There is no variance-convariance matrix of fixed effects for this object!")
+		if(!quiet)
+			warning("There is no variance-convariance matrix of fixed effects for this object!")
 		return(NA)
 	}
 	if(is.null(obj$VarFixed))
@@ -1802,8 +3046,9 @@ getDF <- function(obj, L, method=c("contain", "residual", "satterthwaite"), ...)
 #' \eqn{(X^{T}V^{-1}X)^{-}}{(X'V"X)`}, where >\eqn{^{T}}{'}< denotes the transpose operator, >\eqn{^{-1}}{"}< 
 #' the regular matrix inverse, and >\eqn{^{-}}{`}< the generalized (Moore-Penrose) inverse of a matrix.
 #' 
-#' @param obj			... (VCA) object for which the variance-covariance matrix of
-#'                          fixed effects shall be calculated
+#' @param obj			(VCA) object for which the variance-covariance matrix of
+#'                      fixed effects shall be calculated
+#' @param quiet			(logical) TRUE = will suppress any warning, which will be issued otherwise 
 #' 
 #' @return (matrix) corresponding to the variance-covariance matrix of fixed effects
 #' 
@@ -1817,15 +3062,16 @@ getDF <- function(obj, L, method=c("contain", "residual", "satterthwaite"), ...)
 #' vcov(fit2)
 #' }
 
-vcovFixed <- function(obj)
+vcovFixed <- function(obj, quiet=FALSE)
 {
 	Call <- match.call()
 	if(!obj$intercept && length(obj$fixed) == 0)
 	{
-		warning("There is no variance-convariance matrix of fixed effects for this object!")
+		if(!quiet)
+			warning("There is no variance-convariance matrix of fixed effects for this object!")
 		return(NA)
 	}
-
+	
 	X  <- getMat(obj, "X")
 	if(is.null(obj$Matrices$Vi))			# MME not yet been solved
 	{
@@ -1837,13 +3083,16 @@ vcovFixed <- function(obj)
 			eval(parse(text=expr))
 		}
 		else
-			warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+		{
+			if(!quiet)
+				warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+		}
 	}
 	Vi <- getMat(obj, "Vi")
 	VCov <- obj$VarFixed
 	if(is.null(VCov))
 		VCov <- Sinv(t(X) %*% Vi %*% X)
-		#VCov <- MPinv(t(X) %*% Vi %*% X)
+	#VCov <- MPinv(t(X) %*% Vi %*% X)
 	rownames(VCov) <- colnames(VCov) <- rownames(obj$FixedEffects)
 	return(VCov)
 }
@@ -1864,15 +3113,33 @@ DfSattHelper <- function(obj, x)
 	stopifnot(class(obj) == "VCA")
 	
 	rf.ind <- obj$Matrices$rf.ind
-	Zi     <- obj$Matrices$Z
+#	Zi     <- obj$Matrices$Z
+	Zi <- obj$Matrices$Zre
 	Z <- Vs <- nam <- NULL 
 	
-	for(i in 1:length(rf.ind))									# constructing complete Z-matrix from VC-wise Z-matrices
+#	for(i in 1:length(rf.ind))									# constructing complete Z-matrix from VC-wise Z-matrices
+	
+	ura <- unique(obj$re.assign[[1]])
+	
+	for(i in 1:length(x))
 	{
-		Z <- cbind(Z, as.matrix(Zi[[rf.ind[i]]]))
-		Vs <- c(Vs, rep(x[i], ncol(Zi[[rf.ind[i]]])))
-		nam <- c(nam, colnames(Zi[[i]]))
+		if(i != length(x))
+		{
+			ind <- which(obj$re.assign[[1]] == i)
+#		Z <- cbind(Z, as.matrix(Zi[[rf.ind[i]]]))
+			Z <- cbind(Z, as.matrix(Zi[,ind]))
+#		Vs <- c(Vs, rep(x[i], ncol(Zi[[rf.ind[i]]])))
+			Vs <- c(Vs, rep(x[i], length(ind)))
+#		nam <- c(nam, colnames(Zi[[i]]))
+			nam <- c(nam, colnames(Zi)[ind])
+		}
+		else
+		{
+			Z  <- cbind(Z, diag(obj$Nobs))
+			Vs <- c(Vs, rep(x[i], obj$Nobs)) 
+		}
 	}
+	
 	G  <- diag(Vs)												# estimated variance-covariance matrix of random effects
 	Z  <- Matrix(Z)
 	R  <- getMat(obj, "R")
@@ -1900,6 +3167,7 @@ DfSattHelper <- function(obj, x)
 #' @param ddfm			(character) string specifying the method used for computing the denominator
 #'                      degrees of freedom of t-tests of LS Means. Available methods are "contain", 
 #' 						"residual", and "satterthwaite".
+#' @param quiet			(logical) TRUE = will suppress any warning, which will be issued otherwise 
 #' 
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #' 
@@ -1909,14 +3177,19 @@ DfSattHelper <- function(obj, x)
 #' \dontrun{
 #' data(dataEP05A2_2)
 #' ub.dat <- dataEP05A2_2[-c(11,12,23,32,40,41,42),]
-#' fit <- anovaMM(y~day/(run), ub.dat)
-#' lsm <- lsmeans(fit)
-#' lsm
-#' lc.mat <- getL(fit, c("day1-day2", "day3-day6"), "lsm")
+#' fit1 <- anovaMM(y~day/(run), ub.dat)
+#' fit2 <- remlMM(y~day/(run), ub.dat)
+#' lsm1 <- lsmeans(fit1)
+#' lsm2 <- lsmeans(fit2)
+#' lsm1
+#' lsm2
+#' 
+#' lc.mat <- getL(fit1, c("day1-day2", "day3-day6"), "lsm")
 #' lc.mat[1,c(1,2)] <- c(1,-1)
 #' lc.mat[2,c(3,6)] <- c(1,-1)
 #' lc.mat
-#' test.lsmeans(fit, lc.mat) 
+#' test.lsmeans(fit1, lc.mat) 
+#' test.lsmeans(fit2, lc.mat)
 #' 
 #' # fit mixed model from the 'nlme' package
 #'  
@@ -1931,17 +3204,26 @@ DfSattHelper <- function(obj, x)
 #' 
 #' # model without intercept
 #' fit.anovaMM <- anovaMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2-1, Ortho)
-#' lsm <- lsmeans(fit.anovaMM)
-#' lsm
+#' fit.remlMM1 <- remlMM( distance~Sex+Sex:age2+(Subject)+(Subject):age2-1, Ortho)
+#' fit.remlMM2 <- remlMM( distance~Sex+Sex:age2+(Subject)+(Subject):age2-1, Ortho, cov=FALSE)
+#' lsm0 <- lsmeans(fit.anovaMM)
+#' lsm1 <- lsmeans(fit.remlMM1)
+#' lsm2 <- lsmeans(fit.remlMM2)
+#' lsm0
+#' lsm1
+#' lsm2
+#' 
 #' lc.mat <- matrix(c(1,-1), nrow=1, dimnames=list("int.Male-int.Female", c("SexMale", "SexFemale")))
 #' lc.mat
 #' test.lsmeans(fit.anovaMM, lc.mat)	
+#' test.lsmeans(fit.remlMM1, lc.mat)
+#' test.lsmeans(fit.remlMM2, lc.mat)
 #' }	
 
-test.lsmeans <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"))
+test.lsmeans <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"), quiet=FALSE)
 {
 	stopifnot(class(obj) == "VCA")
-	lsmm <- lsmMat(obj, NULL)
+	lsmm <- lsmMat(obj, NULL, quiet=quiet)
 	stopifnot(all(colnames(L) %in% rownames(lsmm)))			# only existing LS Means can be used
 	
 	lsmm <- lsmm[which(colnames(L) %in% rownames(lsmm)),]
@@ -1958,7 +3240,7 @@ test.lsmeans <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"))
 	if(is.null(obj$VarCov))
 		obj$VarCov 	<- vcovVC(obj)
 	
-	res <- test.fixef(obj, U, ddfm=ddfm)
+	res <- test.fixef(obj, U, ddfm=ddfm, quiet=quiet)
 	rownames(res) <- rownames(L)
 	return(res)
 }
@@ -2017,43 +3299,60 @@ test.lsmeans <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"))
 #' \dontrun{
 #' data(dataEP05A2_2)
 #' ub.dat <- dataEP05A2_2[-c(11,12,23,32,40,41,42),]
-#' fit <- anovaMM(y~day/(run), ub.dat)
-#' fe <- fixef(fit)
-#' fe
-#' lc.mat <- getL( fit, c("day1-day2", "day3-day6"))
+#' fit1 <- anovaMM(y~day/(run), ub.dat)
+#' fit2 <- remlMM(y~day/(run), ub.dat)
+#' fe1 <- fixef(fit1)
+#' fe1
+#' fe2 <- fixef(fit2)
+#' fe2
+#' lc.mat <- getL( fit1, c("day1-day2", "day3-day6"))
 #' lc.mat
-#' test.fixef(fit, lc.mat) 
+#' test.fixef(fit1, lc.mat, ddfm="satt") 
+#' test.fixef(fit2, lc.mat, ddfm="satt")
 #' 
 #' # some inferential statistics about fixed effects estimates
-#' L <- diag(nrow(fe))
-#' rownames(L) <- colnames(L) <- rownames(fe)
-#' test.fixef(fit, L)
+#' L <- diag(nrow(fe1))
+#' rownames(L) <- colnames(L) <- rownames(fe1)
+#' test.fixef(fit1, L)
+#' test.fixef(fit2, L)
 #' 
 #' # using different "residual" method determining DFs
-#' test.fixef(fit, L, ddfm="res")
+#' test.fixef(fit1, L, ddfm="res")
+#' test.fixef(fit2, L, ddfm="res")  
 #' 
 #' # having 'opt=TRUE' is a good idea to save time 
 #' # (in case of balanced designs)
 #' data(VCAdata1)
 #' datS3 <- VCAdata1[VCAdata1$sample==3,]
-#' fit <- anovaMM(y~(lot+device)/(day)/run, datS3)
-#' fit$VarCov <- vcovVC(fit)
-#' fe <- fixef(fit)
-#' L <- diag(nrow(fe))
+#' fit3 <- anovaMM(y~(lot+device)/(day)/run, datS3)
+#' fit4 <- remlMM(y~(lot+device)/(day)/run, datS3)  
+#' fit3$VarCov <- vcovVC(fit3)
+#' fe3 <- fixef(fit3)
+#' fe4 <- fixef(fit4)
+#' L <- diag(nrow(fe3))
 #' rownames(L) <- colnames(L) <- rownames(fe)
-#' system.time(tst1 <- test.fixef(fit, L))
-#' system.time(tst2 <- test.fixef(fit, L, opt=FALSE))
+#' system.time(tst1 <- test.fixef(fit3, L))
+#' system.time(tst2 <- test.fixef(fit3, L, opt=FALSE))
+#' system.time(tst3 <- test.fixef(fit4, L, opt=FALSE))
 #' tst1
 #' tst2
+#' tst3
 #' }
 
 test.fixef <- function(	obj, L, ddfm=c("contain", "residual", "satterthwaite"),
-						method.grad="simple", tol=1e-12, quiet=FALSE, opt=TRUE,
-						onlyDF=FALSE, ...)
+		method.grad="simple", tol=1e-12, quiet=FALSE, opt=TRUE,
+		onlyDF=FALSE, ...)
 {
 	stopifnot(class(obj) == "VCA")
 	ddfm <- match.arg(ddfm)
-
+	
+	if(obj$EstMethod == "REML" && ddfm == "contain")
+	{
+		ddfm <- "satterthwaite"
+		if(!quiet)
+			warning("Note: 'ddfm' set to \"satterthwaite\", currently option \"contain\" does not work for REML-estimation!")
+	}
+	
 	args <- list(...)
 	lsmeans <- args$lsmeans						# this function is called when LS Means with complex output is requested
 	if(is.null(lsmeans))
@@ -2063,7 +3362,7 @@ test.fixef <- function(	obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 	
 	if(is.null(dim(L)))
 		L <- matrix(L, nrow=1)
-
+	
 	stopifnot(ncol(L) == nrow(b))
 	
 	if(nrow(L) > 1)
@@ -2081,7 +3380,7 @@ test.fixef <- function(	obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 	else
 	{
 		ind <- which(L != 0)						# test whether fixef(obj, "complex") was called
-
+		
 		if(length(ind) == 1 && any(abs(b[ind,]) < tol) && !lsmeans)
 		{
 			if(!quiet)
@@ -2105,12 +3404,12 @@ test.fixef <- function(	obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 			return(c(NA, DF, NA, NA))
 		}
 		t.stat 	<- as.numeric(sqrt((t(L %*% b) %*% lPli %*% (L %*% b))/r))
-
+		
 		res <- matrix(c(est, DF, sgn*t.stat, 2*pt(abs(t.stat), df=DF, lower.tail=FALSE)), nrow=1,
-					  dimnames=list(NULL, c("Estimate", "DF", "t Value", "Pr > |t|"))) 
-			  
+				dimnames=list(NULL, c("Estimate", "DF", "t Value", "Pr > |t|"))) 
+		
 		attr(res, "ddfm") <- ddfm
-
+		
 		return( res )
 	}	
 }
@@ -2166,7 +3465,7 @@ getL <- function(obj, s, what=c("fixef", "lsmeans"))
 	else
 		b <- lsmeans(obj, quiet=TRUE)
 	n <- rownames(b)
-
+	
 	if(length(s) > 1)
 	{
 		L <- try(t(sapply(s, function(x) getL(obj, x, what=what))), silent=TRUE)
@@ -2178,12 +3477,12 @@ getL <- function(obj, s, what=c("fixef", "lsmeans"))
 	contr <- rep(0, nrow(b))
 	cname <- names(s)
 	s <- gsub("\\*", "", s)
-
+	
 	splt <- sapply(unlist(strsplit(s, "\\+")), strsplit, "\\-")
-
+	
 	fac <- NULL
 	sgn <- NULL
-
+	
 	for(i in 1:length(splt))
 	{
 		if(i == 1)
@@ -2195,13 +3494,13 @@ getL <- function(obj, s, what=c("fixef", "lsmeans"))
 		}
 		else
 			sgn <- 1									# 1st element always "+" since it was firstly used as split-char
-
+		
 		sgn <- c(sgn, rep(-1, length(splt[[i]])-1))
 		
 		for(j in 1:length(splt[[i]]))
 		{
 			tmp <- regexpr("^[[:digit:]]*\\.?[[:digit:]]*", splt[[i]][j])
-
+			
 			if(tmp > -1 && attr(tmp, "match.length") > 0)				# there is a factor at the beginning of the string
 			{
 				tmp.fac <- substr(splt[[i]][j], 1, attr(tmp, "match.length"))
@@ -2212,22 +3511,22 @@ getL <- function(obj, s, what=c("fixef", "lsmeans"))
 				fac <- c(fac, 1 * sgn[j])
 		}
 	}
-
+	
 	splt <- unlist(splt)
 	names(splt) <- NULL
-
+	
 	if(!all(splt %in% n))
 		stop("\nError: There are terms which do not belong to the '",nwhat[what],"'!")
-
+	
 	res <- sapply(n, regexpr, splt)
 	rownames(res) <- splt
 	cnl <- nchar(colnames(res))	
-
+	
 	tms <- apply(res, 1, function(x){
-					ind <- which(x > 0)
-					len <- cnl[ind]
-					return(ind[which(len == max(len))])
-				})
+				ind <- which(x > 0)
+				len <- cnl[ind]
+				return(ind[which(len == max(len))])
+			})
 	contr[tms] <- fac	
 	return(matrix(contr, nrow=1, dimnames=list(cname, n)))
 }
@@ -2275,21 +3574,21 @@ getDDFM <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"), tol=
 	{		
 		cn <- colnames(L)										# fe or LS Means names
 		cn <- cn[which(L[1,] != 0)]
-
+		
 		if(length(cn) == 1 && cn == "int")						# handle intercept fixed effect
 		{
 			return(DF <- min(obj$aov.org[obj$random, "DF"]))
 		}
 		fe <- obj$fixed
 		tmp <- sapply(fe, function(x) gregexpr(x, cn))			# can names of fixed terms be found in column names of L?
-	
+		
 		if(class(tmp) == "list")								# there was only a single non-zero column in L --> list returned
 			fe <- sapply(tmp, function(x) x != -1)
 		else													# mulitple non-zero columns in L
 		{
 			fe <- apply(tmp, 2, function(y) any(y==1))
 		}		
-
+		
 		if(any(fe))
 		{
 			fe <- fe[which(fe)]
@@ -2304,7 +3603,7 @@ getDDFM <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"), tol=
 			else
 			{
 				tmpZ <-  getMat(obj, "Z")
-
+				
 				if(!is.null(tmpZ))
 					return(obj$Nobs - rankMatrix(cbind(as.matrix(getMat(obj, "X")), as.matrix(tmpZ))))
 				else
@@ -2321,8 +3620,8 @@ getDDFM <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"), tol=
 		stopifnot(class(obj) == "VCA")		
 		if(is.null(dim(L)))
 			L <- matrix(L, nrow=1)		
-
-		if(obj$balanced == "balanced" && opt)
+		
+		if(obj$balanced == "balanced" && opt && obj$EstMethod != "REML" && FALSE)
 		{
 			return(obj$aov.tab[2,"DF"])			
 		}
@@ -2332,8 +3631,8 @@ getDDFM <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"), tol=
 		A <- obj$VarCov											# same names as in SAS Help of PROC MIXED, Model statement, option "ddfm=sat"
 		if(is.null(A))
 			A <- vcovVC(obj)
-	
-		VCs <- obj$Matrices$VCall[obj$Matrices$rf.ind]
+		
+		VCs <- obj$aov.tab[-1, "VC"]							# all variance components but total
 		
 		for( m in 1:length(SVD$values) )
 		{   
@@ -2368,10 +3667,11 @@ getDDFM <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"), tol=
 #' assigned to element 'VarVC.method' of the 'VCA' object will be used
 #' (see \code{\link{getVCvar}} for computational details).
 #' 
-#' @param obj			... (VCA) object
-#' @param method		... (character) string, optionally specifying whether to use the algorithm given in the
-#' 							1st reference ("scm") or in the 2nd refernce ("gb"). If not not supplied, the 
-#' 							option is used coming with the 'VCA' object.
+#' @param obj			(VCA) object
+#' @param method		(character) string, optionally specifying whether to use the algorithm given in the
+#' 						1st reference ("scm") or in the 2nd refernce ("gb"). If not not supplied, the 
+#' 						option is used coming with the 'VCA' object.
+#' @param quiet			(logical) TRUE = will suppress any warning, which will be issued otherwise 
 #' 
 #' @return (matrix) corresponding to variance-covariance matrix of variance components
 #' 
@@ -2393,7 +3693,7 @@ getDDFM <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"), tol=
 #' vcovVC(fit, "gb")		# Giesbrecht and Burns method (2nd reference)
 #' }
 
-vcovVC <- function(obj, method=NULL)
+vcovVC <- function(obj, method=NULL, quiet=FALSE)
 {
 	Call <- match.call()
 	
@@ -2402,9 +3702,6 @@ vcovVC <- function(obj, method=NULL)
 		method <- match.arg(method, c("scm", "gb"))
 	else
 		method <- obj$VarVC.method
-	
-#	if(obj$Type == "Linear Model")
-#		return(NULL)
 	
 	VCvar <- obj$VarCov
 	if(!is.null(VCvar))
@@ -2445,33 +3742,14 @@ vcovVC <- function(obj, method=NULL)
 				eval(parse(text=expr))
 			}
 			else
-				warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
-		}
-		
-		P  <- obj$VarFixed										# vcov of fixed effects
-		X  <- getMat(obj, "X")
-		Vi <- getMat(obj, "Vi")
-		Q  <- Vi - Vi %*% X %*% P %*% t(X) %*% Vi				# this Q is different from the on in obj$Matrices (I ran out of capital letters ;-)
-		
-		ind <- obj$Matrices$rf.ind
-		Z  <- Z[ind]
-		
-		VCvar <- matrix(, length(ind), length(ind))
-		nam <- rownames(obj$aov.org)[ind]
-		nam[length(nam)] <- "error"
-		rownames(VCvar) <- colnames(VCvar) <- nam
-
-		for(i in 1:length(ind))
-		{
-			for(j in i:length(ind))
 			{
-				VCvar[i,j] <- VCvar[j,i] <- Trace(Z[[i]] %*% t(Z[[i]]) %*% Q %*% Z[[j]] %*% t(Z[[j]]) %*% Q)
+				if(quiet)
+					warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
 			}
-		}
-		
-		VCvar <- 2 * solve(VCvar)
+		}		
+		VCvar <- getGB(obj)							# apply Giesbrecht & Burns approximation
 	}
-	attr(VCvar, "method") <- method								# which method was used
+	attr(VCvar, "method") <- method					# which method was used
 	
 	return(VCvar)
 }
@@ -2526,7 +3804,7 @@ getMat <- function(obj, mat)
 				{
 					Znam <- paste("Z", attr(mats$Z[[i]], "term"), sep="")
 					Anam <- paste("A", attr(mats$A[[i]], "term"), sep="")
-
+					
 					if(mat == Znam)
 					{
 						return(mats$Z[[i]])
@@ -2556,7 +3834,9 @@ getMat <- function(obj, mat)
 #' respectively, random (\eqn{g}) effects to observations, and \eqn{e} is the column vector of 
 #' residual errors.
 #' The variance-covariance matrix of \eqn{y} is equal to \eqn{Var(y) = ZGZ^{-T} + R}{Var(y) = ZGZ' + R}, where \eqn{R}
-#' is the variance-covariance matrix of \eqn{e}.
+#' is the variance-covariance matrix of \eqn{e} and \eqn{G} is the variance-covariance matrix of \eqn{g}.
+#' Here, \eqn{G} is assumed to be a diagonal matrix, i.e. all random effects \eqn{g} are mutually independent
+#' (uncorrelated).
 #' 
 #' @param obj			(VCA) object
 #' @return (VCA) object with additional elements in the 'Matrices' element, including matrix \eqn{V}.
@@ -2568,7 +3848,7 @@ getV <- function(obj)
 	stopifnot(class(obj) == "VCA")
 	mats <- obj$Matrices
 	R <- Diagonal(obj$Nobs) * obj$aov.tab["error", "VC"]
-
+	
 	if(as.character(obj$terms)[3] == "1")
 	{
 		mats$V <- mats$R <- R
@@ -2580,7 +3860,7 @@ getV <- function(obj)
 	Zi <- mats$Z
 	VC <- mats$VCall									# all VCs, i.e. as if the model were a random model
 	rf.ind <- mats$rf.ind
-
+	
 	rf.ind <- rf.ind[-length(rf.ind)]					# remove index to error VC
 	ind <- 1
 	for(i in rf.ind)									# constructing complete Z-matrix from VC-wise Z-matrices
@@ -2595,7 +3875,7 @@ getV <- function(obj)
 		assign <- c(assign, rep(ind, ncol(Zi[[i]])))
 		ind <- ind + 1									# ind vector specifies which REs belong to which terms in the formula
 	}
-
+	
 	if(is.null(Z))
 	{
 		V <- R
@@ -2616,7 +3896,7 @@ getV <- function(obj)
 	mats$R   <- R
 	obj$Matrices <- mats
 	obj$re.assign <- assign
-
+	
 	return(obj)
 }
 
@@ -2693,7 +3973,7 @@ getCmatrix <- function(form, Data, DF=NULL, type=c("MS", "SS"), digits=8L, MM=NU
 	
 	if(is.null(MM))
 		MM   <- getMM(form, Data)
-
+	
 	asgn <- attr(MM, "assign")
 	NVC  <- max(asgn)                           # number of variance components (without mean level)              
 	nc   <- ncol(MM)                            # number of effects without intercept
@@ -2706,11 +3986,11 @@ getCmatrix <- function(form, Data, DF=NULL, type=c("MS", "SS"), digits=8L, MM=NU
 	if(inherits(MM, "CsparseMatrix"))			# even faster implementation for sparse matrices
 	{	
 		res <- .C(	"getAmatBmatSparse", xEl=as.double(MM@x), iEl=as.integer(MM@i),
-				 	pEl=as.integer(MM@p), NobsCol=as.integer(diff(MM@p)), 
-					ncol=as.integer(nc), nrow=as.integer(nr), tol=as.double(tol), 
-					Amat=as.double(Amat), Bmat=as.double(Bmat), amat=as.double(amat),
-					Cmat=double(NVC^2), Nvc=as.integer(NVC), asgn=as.integer(asgn[-1]),
-					DF=as.integer(DF), PACKAGE="VCA")
+				pEl=as.integer(MM@p), NobsCol=as.integer(diff(MM@p)), 
+				ncol=as.integer(nc), nrow=as.integer(nr), tol=as.double(tol), 
+				Amat=as.double(Amat), Bmat=as.double(Bmat), amat=as.double(amat),
+				Cmat=double(NVC^2), Nvc=as.integer(NVC), asgn=as.integer(asgn[-1]),
+				DF=as.integer(DF), PACKAGE="VCA")
 	}
 	else										# fast C-implementation for dense matrices
 	{
@@ -2720,7 +4000,7 @@ getCmatrix <- function(form, Data, DF=NULL, type=c("MS", "SS"), digits=8L, MM=NU
 				Cmat=double(NVC^2), NVC=as.integer(NVC), asgn=as.integer(asgn[-1]),
 				DF=as.integer(DF),	PACKAGE="VCA")
 	}
-
+	
 	C <- matrix(res$Cmat, NVC, NVC)
 	C <- rbind(C, rep(0, ncol(C)))					# account for error
 	C <- cbind(C, rep(1,nrow(C)))
@@ -2729,7 +4009,7 @@ getCmatrix <- function(form, Data, DF=NULL, type=c("MS", "SS"), digits=8L, MM=NU
 	{
 		C <- apply(C, 2, function(x) x <- x*DF)
 	}
-
+	
 	return(C)
 }
 
@@ -2754,7 +4034,7 @@ getCmatrix <- function(form, Data, DF=NULL, type=c("MS", "SS"), digits=8L, MM=NU
 getAmatrix <- function(X1, X2)
 {
 	I <- Diagonal(nrow(X1))   
-    if(missing(X2))                     					# A-matrix for error
+	if(missing(X2))                     					# A-matrix for error
 	{
 		A <- I-X1 %*%MPinv(t(X1) %*% X1) %*% t(X1) 
 	}
@@ -2762,7 +4042,7 @@ getAmatrix <- function(X1, X2)
 	{
 		stopifnot(nrow(X1) == nrow(X2))       
 		X12 <- Matrix(cbind(as.matrix(X1), as.matrix(X2)))
-
+		
 		A1 <- (I-X1  %*% MPinv(t(X1)  %*% X1)  %*% t(X1))
 		A2 <- (I-X12 %*% MPinv(t(X12) %*% X12) %*% t(X12)) 
 		A <- A1 - A2
@@ -2839,50 +4119,50 @@ MPinv <- function (X, tol = sqrt(.Machine$double.eps))
 getVCvar <- function(Ci, A, Z, VC)
 {
 	Ci <- as.matrix(Ci)
-    W  <- matrix(ncol=ncol(Ci), nrow=nrow(Ci))
-    VC <- matrix(VC, ncol=1, dimnames=list(rownames(VC), NULL))    
-    Zs  <- vector("list", length=length(Z))
-    
-    for(i in 1:length(Z))
-    {
-        Zs[[i]] <- Z[[i]] %*% t(Z[[i]])      # compute ZZ' for all Z_i only once
-    } 
-    
-    getWij <- function(Ai, Aj, Zs, VC)       # compute elements of W-matrix
-    {        
-        AiZ <- vector("list", length=length(Z))
-        AjZ <- vector("list", length=length(Z))
-        
-        for(i in 1:length(Z))
-        {
-            AiZ[[i]] <- Ai %*% Zs[[i]]
-            AjZ[[i]] <- Aj %*% Zs[[i]]
-        }
-        
-        M <- matrix(ncol=length(Z), nrow=length(Z))
-        
-        for(i in 1:length(Z))
-        {
-            for(j in i:length(Z))
-            {
-                M[i,j] <- M[j,i] <- Trace(AiZ[[i]] %*% AjZ[[j]])
-            }
-        }    
-        return(t(VC) %*% M %*% VC)
-    }
-    
-    for(i in 1:nrow(W))                     # compute W-matrix (matrix in outer brackets in 21b on p.176)
-    {
-        for(j in i:ncol(W))         
-        {
-            W[i,j] <- W[j,i] <- getWij(Ai=A[[i]], Aj=A[[j]], Zs=Zs, VC=VC)
-        }
-    }
-    
+	W  <- matrix(ncol=ncol(Ci), nrow=nrow(Ci))
+	VC <- matrix(VC, ncol=1, dimnames=list(rownames(VC), NULL))    
+	Zs  <- vector("list", length=length(Z))
+	
+	for(i in 1:length(Z))
+	{
+		Zs[[i]] <- Z[[i]] %*% t(Z[[i]])      # compute ZZ' for all Z_i only once
+	} 
+	
+	getWij <- function(Ai, Aj, Zs, VC)       # compute elements of W-matrix
+	{        
+		AiZ <- vector("list", length=length(Z))
+		AjZ <- vector("list", length=length(Z))
+		
+		for(i in 1:length(Z))
+		{
+			AiZ[[i]] <- Ai %*% Zs[[i]]
+			AjZ[[i]] <- Aj %*% Zs[[i]]
+		}
+		
+		M <- matrix(ncol=length(Z), nrow=length(Z))
+		
+		for(i in 1:length(Z))
+		{
+			for(j in i:length(Z))
+			{
+				M[i,j] <- M[j,i] <- Trace(AiZ[[i]] %*% AjZ[[j]])
+			}
+		}    
+		return(t(VC) %*% M %*% VC)
+	}
+	
+	for(i in 1:nrow(W))                     # compute W-matrix (matrix in outer brackets in 21b on p.176)
+	{
+		for(j in i:ncol(W))         
+		{
+			W[i,j] <- W[j,i] <- getWij(Ai=A[[i]], Aj=A[[j]], Zs=Zs, VC=VC)
+		}
+	}
+	
 	vc <- 2 * Ci %*% W %*% t(Ci)
 	rownames(vc) <- colnames(vc) <- rownames(VC)
-
-    return(vc)          # general formula (21b) on p.176, with W being the matrix in outer brackets
+	
+	return(vc)          # general formula (21b) on p.176, with W being the matrix in outer brackets
 }
 
 
@@ -2928,9 +4208,9 @@ getVCvar <- function(Ci, A, Z, VC)
 
 getMM <- function(form, Data)
 {
-    stopifnot(class(form) == "formula")
-    stopifnot(is.data.frame(Data))
-    tform <- terms(form, simplify=TRUE, keep.order=TRUE)
+	stopifnot(class(form) == "formula")
+	stopifnot(is.data.frame(Data))
+	tform <- terms(form, simplify=TRUE, keep.order=TRUE)
 	int   <- attr(tform, "intercept") == 1
 	form  <- as.character(tform)
 	fmat  <- attr(tform, "factors")
@@ -2940,35 +4220,35 @@ getMM <- function(form, Data)
 	tlab.cls <- sapply(Data[,tlabs,drop=F], class)
 	fac.obs  <- tlab.cls[tlab.cls == "factor"]						# factor variables in terms of form
 	num.obs  <- tlab.cls[tlab.cls != "factor"]						# non-factor variables
-    N <- nrow(Data)
-    lvls <- strsplit(form[ifelse(length(form) == 3, 3, 2)], "\\+")  # obtain single factors
-    lvls <- gsub(" ", "", unlist(lvls))  
-
+	N <- nrow(Data)
+	lvls <- strsplit(form[ifelse(length(form) == 3, 3, 2)], "\\+")  # obtain single factors
+	lvls <- gsub(" ", "", unlist(lvls))  
+	
 	if(int)
 	{
 		mm <- matrix(1, nrow=N, ncol=1)                             # include intercept
 		colnames(mm) <- "int"
 		assign <- 0
 	}
-   	else
+	else
 	{
 		mm <- matrix(nrow=N, ncol=0)
 		assign <- NULL
 	}
-
-    for(i in 1:length(lvls))                                        # over terms in the formula
-    {   
+	
+	for(i in 1:length(lvls))                                        # over terms in the formula
+	{   
 		if(grepl("-.?1", lvls[i]))
 			lvls[i] <- sub("-.?1", "", lvls[i])
 		
-        if(grepl(":", lvls[i]))                                     # crossed terms
-        {
-            tmpVar  <- unlist(strsplit(lvls[i], ":"))
+		if(grepl(":", lvls[i]))                                     # crossed terms
+		{
+			tmpVar  <- unlist(strsplit(lvls[i], ":"))
 			facVar  <- tmpVar[tmpVar %in% names(fac.obs)]
 			numVar  <- tmpVar[tmpVar %in% names(num.obs)]
-
+			
 			VarNum  <- length(numVar) > 0
-            if(length(facVar) > 0)
+			if(length(facVar) > 0)
 			{
 				tmpData <- Data[,facVar,drop=F]                                         # cols of variables in lvls[i]
 				VarFac  <- TRUE
@@ -2986,12 +4266,12 @@ getMM <- function(form, Data)
 				Data <- cbind(Data, as.factor(fac))                                     # add new factor-variable to Data
 				colnames(Data)[ncol(Data)] <- lvls[i]
 			}
-        }    
-        else														# main factors (no interaction)
-        {
+		}    
+		else														# main factors (no interaction)
+		{
 			if(lvls[i] %in% names(fac.obs))
 			{
-            	tmpName <- paste(lvls[i], unique(Data[,lvls[i]]), sep="")   
+				tmpName <- paste(lvls[i], unique(Data[,lvls[i]]), sep="")   
 				VarNum  <- FALSE
 				VarFac  <- TRUE
 			}
@@ -3001,15 +4281,15 @@ getMM <- function(form, Data)
 				VarNum  <- TRUE
 				VarFac  <- FALSE
 			}
-        }
-   		
+		}
+		
 		if(VarFac)
 		{
-	        eff <- unique(Data[,lvls[i]])
-	        Ni  <- length(eff)                                          # number of effects for the i-th factor
-	        tmp <- matrix(0, N, Ni)
-
-	        colnames(tmp) <- unique(tmpName)
+			eff <- unique(Data[,lvls[i]])
+			Ni  <- length(eff)                                          # number of effects for the i-th factor
+			tmp <- matrix(0, N, Ni)
+			
+			colnames(tmp) <- unique(tmpName)
 			
 			for(j in 1:Ni)                                              # over effects of the i-th factor 
 			{
@@ -3030,13 +4310,13 @@ getMM <- function(form, Data)
 				tmp[,j] <- tmp[,j] * Data[,numVar]	
 			}
 		}
-        mm <- cbind(mm, tmp)
-        assign <- c(assign, rep(i, Ni))
-    }
+		mm <- cbind(mm, tmp)
+		assign <- c(assign, rep(i, Ni))
+	}
 	mm <- Matrix(mm)
-    attr(mm, "assign") <- assign
-
-    return(mm)
+	attr(mm, "assign") <- assign
+	
+	return(mm)
 }
 
 
@@ -3086,13 +4366,13 @@ SattDF <- function(MS, Ci, DF, type=c("total", "individual"))
 			res <- c(res, SattDF(MS, Ci[i,,drop=FALSE], DF))
 		return(res)
 	}
-    I <- matrix(1,nrow(Ci),1)
-    t <- t(I) %*% Ci
-    t <- c(t) * c(MS)
-    
-    r1 <- sum(t)^2 / sum(t^2/DF)        # DF total
-    
-    return(r1)  
+	I <- matrix(1,nrow(Ci),1)
+	t <- t(I) %*% Ci
+	t <- c(t) * c(MS)
+	
+	r1 <- sum(t)^2 / sum(t^2/DF)        # DF total
+	
+	return(r1)  
 }
 
 
@@ -3123,56 +4403,93 @@ print.VCA <- function(x, digits=6L, ...)
 		tmp <- x$aov.org
 		tmp$DF <- round(tmp$DF)
 		printCoefmat(tmp, digits=digits, dig.tst=digits, has.Pvalue=TRUE, P.values=5, 
-					 na.print="", zap.ind=3, tst.ind=4, cs.ind=NULL)
+				na.print="", zap.ind=3, tst.ind=4, cs.ind=NULL)
 		cat("\n")
-
+		
 	}
 	else
 	{
-		MM <- x$Type == "Mixed Model" 
-	    if(!"skipHeading" %in% names(list(...)) && !MM)
-	        cat("\n\nResult Variance Component Analysis:\n-----------------------------------\n\n")
-		if(!"skipHeading" %in% names(list(...))&& MM)
+		if(x$EstMethod == "ANOVA")
 		{
-			cat("\n\nANOVA-Type Estimation of Mixed Model:\n--------------------------------------\n\n")
+			MM <- x$Type == "Mixed Model" 
+			if(!"skipHeading" %in% names(list(...)) && !MM)
+				cat("\n\nResult Variance Component Analysis:\n-----------------------------------\n\n")
+			if(!"skipHeading" %in% names(list(...))&& MM)
+			{
+				cat("\n\nANOVA-Type Estimation of Mixed Model:\n--------------------------------------\n\n")
+			}
+			if(MM)
+			{
+				fe <- fixef(x)[,"Estimate", drop=FALSE]
+				nam <- rownames(fe)
+				fe <- c(fe)
+				names(fe) <- nam
+			}
+			rn <- rownames(x$aov.tab)
+			cn <- colnames(x$aov.tab)
+			
+			#		if(!MM)
+			NegVCind <- which(x$VCoriginal < 0) + 1                    	# "VCoriginal" does not contain total variance --> +1
+			mat <- matrix(x$aov.tab, nrow=length(rn), dimnames=list(rn, cn))
+			mat <- apply(mat, 1:2, round, digits=digits)
+			mat <- cbind(Name=rn, mat)
+			if("CV" %in% colnames(mat))
+				colnames(mat)[which(colnames(mat) == "CV")] <- "CV[%]"
+			rownames(mat) <- 1:nrow(mat)
+			if(NegVCmsg != "")
+			{
+				mat[NegVCind, c("VC", "%Total", "SD", "CV[%]")] <- paste(mat[NegVCind, "VC"], "*", sep="")
+			}
+			mat <- apply(mat, 1:2, function(x) ifelse(x==NaN, NA, x))
+			if(MM)
+			{
+				cat("\t[Fixed Effects]\n\n")
+				print(round(fe, digits))
+				cat("\n\n\t[Variance Components]\n\n")
+			}
+			print(mat, na.print="", quote=FALSE, digits=digits)
 		}
-		if(MM)
+		else
 		{
-			fe <- fixef(x)[,"Estimate", drop=FALSE]
-			nam <- rownames(fe)
-			fe <- c(fe)
-			names(fe) <- nam
+			MM <- x$Type == "Mixed Model" 
+			if(!"skipHeading" %in% names(list(...)) && !MM)
+				cat("\n\nResult Variance Component Analysis:\n-----------------------------------\n\n")
+			if(!"skipHeading" %in% names(list(...))&& MM)
+			{
+				cat("\n\nREML-Estimation of Mixed Model:\n-------------------------------\n\n")
+			}
+			if(MM)
+			{
+				fe <- fixef(x)[,"Estimate", drop=FALSE]
+				nam <- rownames(fe)
+				fe <- c(fe)
+				names(fe) <- nam
+			}
+			rn <- rownames(x$aov.tab)
+			cn <- colnames(x$aov.tab)
+			mat <- as.matrix(x$aov.tab)
+			mat <- apply(mat, 1:2, round, digits=digits)
+			mat <- cbind(Name=rn, mat)
+			rownames(mat) <- 1:nrow(mat)
+			
+			if(MM)
+			{
+				cat("\t[Fixed Effects]\n\n")
+				print(round(fe, digits))
+				cat("\n\n\t[Variance Components]\n\n")
+			}
+			
+			print(mat, na.print="", quote=FALSE, digits=digits)
 		}
-	    rn <- rownames(x$aov.tab)
-	    cn <- colnames(x$aov.tab)
-
-#		if(!MM)
-	    	NegVCind <- which(x$VCoriginal < 0) + 1                    	# "VCoriginal" does not contain total variance --> +1
-	    mat <- matrix(x$aov.tab, nrow=length(rn), dimnames=list(rn, cn))
-	    mat <- apply(mat, 1:2, round, digits=digits)
-	    mat <- cbind(Name=rn, mat)
-	    if("CV" %in% colnames(mat))
-	        colnames(mat)[which(colnames(mat) == "CV")] <- "CV[%]"
-	    rownames(mat) <- 1:nrow(mat)
-	    if(NegVCmsg != "")
-	    {
-	        mat[NegVCind, c("VC", "%Total", "SD", "CV[%]")] <- paste(mat[NegVCind, "VC"], "*", sep="")
-	    }
-	    mat <- apply(mat, 1:2, function(x) ifelse(x==NaN, NA, x))
-		if(MM)
-		{
-			cat("\t[Fixed Effects]\n\n")
-			print(round(fe, digits))
-			cat("\n\n\t[Variance Components]\n\n")
-		}
-		print(mat, na.print="", quote=FALSE, digits=digits)
 	}
 	
-    cat("\nMean:", round(Mean, digits), paste("(N = ",Nobs, ifelse(is.null(Nrm), "", paste(", ", Nrm, " observations removed due to missing data", sep="")), ")", sep=""), "\n\nExperimental Design:", balanced)
-    
+	cat("\nMean:", round(Mean, digits), 
+			paste("(N = ",Nobs, ifelse(is.null(Nrm), "", paste(", ", Nrm, " observations removed due to missing data", sep="")), ")", sep=""), 
+			"\n\nExperimental Design:", balanced," |  Method:", x$EstMethod)
+	
 	if(NegVCmsg != "" && x$Type != "Linear Model")                # there were VCs set to zero
-        cat(" |", NegVCmsg, "| adapted MS used for total DF")
-    cat("\n\n")
+		cat(" |", NegVCmsg, "| adapted MS used for total DF")
+	cat("\n\n")
 }
 
 
@@ -3224,7 +4541,7 @@ print.VCA <- function(x, digits=6L, ...)
 #'                          "CV" = claim-values specified in terms of coefficient(s) of variation (CV)
 #'                          and are specified as percentages.\cr
 #'                          If set to "SD" or "CV", claim-values will be converted to variances before applying the Chi-Squared test (see examples).
-#' @param VarVC             (logical) TRUE = if attribute "Matrices" exists (see \code{\link{anovaVCA}}), the covariance
+#' @param VarVC             (logical) TRUE = if element "Matrices" exists (see \code{\link{anovaVCA}}), the covariance
 #'                          matrix of the estimated VCs will be computed (see \code{\link{vcovVC}}, which is used in CIs for 
 #' 							intermediate VCs if 'method.ci="sas"'. 
 #'                          Note, this might take very long for larger datasets, since there are many matrix operations involved. 
@@ -3237,11 +4554,13 @@ print.VCA <- function(x, digits=6L, ...)
 #'                          which will preserve the original width of CIs.
 #'                          See the details section for a thorough explanation.
 #' @param ci.method			(character) string or abbreviation specifying which approach to use for computing confidence intervals of variance components (VC).
-#' 							"sas" (default) uses Chi-Squared based CIs for total and error and normal approximation for all other VCs,
-#' 							"satterthwaite" will approximate DFs for each VC using the Satterthwaite approach (see \code{\link{SattDF}} and all Cis are
-#'                          based on the Chi-Squared distribution. This approach is conservative but avoids negative values for the lower bounds. 
+#' 							"sas" (default) uses Chi-Squared based CIs for total and error and normal approximation for all other VCs (Wald-limits, option "NOBOUND"
+#' 							in SAS PROC MIXED); "satterthwaite" will approximate DFs for each VC using the Satterthwaite approach (see \code{\link{SattDF}} for models
+#' 							fitted by ANOVA) and all Cis are based on the Chi-Squared distribution. This approach is conservative but avoids negative values for the lower bounds. 
+#' @param quiet				(logical) TRUE = will suppress any warning, which will be issued otherwise 
 #' @note                    Original CIs will always be available independent of parameter-settings of \code{excludeNeg} and
-#'                          \code{constrainCI}. Original CIs are stored in attribute "CIoriginal" of the returned 'VCAinference'-object.
+#'                          \code{constrainCI}. Original CIs are stored in attribute "CIoriginal" of the returned 'VCAinference'-object, e.g.
+#' 							'attr(obj$ConfInt$SD$OneSided, "CIoriginal")' or 'attr(obj$ConfInt$CV$TwoSided, "CIoriginal")'.
 #' 
 #' @return  (VCAinference) object, a list with elements:
 #'          \item{ChiSqTest}{(data.frame) with results of the Chi-Squared test}
@@ -3375,24 +4694,25 @@ print.VCA <- function(x, digits=6L, ...)
 #' }
 
 VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.type="VC", 
-						 VarVC=FALSE, excludeNeg=TRUE, constrainCI=TRUE, ci.method="sas")
+		VarVC=FALSE, excludeNeg=TRUE, constrainCI=TRUE, ci.method="sas",
+		quiet=FALSE)
 {
 	Call <- match.call()
-
+	
 	if(is.list(obj) && class(obj) != "VCA")
 	{
 		if(!all(sapply(obj, class) == "VCA"))
 			stop("Only lists of 'VCA' object are accepted!")
 		
 		obj.len <- length(obj)
-
+		
 		assign("VCAinference.obj.is.list", TRUE, envir=msgEnv)			# indicate that a list-type object was passed intially
 		
 		res <- mapply(	FUN=VCAinference, obj=obj, alpha=alpha, 
-						total.claim=total.claim, error.claim=error.claim,
-						claim.type=claim.type, VarVC=VarVC, excludeNeg=excludeNeg,
-						constrainCI=constrainCI, ci.method=ci.method, 
-						SIMPLIFY=FALSE)
+				total.claim=total.claim, error.claim=error.claim,
+				claim.type=claim.type, VarVC=VarVC, excludeNeg=excludeNeg,
+				constrainCI=constrainCI, ci.method=ci.method, 
+				SIMPLIFY=FALSE)
 		names(res) <- names(obj)
 		
 		if(obj.len == 1)			# mapply returns a list of length 2 in case that length(obj) was equal to 1
@@ -3402,8 +4722,8 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 		
 		return(res)
 	}	
-
-    stopifnot(class(obj) == "VCA")
+	
+	stopifnot(class(obj) == "VCA")
 	ci.method <- match.arg(ci.method, c("sas", "satterthwaite"))
 	
 	MM <- obj$Type == "Mixed Model"					# only exists for mixed models
@@ -3411,168 +4731,175 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 		VCs   <- obj$Matrices$VCall
 	else
 		VCs <- obj$aov.tab[-1,"VC"]		 			# for random models directly from ANOVA-table
-    
-    claim.type <- match.arg(claim.type, c("VC", "SD", "CV"))
-    
-    Mean <- obj$Mean
-    Nvc  <- nrow(obj)
-    EstMethod <- obj$EstMethod
-    
-    if( all(obj$aov.tab[,"VC"] > 0) )
-        VCstate <- 1                               
-    else if( any(obj$aov.tab[,"VC"] < 0) )
-        VCstate <- 2
-    else
-    {
-        if(obj$NegVCmsg != "")
-            VCstate <- 3                            # negative VCs set to zero                               
-        else                                                                
-            VCstate <- 1                            # zero-VC estimated as such                                      
-    }
-    
-    if( !is.null(obj$Matrices) && VarVC )
-    {
+	
+	claim.type <- match.arg(claim.type, c("VC", "SD", "CV"))
+	
+	Mean <- obj$Mean
+	Nvc  <- nrow(obj)
+	EstMethod <- obj$EstMethod
+	
+	if( all(obj$aov.tab[,"VC"] > 0) )
+		VCstate <- 1                               
+	else if( any(obj$aov.tab[,"VC"] < 0) )
+		VCstate <- 2
+	else
+	{
+		if(obj$NegVCmsg != "")
+			VCstate <- 3                            # negative VCs set to zero                               
+		else                                                                
+			VCstate <- 1                            # zero-VC estimated as such                                      
+	}
+	
+	if( !is.null(obj$Matrices) && VarVC )
+	{
 		if(is.null(obj$VarCov))						# solve mixed model equations first
 		{
 			obj  <- solveMME(obj)
-			nam  <- as.character(as.list(Call)$obj)
-
-			if(length(nam) == 1 && nam %in% names(as.list(.GlobalEnv)))		# obj is not function call
+			
+			Lmat  <- obj$Matrices                               # different matrices needed for VCA
+			
+			VCvar <- vcovVC(obj, method=obj$VarVC.method) 		# get variance-covariance matrix of VCs (p.176); do not pass total VC
+			
+			NegVCmsg    <- obj$NegVCmsg
+			VCoriginal  <- obj$VCoriginal
+			Nobs        <- obj$Nobs
+			Nrm         <- obj$Nrm
+			balanced    <- obj$balanced
+			
+			obj$aov.tab <- cbind(obj$aov.tab, "Var(VC)"=c(NA, diag(VCvar)))  
+			
+			class(obj) <- "VCA"
+			obj$NegVCmsg   <- NegVCmsg
+			obj$VCoriginal <- VCoriginal
+			obj$VarCov     <- VCvar                                    # store variance-covariance matrix of variance components
+			obj$Mean       <- Mean
+			obj$Nobs       <- Nobs
+			obj$Nrm        <- Nrm
+			obj$balanced   <- balanced
+			
+			nam0 <- deparse(Call$obj)
+			nam1 <- sub("\\[.*", "", nam0)
+			
+			if(length(nam1) == 1 && nam1 %in% names(as.list(.GlobalEnv)))		# obj is not function call
 			{
-				expr <- paste(nam, "<<- obj")						# update object missing MME results
+				expr <- paste(nam0, "<<- obj")						# update object missing MME results
 				eval(parse(text=expr))	
 			}
 			else	# warning only if not called on list of VCA-objects
 			{
-				if( !"VCAinference.obj.is.list" %in% names(as.list(msgEnv)) )
+				if( !"VCAinference.obj.is.list" %in% names(as.list(msgEnv)) && !quiet )
 					warning("Mixed model equations solved locally. Results could not be assigned to object!")
 			}
 		}
+	}
+	
+	if(!is.na(total.claim) && nrow(obj$aov.tab) == 1)                               # if error is the only VC no total variance exists (or is equal)
+		total.claim <- NA
+	
+	if(nrow(obj$aov.tab) == 1)
+		Nvc <- 1
+	else
+		Cind <- which(rownames(obj$aov.tab) %in% c("total", "error"))
+	
+	if(!is.na(total.claim))
+	{
+		if(is.numeric(total.claim))
+		{
+			if( (is.na(total.claim) || total.claim <= 0 ) && !quiet)
+				warning("Parameter 'total.claim' is not correctly specified! Chi-Squared test for total precision is omitted!")
+		}
+		else
+		{
+			if(!quiet)
+				warning("Parameter 'total.claim' is not correctly specified! Chi-Squared test for total precision is omitted!")
+		}
+	}
+	if(!is.na(error.claim))
+	{
+		if(is.numeric(error.claim))
+		{
+			if( (is.na(error.claim) || error.claim <= 0) && !quiet)
+				warning("Parameter 'error.claim' is not correctly specified! Chi-Squared test for error precision (repeatability) is omitted!")
+		}
+		else
+		{
+			if(!quiet)
+				warning("Parameter 'error.claim' is not correctly specified! Chi-Squared test for error precision (repeatability) is omitted!")
+		}
+	}
+	
+	nam <- rownames(obj$aov.tab)
+	Nvc <- length(nam)                                  # number of variance components including total variance
+	
+	# Chi-Squared tests
+	
+	CStest <- data.frame(Name=nam, "Claim"=rep(NA,Nvc))
+	CStest$"ChiSq value" <- rep(NA, Nvc)
+	CStest$"Pr (>ChiSq)" <- rep(NA, Nvc)
+	
+	if(!is.na(total.claim))
+	{
+		if(claim.type == "SD")
+			total.claim <- total.claim^2                # now the Chi-Squared Test for variances can be used
 		
-        Lmat  <- obj$Matrices                               # different matrices needed for VCA
-        
-       	VCvar <- vcovVC(obj, method=obj$VarVC.method) 		# get variance-covariance matrix of VCs (p.176); do not pass total VC
+		if(claim.type =="CV")
+			total.claim <- (total.claim * Mean/100)^2   # re-caluculate variance from CV
 		
-        NegVCmsg    <- obj$NegVCmsg
-        VCoriginal  <- obj$VCoriginal
-        Nobs        <- obj$Nobs
-        Nrm         <- obj$Nrm
-        balanced    <- obj$balanced
-        
-        obj$aov.tab <- cbind(obj$aov.tab, "Var(VC)"=c(NA, diag(VCvar)))  
-        
-        class(obj) <- "VCA"
-        obj$NegVCmsg   <- NegVCmsg
-        obj$VCoriginal <- VCoriginal
-        obj$VarCov     <- VCvar                                    # store variance-covariance matrix of variance components
-        obj$Mean       <- Mean
-        obj$Nobs       <- Nobs
-        obj$Nrm        <- Nrm
-        obj$balanced   <- balanced
-    }
-   
-    if(!is.na(total.claim) && nrow(obj$aov.tab) == 1)                               # if error is the only VC no total variance exists (or is equal)
-        total.claim <- NA
-    
-    if(nrow(obj$aov.tab) == 1)
-        Nvc <- 1
-    else
-        Cind <- which(rownames(obj$aov.tab) %in% c("total", "error"))
-    
-    if(!is.na(total.claim))
-    {
-        if(is.numeric(total.claim))
-        {
-            if(is.na(total.claim) || total.claim <= 0)
-                warning("Parameter 'total.claim' is not correctly specified! Chi-Squared test for total precision is omitted!")
-        }
-        else
-            warning("Parameter 'total.claim' is not correctly specified! Chi-Squared test for total precision is omitted!")
-    }
-    
-    if(!is.na(error.claim))
-    {
-        if(is.numeric(error.claim))
-        {
-            if(is.na(error.claim) || error.claim <= 0)
-                warning("Parameter 'error.claim' is not correctly specified! Chi-Squared test for error precision (repeatability) is omitted!")
-        }
-        else
-            warning("Parameter 'error.claim' is not correctly specified! Chi-Squared test for error precision (repeatability) is omitted!")
-    }
-    
-    nam <- rownames(obj$aov.tab)
-    Nvc <- length(nam)                                  # number of variance components including total variance
-    
-    # Chi-Squared tests
-    
-    CStest <- data.frame(Name=nam, "Claim"=rep(NA,Nvc))
-    CStest$"ChiSq value" <- rep(NA, Nvc)
-    CStest$"Pr (>ChiSq)" <- rep(NA, Nvc)
-    
-    if(!is.na(total.claim))
-    {
-        if(claim.type == "SD")
-            total.claim <- total.claim^2                # now the Chi-Squared Test for variances can be used
-        
-        if(claim.type =="CV")
-            total.claim <- (total.claim * Mean/100)^2   # re-caluculate variance from CV
-        
-        CStest$"Claim"[1] <- total.claim
-
-        CStest$"ChiSq value"[1] <- obj$aov.tab[1, "VC"]*obj$aov.tab[1, "DF"]/total.claim 
-        
-        CStest$"Pr (>ChiSq)"[1] <- pchisq(q=CStest$"ChiSq value"[1], df=obj$aov.tab[1, "DF"], lower.tail=TRUE)
-        
-        if(claim.type == "SD")
-            CStest$"Claim"[1] <- sqrt(total.claim)
-        
-        if(claim.type == "CV")
-            CStest$"Claim"[1] <- sqrt(total.claim)*100/Mean
-    }
-    
-    if(!is.na(error.claim))
-    {
-        if(claim.type == "SD")
-            error.claim <- error.claim^2                # now the Chi-Squared Test for variances can be used
-        
-        if(claim.type =="CV")
-            error.claim <- (error.claim * Mean/100)^2   # re-caluculate variance from CV
-        
-        CStest$"Claim"[Nvc]       <- error.claim
-        CStest$"ChiSq value"[Nvc] <- obj$aov.tab[Nvc, "VC"]*obj$aov.tab[Nvc, "DF"]/error.claim 
-        CStest$"Pr (>ChiSq)"[Nvc] <- pchisq(q=CStest$"ChiSq value"[Nvc], df=obj$aov.tab[Nvc, "DF"], lower.tail=TRUE)
-        
-        if(claim.type == "SD")
-            CStest$"Claim"[Nvc] <- sqrt(error.claim)
-        
-        if(claim.type == "CV")
-            CStest$"Claim"[Nvc] <- sqrt(error.claim)*100/Mean
-    }
-    
-    rownames(CStest) <- CStest$Name
-    
-    # CIs on VCs, SDs and CVs
-    
-    indCS <- which(rownames(obj$aov.tab) %in% c("total", "error"))				# Chi-Squred dist VCs
-    indN  <- which(!rownames(obj$aov.tab) %in% c("total", "error"))				# Normal dist VCs
-    
-    #####################
-    ### two-sided CIs ###
-    
-    CI_VC <- data.frame(Name=nam)
-    CI_VC$LCL <- numeric(nrow(obj$aov.tab))
-    CI_VC$UCL <- numeric(nrow(obj$aov.tab))
-    
-    # Chi-Squared CIs
-    
-    lower.qchisq <- qchisq(p=1-alpha/2, df=obj$aov.tab[indCS, "DF"])
-    upper.qchisq <- qchisq(p=alpha/2, df=obj$aov.tab[indCS, "DF"])
-    CI_VC$LCL[indCS] <- obj$aov.tab[indCS, "VC"]*obj$aov.tab[indCS, "DF"]/lower.qchisq
-    CI_VC$UCL[indCS] <- obj$aov.tab[indCS, "VC"]*obj$aov.tab[indCS, "DF"]/upper.qchisq
-    
-    # CIs based on Normal-Distribution (ci.method="sas") or Chi-Squared (ci.method="satterthwaite")
- 
+		CStest$"Claim"[1] <- total.claim
+		
+		CStest$"ChiSq value"[1] <- obj$aov.tab[1, "VC"]*obj$aov.tab[1, "DF"]/total.claim 
+		
+		CStest$"Pr (>ChiSq)"[1] <- pchisq(q=CStest$"ChiSq value"[1], df=obj$aov.tab[1, "DF"], lower.tail=TRUE)
+		
+		if(claim.type == "SD")
+			CStest$"Claim"[1] <- sqrt(total.claim)
+		
+		if(claim.type == "CV")
+			CStest$"Claim"[1] <- sqrt(total.claim)*100/Mean
+	}
+	
+	if(!is.na(error.claim))
+	{
+		if(claim.type == "SD")
+			error.claim <- error.claim^2                # now the Chi-Squared Test for variances can be used
+		
+		if(claim.type =="CV")
+			error.claim <- (error.claim * Mean/100)^2   # re-caluculate variance from CV
+		
+		CStest$"Claim"[Nvc]       <- error.claim
+		CStest$"ChiSq value"[Nvc] <- obj$aov.tab[Nvc, "VC"]*obj$aov.tab[Nvc, "DF"]/error.claim 
+		CStest$"Pr (>ChiSq)"[Nvc] <- pchisq(q=CStest$"ChiSq value"[Nvc], df=obj$aov.tab[Nvc, "DF"], lower.tail=TRUE)
+		
+		if(claim.type == "SD")
+			CStest$"Claim"[Nvc] <- sqrt(error.claim)
+		
+		if(claim.type == "CV")
+			CStest$"Claim"[Nvc] <- sqrt(error.claim)*100/Mean
+	}
+	
+	rownames(CStest) <- CStest$Name
+	
+	# CIs on VCs, SDs and CVs
+	
+	indCS <- which(rownames(obj$aov.tab) %in% c("total", "error"))				# Chi-Squred dist VCs
+	indN  <- which(!rownames(obj$aov.tab) %in% c("total", "error"))				# Normal dist VCs
+	
+	#####################
+	### two-sided CIs ###
+	
+	CI_VC <- data.frame(Name=nam)
+	CI_VC$LCL <- numeric(nrow(obj$aov.tab))
+	CI_VC$UCL <- numeric(nrow(obj$aov.tab))
+	
+	# Chi-Squared CIs
+	
+	lower.qchisq <- qchisq(p=1-alpha/2, df=obj$aov.tab[indCS, "DF"])
+	upper.qchisq <- qchisq(p=alpha/2, df=obj$aov.tab[indCS, "DF"])
+	CI_VC$LCL[indCS] <- obj$aov.tab[indCS, "VC"]*obj$aov.tab[indCS, "DF"]/lower.qchisq
+	CI_VC$UCL[indCS] <- obj$aov.tab[indCS, "VC"]*obj$aov.tab[indCS, "DF"]/upper.qchisq
+	
+	# CIs based on Normal-Distribution (ci.method="sas") or Chi-Squared (ci.method="satterthwaite")
+	
 	if(ci.method == "sas" && "Var(VC)" %in% colnames(obj$aov.tab))		# variance-covariance matrix of VCs required
 	{
 		CI_VC$LCL[indN] <- obj$aov.tab[indN, "VC"]+qnorm(alpha/2)*sqrt(obj$aov.tab[indN, "Var(VC)"])
@@ -3581,18 +4908,27 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 	}
 	else if(ci.method == "satterthwaite")
 	{
-		rind	<- obj$Matrices$rf.ind						# indices of random terms in the original ANOVA-table
-		aov.tab <- if(obj$Type == "Random Model")			# original ANOVA table
+		if(obj$EstMethod == "ANOVA")
+		{
+			rind	<- obj$Matrices$rf.ind						# indices of random terms in the original ANOVA-table
+			aov.tab <- if(obj$Type == "Random Model")			# original ANOVA table
 						obj$aov.tab[-1,]					# remove row for total 
-				   else	
+					else	
 						obj$aov.org
-		MS  	<- aov.tab[rind, "MS"]
-		Ci  	<- getMat(obj, "Ci.MS")[rind, rind]
-		DF  	<- aov.tab[rind, "DF"]
-		sDF 	<- SattDF(MS, Ci, DF, type="individual") 	# satterthwaite DFs
-		ind 	<- 1:(length(sDF)-1)						# without row for error 
-		DFs 	<- c(obj$aov.tab[1,"DF"], sDF)				# total DF
-
+			MS  	<- aov.tab[rind, "MS"]
+			Ci  	<- getMat(obj, "Ci.MS")[rind, rind]
+			DF  	<- aov.tab[rind, "DF"]
+			sDF 	<- SattDF(MS, Ci, DF, type="individual") 	# satterthwaite DFs
+			ind 	<- 1:(length(sDF)-1)						# without row for error 
+			DFs 	<- c(obj$aov.tab[1,"DF"], sDF)				# total DF
+		}
+		else													# fitted by REML, only Satterthwaite DF exist
+		{
+			DFs <- obj$aov.tab[,"DF"]
+			sDF <- DFs[-1]
+			ind <- 1:(length(sDF)-1)
+		}
+		
 		CI_VC$DF <- DFs										# add Satterthwaite DFs
 		CI_VC <- CI_VC[,c(1,4,2,3)]
 		lower.qchisq <- qchisq(p=1-alpha/2, df=sDF[ind])
@@ -3600,108 +4936,120 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 		CI_VC$LCL[ind+1] <- obj$aov.tab[ind+1, "VC"]*sDF[ind]/lower.qchisq		# lower limit all but total and error
 		CI_VC$UCL[ind+1] <- obj$aov.tab[ind+1, "VC"]*sDF[ind]/upper.qchisq		# upper limit  - " -
 	}
-    else
-    {
-        CI_VC$LCL[indN] <- NA
-        CI_VC$UCL[indN] <- NA
+	else
+	{
+		CI_VC$LCL[indN] <- NA
+		CI_VC$UCL[indN] <- NA
 		DFs <- NULL
-    }
-      
-    rownames(CI_VC) <- CI_VC$Name
-    attr(CI_VC, "CIoriginal") <- CI_VC                      # keep original CI limits as attribute
-    
-    if(VCstate == 1)                                        # excludeNeg not evaluated, since all VCs positive
-    {
-        if( constrainCI && any(CI_VC$LCL < 0, na.rm=TRUE))  # any negative CI-limits?
-        {
-            LCLind <- which(CI_VC$LCL < 0)
-            UCLind <- which(CI_VC$UCL < 0)                  # keep info about constrained LCLs
-            
-            attr(CI_VC, "LCLconstrained") <- LCLind
-            
-            CI_VC$LCL[LCLind] <- 0                          # set negative LCL to 0
-            
-            if(length(UCLind) > 0)                          # set negative UCL to 0 
-            {
-                CI_VC$UCL[UCLind] <- 0
-                attr(CI_VC, "UCLconstrained") <- UCLind     # keep info about constrained UCLs
-            }
-        }
-    }
-    if(VCstate == 2)                                        # constrainCI not evaluated since negative VCs explicitly allowed
-    {
-        if( excludeNeg )                                    # CIs for negative VC are excluded
-        {    
-            NegInd <- which(obj$aov.tab[,"VC"] < 0)
-            CI_VC$LCL[NegInd] <- NA                         # there has to be at least one LCL < 0
-            CI_VC$UCL[NegInd] <- NA
-        }
-    }
-    if(VCstate == 3)
-    {
-        if( excludeNeg )
-        {
-            NegInd <- which(obj$VCoriginal < 0)+1  			# which VCs were set to 0, i.e. were originally < 0
-            CI_VC$LCL[NegInd] <- NA                         # there has to be at least one LCL < 0
-            CI_VC$UCL[NegInd] <- NA
-        }
-
-        if(any(CI_VC$LCL < 0, na.rm=TRUE))                  # constrainCI implicitly set to 0, since negative VCs set to zero automatically results in constraining CIs
-        {
-            LCLind <- which(CI_VC$LCL < 0)
-            UCLind <- which(CI_VC$UCL < 0)                  # keep info about constrained LCLs
-            
-            attr(CI_VC, "LCLconstrained") <- LCLind
-                
-            CI_VC$LCL[LCLind] <- 0                          # set negative LCL to 0
-               
-            if(length(UCLind) > 0)                          # set negative UCL to 0 
-            {
-                CI_VC$UCL[UCLind] <- 0
-                attr(CI_VC, "UCLconstrained") <- UCLind     # keep info about constrained UCLs
-            }
-        }
-    }
-
-    
-    # SD and CV computed from VC      NOTE: sqrt o.k.??????????
-    
-    CI_SD <- data.frame(Name=nam)
+	}
+	
+	rownames(CI_VC) <- CI_VC$Name
+	attr(CI_VC, "CIoriginal") <- CI_VC                      # keep original CI limits as attribute
+	
+	if(VCstate == 1)                                        # excludeNeg not evaluated, since all VCs positive
+	{
+		if( constrainCI && any(CI_VC$LCL < 0, na.rm=TRUE))  # any negative CI-limits?
+		{
+			LCLind <- which(CI_VC$LCL < 0)
+			UCLind <- which(CI_VC$UCL < 0)                  # keep info about constrained LCLs
+			
+			attr(CI_VC, "LCLconstrained") <- LCLind
+			
+			CI_VC$LCL[LCLind] <- 0                          # set negative LCL to 0
+			
+			if(length(UCLind) > 0)                          # set negative UCL to 0 
+			{
+				CI_VC$UCL[UCLind] <- 0
+				attr(CI_VC, "UCLconstrained") <- UCLind     # keep info about constrained UCLs
+			}
+		}
+	}
+	if(VCstate == 2)                                        # constrainCI not evaluated since negative VCs explicitly allowed
+	{
+		if( excludeNeg )                                    # CIs for negative VC are excluded
+		{    
+			NegInd <- which(obj$aov.tab[,"VC"] < 0)
+			CI_VC$LCL[NegInd] <- NA                         # there has to be at least one LCL < 0
+			CI_VC$UCL[NegInd] <- NA
+		}
+	}
+	if(VCstate == 3)
+	{
+		if( excludeNeg )
+		{
+			NegInd <- which(obj$VCoriginal < 0)+1  			# which VCs were set to 0, i.e. were originally < 0
+			CI_VC$LCL[NegInd] <- NA                         # there has to be at least one LCL < 0
+			CI_VC$UCL[NegInd] <- NA
+		}
+		
+		if(any(CI_VC$LCL < 0, na.rm=TRUE))                  # constrainCI implicitly set to 0, since negative VCs set to zero automatically results in constraining CIs
+		{
+			LCLind <- which(CI_VC$LCL < 0)
+			UCLind <- which(CI_VC$UCL < 0)                  # keep info about constrained LCLs
+			
+			attr(CI_VC, "LCLconstrained") <- LCLind
+			
+			CI_VC$LCL[LCLind] <- 0                          # set negative LCL to 0
+			
+			if(length(UCLind) > 0)                          # set negative UCL to 0 
+			{
+				CI_VC$UCL[UCLind] <- 0
+				attr(CI_VC, "UCLconstrained") <- UCLind     # keep info about constrained UCLs
+			}
+		}
+	}
+	
+	# test whether point-estimates within CI or not
+	CIwarning <- FALSE
+	CIout <- NULL
+	CIind <- which(obj$aov.tab[,"VC"] < CI_VC$LCL | obj$aov.tab[,"VC"] > CI_VC$UCL)
+	
+	if(length(CIind) > 0)
+	{
+		CI_VC$LCL[CIind] <- CI_VC$UCL[CIind] <- NA									# set them NA
+		CIwarning <- TRUE
+		CIout <- c(CIout, rownames(obj$aov.tab)[CIind])
+	}
+	
+	
+	# SD and CV computed from VC      NOTE: sqrt o.k.??????????
+	
+	CI_SD <- data.frame(Name=nam)
 	CI_SD$DF <- DFs							# add Satterthwaite DFs if available
-    Sign <- sign(CI_VC$LCL)
-    CI_SD$LCL <- sqrt(abs(CI_VC$LCL))*Sign
-    Sign <- sign(CI_VC$UCL)
-    CI_SD$UCL <- sqrt(abs(CI_VC$UCL))*Sign
-    rownames(CI_SD) <- CI_SD$Name
-    
-    if(any(is.na(obj$aov.tab[,"SD"])))
-        CI_SD[which(is.na(obj$aov.tab[,"SD"])),2:ncol(CI_SD)] <- NA 
- 
-    CI_CV <- data.frame(Name=nam)
+	Sign <- sign(CI_VC$LCL)
+	CI_SD$LCL <- sqrt(abs(CI_VC$LCL))*Sign
+	Sign <- sign(CI_VC$UCL)
+	CI_SD$UCL <- sqrt(abs(CI_VC$UCL))*Sign
+	rownames(CI_SD) <- CI_SD$Name
+	
+	if(any(is.na(obj$aov.tab[,"SD"])))
+		CI_SD[which(is.na(obj$aov.tab[,"SD"])),2:ncol(CI_SD)] <- NA 
+	
+	CI_CV <- data.frame(Name=nam)
 	CI_CV$DF <- DFs							# add Satterthwaite DFs if available
-    CI_CV$LCL <- CI_SD$LCL * 100/Mean
-    CI_CV$UCL <- CI_SD$UCL * 100/Mean
-    rownames(CI_CV) <- CI_CV$Name
-    
-    CI_two_sided <- list(CI_VC=CI_VC, CI_SD=CI_SD, CI_CV=CI_CV)
-    
-    # one-sided CIs
-    
-    CI_VC <- data.frame(Name=nam)
+	CI_CV$LCL <- CI_SD$LCL * 100/Mean
+	CI_CV$UCL <- CI_SD$UCL * 100/Mean
+	rownames(CI_CV) <- CI_CV$Name
+	
+	CI_two_sided <- list(CI_VC=CI_VC, CI_SD=CI_SD, CI_CV=CI_CV)
+	
+	# one-sided CIs
+	
+	CI_VC <- data.frame(Name=nam)
 	CI_VC$DF <- DFs							# add Satterthwaite DFs if available
 	CI_VC$LCL <- numeric(nrow(obj$aov.tab))
 	CI_VC$UCL <- numeric(nrow(obj$aov.tab))
-    
-    # CIs based on Chi-Squared
-    
-    upper.qchisq <- qchisq(p=alpha,   df=obj$aov.tab[indCS, "DF"])
+	
+	# CIs based on Chi-Squared
+	
+	upper.qchisq <- qchisq(p=alpha,   df=obj$aov.tab[indCS, "DF"])
 	lower.qchisq <- qchisq(p=1-alpha, df=obj$aov.tab[indCS, "DF"])
 	CI_VC$LCL[indCS] <- obj$aov.tab[indCS, "VC"]*obj$aov.tab[indCS, "DF"]/lower.qchisq
 	CI_VC$UCL[indCS] <- obj$aov.tab[indCS, "VC"]*obj$aov.tab[indCS, "DF"]/upper.qchisq
 	rownames(CI_VC) <- CI_VC$Name
-    
-    # CIs based on Normal Distribution or Chi-Squared 
-
+	
+	# CIs based on Normal Distribution or Chi-Squared 
+	
 	if(ci.method == "sas" && "Var(VC)" %in% colnames(obj$aov.tab))	
 	{
 		CI_VC$UCL[indN] <- obj$aov.tab[indN, "VC"]+qnorm(1-alpha)*sqrt(obj$aov.tab[indN, "Var(VC)"])
@@ -3714,20 +5062,20 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 		CI_VC$LCL[ind+1] <- obj$aov.tab[ind+1, "VC"]*sDF[ind]/lower.qchisq
 		CI_VC$UCL[ind+1] <- obj$aov.tab[ind+1, "VC"]*sDF[ind]/upper.qchisq
 	}
-    else
-    {
-        CI_VC$UCL[indN] <- NA
+	else
+	{
+		CI_VC$UCL[indN] <- NA
 		CI_VC$LCL[indN] <- NA
-    }
-    
-    attr(CI_VC, "CIoriginal") <- CI_VC                      # keep original CI limits as attribute
-        
-    if(VCstate == 1)                                        # excludeNeg not evaluated, since all VCs positive
-    {
+	}
+	
+	attr(CI_VC, "CIoriginal") <- CI_VC                      # keep original CI limits as attribute
+	
+	if(VCstate == 1)                                        # excludeNeg not evaluated, since all VCs positive
+	{
 		if( constrainCI && any(CI_VC$LCL < 0, na.rm=TRUE))  # any negative CI-limits?
-        {
+		{
 			LCLind <- which(CI_VC$LCL < 0)
-            UCLind <- which(CI_VC$UCL < 0)                  # keep info about constrained LCLs
+			UCLind <- which(CI_VC$UCL < 0)                  # keep info about constrained LCLs
 			CI_VC$LCL[LCLind] <- 0 
 			attr(CI_VC, "LCLconstrained") <- LCLind
 			
@@ -3736,28 +5084,28 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 				CI_VC$UCL[UCLind] <- 0
 				attr(CI_VC, "UCLconstrained") <- UCLind     # keep info about constrained UCLs
 			}
-        }
-    }
-    if(VCstate == 2)                                        # constrainCI not evaluated since negative VCs explicitly allowed
-    {
-        if( excludeNeg )                                    # CIs for negative VC are excluded
-        {    
-            NegInd <- which(obj$aov.tab[,"VC"] < 0)
+		}
+	}
+	if(VCstate == 2)                                        # constrainCI not evaluated since negative VCs explicitly allowed
+	{
+		if( excludeNeg )                                    # CIs for negative VC are excluded
+		{    
+			NegInd <- which(obj$aov.tab[,"VC"] < 0)
 			
-            CI_VC$UCL[NegInd] <- NA                         # there has to be at least one UCL < 0
+			CI_VC$UCL[NegInd] <- NA                         # there has to be at least one UCL < 0
 			CI_VC$LCL[NegInd] <- NA                         # there has to be at least one UCL < 0
-        }
-    }
-    if(VCstate == 3)
-    {
-        if( excludeNeg )
-        {
-            NegInd <- which(obj$VCoriginal < 0) + 1  		# which VCs were set to 0, i.e. were originally < 0
-            CI_VC$UCL[NegInd] <- NA                         # there has to be at least one UCL < 0
+		}
+	}
+	if(VCstate == 3)
+	{
+		if( excludeNeg )
+		{
+			NegInd <- which(obj$VCoriginal < 0) + 1  		# which VCs were set to 0, i.e. were originally < 0
+			CI_VC$UCL[NegInd] <- NA                         # there has to be at least one UCL < 0
 			CI_VC$LCL[NegInd] <- NA
-        }
-        else                                                # constrainCI implicitly set to TRUE, because some VCs set to zero, unconstrained CIs would not make sense
-        {
+		}
+		else                                                # constrainCI implicitly set to TRUE, because some VCs set to zero, unconstrained CIs would not make sense
+		{
 			if(any(CI_VC$LCL < 0, na.rm=TRUE))
 			{
 				LCLind <- which(CI_VC$LCL < 0)              # keep info about constrained LCLs
@@ -3773,42 +5121,63 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 #                
 #                CI_VC$UCL[UCLind] <- 0                      # set negative UCL to 0
 #            }
-        }
-    }
-    
-    # SD and CV computed from VC
-   
-    CI_SD <- data.frame(Name=nam)
+		}
+	}
+	
+	# test whether point-estimates within CI or not
+	CIindLCL <- which(obj$aov.tab[,"VC"] < CI_VC$LCL)
+	CIindUCL <- which(obj$aov.tab[,"VC"] > CI_VC$UCL)
+	
+	if(length(CIindLCL) > 0)
+	{
+		CI_VC$LCL[CIindLCL] <- NA								# set LCL to NA
+		CIwarning <- TRUE
+		CIout <- c(CIout, rownames(obj$aov.tab)[CIindLCL])
+	}
+	if(length(CIindUCL) > 0)
+	{
+		CI_VC$UCL[CIindUCL] <- NA										# set LCL to NA
+		CIwarning <- TRUE
+		CIout <- c(CIout, rownames(obj$aov.tab)[CIindUCL])
+	}
+	
+	if(CIwarning && !quiet)
+	{	
+		warning("Point estimate(s) of VC(s) ", paste(paste("'", unique(CIout), "'", sep=""), sep=", ")," found outside of confidence interval, CI was set to 'NA'!")
+	}
+	# SD and CV computed from VC
+	
+	CI_SD <- data.frame(Name=nam)
 	CI_SD$DF <- DFs											# add Satterthwaite DFs if available
 	SignLCL  <- sign(CI_VC$LCL)
 	CI_SD$LCL <- sqrt(abs(CI_VC$LCL)) * SignLCL
-    SignUCL  <- sign(CI_VC$UCL)
-    CI_SD$UCL <- sqrt(abs(CI_VC$UCL)) * SignUCL
-    rownames(CI_SD) <- CI_SD$Name
-    
-    if(any(is.na(obj$aov.tab[,"SD"])))
-        CI_SD[which(is.na(obj$aov.tab[,"SD"])),2:ncol(CI_SD)] <- NA 
-    
-    CI_CV <- data.frame(Name=nam)
+	SignUCL  <- sign(CI_VC$UCL)
+	CI_SD$UCL <- sqrt(abs(CI_VC$UCL)) * SignUCL
+	rownames(CI_SD) <- CI_SD$Name
+	
+	if(any(is.na(obj$aov.tab[,"SD"])))
+		CI_SD[which(is.na(obj$aov.tab[,"SD"])),2:ncol(CI_SD)] <- NA 
+	
+	CI_CV <- data.frame(Name=nam)
 	CI_CV$DF <- DFs											# add Satterthwaite DFs if available
 	CI_CV$LCL <- CI_SD$LCL * 100/Mean
-    CI_CV$UCL <- CI_SD$UCL * 100/Mean
-    rownames(CI_CV) <- CI_CV$Name
-    
-    CI_one_sided <- list(CI_VC=CI_VC, CI_SD=CI_SD, CI_CV=CI_CV)
-    
-    CIs <- list(VC=list(OneSided=CI_one_sided$CI_VC, TwoSided=CI_two_sided$CI_VC),
-	            SD=list(OneSided=CI_one_sided$CI_SD, TwoSided=CI_two_sided$CI_SD),
-	            CV=list(OneSided=CI_one_sided$CI_CV, TwoSided=CI_two_sided$CI_CV))
-	    
-    result <- list(ChiSqTest=CStest, ConfInt=CIs, VCAobj=obj, alpha=alpha)
-    class(result) <- "VCAinference"
-    attr(result, "EstMethod")   <- EstMethod
-    attr(result, "excludeNeg")  <- excludeNeg
-    attr(result, "constrainCI") <- constrainCI
-    attr(result, "claim.type")  <- claim.type
+	CI_CV$UCL <- CI_SD$UCL * 100/Mean
+	rownames(CI_CV) <- CI_CV$Name
+	
+	CI_one_sided <- list(CI_VC=CI_VC, CI_SD=CI_SD, CI_CV=CI_CV)
+	
+	CIs <- list(VC=list(OneSided=CI_one_sided$CI_VC, TwoSided=CI_two_sided$CI_VC),
+			SD=list(OneSided=CI_one_sided$CI_SD, TwoSided=CI_two_sided$CI_SD),
+			CV=list(OneSided=CI_one_sided$CI_CV, TwoSided=CI_two_sided$CI_CV))
+	
+	result <- list(ChiSqTest=CStest, ConfInt=CIs, VCAobj=obj, alpha=alpha)
+	class(result) <- "VCAinference"
+	attr(result, "EstMethod")   <- EstMethod
+	attr(result, "excludeNeg")  <- excludeNeg
+	attr(result, "constrainCI") <- constrainCI
+	attr(result, "claim.type")  <- claim.type
 	attr(result, "ci.method")   <- ci.method
-    return(result)
+	return(result)
 }
 
 
@@ -3872,183 +5241,182 @@ print.VCAinference <- function(x, digits=4L, what=c("all", "VC", "SD", "CV", "VC
 		return()			# leave function now
 	}
 	
-    stopifnot(class(x) == "VCAinference") 
-    claim.type <- attr(x, "claim.type")
-    VCAobj <- x$VCAobj
-    
-    ret <- list()
-    
-    what <- match.arg(tolower(what), tolower(c("all", "VC", "SD", "CV", "VCA")), several.ok=TRUE)
-    
+	stopifnot(class(x) == "VCAinference") 
+	claim.type <- attr(x, "claim.type")
+	VCAobj <- x$VCAobj
+	
+	ret <- list()
+	
+	what <- match.arg(tolower(what), tolower(c("all", "VC", "SD", "CV", "VCA")), several.ok=TRUE)
+	
 #	MM <- !is.null(attr(x$VCAobj, "FixedEffects"))
-		
+	
 	if(VCAobj$Type == "Mixed Model")
 		cat("\n\n\nInference from Mixed Model Fit\n------------------------------\n\n")
 	else if(VCAobj$Type == "Linear Model")
 		cat("\n\n\nInference from Linear Model Fit:\n--------------------------------\n\n")
 	else
-    	cat("\n\n\nInference from (V)ariance (C)omponent (A)nalysis\n------------------------------------------------\n\n")
-    
-    if( any( c("all", "vca") %in% what) )
-    {
+		cat("\n\n\nInference from (V)ariance (C)omponent (A)nalysis\n------------------------------------------------\n\n")
+	
+	if( any( c("all", "vca") %in% what) )
+	{
 		if(VCAobj$Type == "Linear Model")
 			cat("> ANOVA Table:\n--------------\n\n")
 		else
-        	cat("> VCA Result:\n-------------\n\n")
-        print(VCAobj, digits=digits, skipHeading=TRUE)
-        cat("\n")
-    }    
-    
-    if( any( c("all", "vc") %in% what) )
-    {
-        cat("> VC:\n-----\n")
-        VC <- as.data.frame(as.matrix(VCAobj$aov.tab)[,"VC", drop=FALSE])
-        colnames(VC) <- "Estimate"
-        
-        if(any(!is.na(x$ChiSqTest[,"Claim"])) && claim.type == "VC")
-        {
-            VC$Claim <- as.numeric(rep(NA, nrow(VC)))
-            VC$"ChiSq" <- as.numeric(rep(NA, nrow(VC)))
-            VC$"Pr(>ChiSq)" <- as.numeric(rep(NA, nrow(VC)))
-            VC[as.character(x$ChiSqTest[,"Name"]), c("Claim", "ChiSq", "Pr(>ChiSq)")] <- x$ChiSqTest[,-1]
-        }
-        
+			cat("> VCA Result:\n-------------\n\n")
+		print(VCAobj, digits=digits, skipHeading=TRUE)
+		cat("\n")
+	}    
+	
+	if( any( c("all", "vc") %in% what) )
+	{
+		cat("> VC:\n-----\n")
+		VC <- as.data.frame(as.matrix(VCAobj$aov.tab)[,"VC", drop=FALSE])
+		colnames(VC) <- "Estimate"
+		
+		if(any(!is.na(x$ChiSqTest[,"Claim"])) && claim.type == "VC")
+		{
+			VC$Claim <- as.numeric(rep(NA, nrow(VC)))
+			VC$"ChiSq" <- as.numeric(rep(NA, nrow(VC)))
+			VC$"Pr(>ChiSq)" <- as.numeric(rep(NA, nrow(VC)))
+			VC[as.character(x$ChiSqTest[,"Name"]), c("Claim", "ChiSq", "Pr(>ChiSq)")] <- x$ChiSqTest[,-1]
+		}
+		
 		VC$DF <- x$ConfInt$VC$TwoSided$DF
 		
-        VC$"CI LCL" <-  as.numeric(rep(NA, nrow(VC)))
-        VC$"CI UCL" <-  as.numeric(rep(NA, nrow(VC)))
-                        
-        VC[as.character(x$ConfInt$VC$TwoSided[,"Name"]), c("CI LCL", "CI UCL")] <- x$ConfInt$VC$TwoSided[,c("LCL", "UCL")]
-
+		VC$"CI LCL" <-  as.numeric(rep(NA, nrow(VC)))
+		VC$"CI UCL" <-  as.numeric(rep(NA, nrow(VC)))
+		
+		VC[as.character(x$ConfInt$VC$TwoSided[,"Name"]), c("CI LCL", "CI UCL")] <- x$ConfInt$VC$TwoSided[,c("LCL", "UCL")]
+		
 		VC$"One-Sided LCL" <-  as.numeric(rep(NA, nrow(VC)))
-        VC$"One-Sided UCL" <-  as.numeric(rep(NA, nrow(VC)))
-        
-        VC[as.character(x$ConfInt$VC$OneSided[,"Name"]), c("One-Sided LCL", "One-Sided UCL")] <-x$ConfInt$VC$OneSided[,c("LCL", "UCL")]
-        
-        VC <- as.matrix(VC)
-        VC <- apply(VC, 1:2, round, digits)   
-        
-        if(!is.null(attr(x$ConfInt$VC$TwoSided, "LCLconstrained")))
-            VC[attr(x$ConfInt$VC$TwoSided, "LCLconstrained"), "CI LCL"] <- paste(VC[attr(x$ConfInt$VC$TwoSided, "LCLconstrained"), "CI LCL"], "*", sep="")
-        
-        if(!is.null(attr(x$ConfInt$VC$TwoSided, "UCLconstrained")))
-            VC[attr(x$ConfInt$VC$TwoSided, "UCLconstrained"), "CI UCL"] <- paste(VC[attr(x$ConfInt$VC$TwoSided, "UCLconstrained"), "CI UCL"], "*", sep="")
-
+		VC$"One-Sided UCL" <-  as.numeric(rep(NA, nrow(VC)))
+		
+		VC[as.character(x$ConfInt$VC$OneSided[,"Name"]), c("One-Sided LCL", "One-Sided UCL")] <-x$ConfInt$VC$OneSided[,c("LCL", "UCL")]
+		
+		VC <- as.matrix(VC)
+		VC <- apply(VC, 1:2, round, digits)   
+		
+		if(!is.null(attr(x$ConfInt$VC$TwoSided, "LCLconstrained")))
+			VC[attr(x$ConfInt$VC$TwoSided, "LCLconstrained"), "CI LCL"] <- paste(VC[attr(x$ConfInt$VC$TwoSided, "LCLconstrained"), "CI LCL"], "*", sep="")
+		
+		if(!is.null(attr(x$ConfInt$VC$TwoSided, "UCLconstrained")))
+			VC[attr(x$ConfInt$VC$TwoSided, "UCLconstrained"), "CI UCL"] <- paste(VC[attr(x$ConfInt$VC$TwoSided, "UCLconstrained"), "CI UCL"], "*", sep="")
+		
 		if(!is.null(attr(x$ConfInt$VC$OneSided, "LCLconstrained")))
 			VC[attr(x$ConfInt$VC$OneSided, "LCLconstrained"), "One-Sided LCL"] <- paste(VC[attr(x$ConfInt$VC$OneSided, "LCLconstrained"), "One-Sided LCL"], "*", sep="")
 		
-        if(!is.null(attr(x$ConfInt$VC$OneSided, "UCLconstrained")))
-            VC[attr(x$ConfInt$VC$OneSided, "UCLconstrained"), "One-Sided UCL"] <- paste(VC[attr(x$ConfInt$VC$OneSided, "UCLconstrained"), "One-Sided UCL"], "*", sep="")
-			
-        print(noquote(VC), na.print="")
-        
-        ret$VC <- VC
-    }
-    
-    if( any( c("all", "sd") %in% what) )
-    {
-        cat("\n> SD:\n-----\n")
-        SD <- as.data.frame(as.matrix(VCAobj$aov.tab[,"SD", drop=FALSE]))
-        colnames(SD) <- "Estimate"
-
-        if(any(!is.na(x$ChiSqTest[,"Claim"])) && claim.type == "SD")
-        {
-            SD$Claim <- as.numeric(rep(NA, nrow(SD)))
-            SD$"ChiSq" <- as.numeric(rep(NA, nrow(SD)))
-            SD$"Pr(>ChiSq)" <- as.numeric(rep(NA, nrow(SD)))
-            SD[as.character(x$ChiSqTest[,"Name"]), c("Claim", "ChiSq", "Pr(>ChiSq)")] <- x$ChiSqTest[,-1]
-        }
+		if(!is.null(attr(x$ConfInt$VC$OneSided, "UCLconstrained")))
+			VC[attr(x$ConfInt$VC$OneSided, "UCLconstrained"), "One-Sided UCL"] <- paste(VC[attr(x$ConfInt$VC$OneSided, "UCLconstrained"), "One-Sided UCL"], "*", sep="")
+		
+		print(noquote(VC), na.print="")
+		ret$VC <- VC
+	}
+	
+	if( any( c("all", "sd") %in% what) )
+	{
+		cat("\n> SD:\n-----\n")
+		SD <- as.data.frame(as.matrix(VCAobj$aov.tab[,"SD", drop=FALSE]))
+		colnames(SD) <- "Estimate"
+		
+		if(any(!is.na(x$ChiSqTest[,"Claim"])) && claim.type == "SD")
+		{
+			SD$Claim <- as.numeric(rep(NA, nrow(SD)))
+			SD$"ChiSq" <- as.numeric(rep(NA, nrow(SD)))
+			SD$"Pr(>ChiSq)" <- as.numeric(rep(NA, nrow(SD)))
+			SD[as.character(x$ChiSqTest[,"Name"]), c("Claim", "ChiSq", "Pr(>ChiSq)")] <- x$ChiSqTest[,-1]
+		}
 		
 		SD$DF <- x$ConfInt$SD$TwoSided$DF
-        
-        SD$"CI LCL" <-  as.numeric(rep(NA, nrow(SD)))
-        SD$"CI UCL" <-  as.numeric(rep(NA, nrow(SD)))
-          
-        SD[as.character(x$ConfInt$SD$TwoSided[,"Name"]), c("CI LCL", "CI UCL")] <-x$ConfInt$SD$TwoSided[,c("LCL", "UCL")]
-        
+		
+		SD$"CI LCL" <-  as.numeric(rep(NA, nrow(SD)))
+		SD$"CI UCL" <-  as.numeric(rep(NA, nrow(SD)))
+		
+		SD[as.character(x$ConfInt$SD$TwoSided[,"Name"]), c("CI LCL", "CI UCL")] <-x$ConfInt$SD$TwoSided[,c("LCL", "UCL")]
+		
 		SD$"One-Sided LCL" <-  as.numeric(rep(NA, nrow(SD)))
-        SD$"One-Sided UCL" <-  as.numeric(rep(NA, nrow(SD)))
-        
-        SD[as.character(x$ConfInt$SD$OneSided[,"Name"]), c("One-Sided LCL", "One-Sided UCL")] <-x$ConfInt$SD$OneSided[,c("LCL", "UCL")]
-        
-        SD <- as.matrix(SD)
-        SD <- apply(SD, 1:2, round, digits)  
-        
-        if(!is.null(attr(x$ConfInt$VC$TwoSided, "LCLconstrained")))                 # Note: attribute "LCLconstrained" exists only for VC since SD and CV computed from VC
-            SD[attr(x$ConfInt$VC$TwoSided, "LCLconstrained"), "CI LCL"] <- paste(SD[attr(x$ConfInt$VC$TwoSided, "LCLconstrained"), "CI LCL"], "*", sep="")
-        
-        if(!is.null(attr(x$ConfInt$VC$TwoSided, "UCLconstrained")))                 # see above
-            SD[attr(x$ConfInt$VC$TwoSided, "UCLconstrained"), "CI UCL"] <- paste(SD[attr(x$ConfInt$VC$TwoSided, "UCLconstrained"), "CI UCL"], "*", sep="")
-        
+		SD$"One-Sided UCL" <-  as.numeric(rep(NA, nrow(SD)))
+		
+		SD[as.character(x$ConfInt$SD$OneSided[,"Name"]), c("One-Sided LCL", "One-Sided UCL")] <-x$ConfInt$SD$OneSided[,c("LCL", "UCL")]
+		
+		SD <- as.matrix(SD)
+		SD <- apply(SD, 1:2, round, digits)  
+		
+		if(!is.null(attr(x$ConfInt$VC$TwoSided, "LCLconstrained")))                 # Note: attribute "LCLconstrained" exists only for VC since SD and CV computed from VC
+			SD[attr(x$ConfInt$VC$TwoSided, "LCLconstrained"), "CI LCL"] <- paste(SD[attr(x$ConfInt$VC$TwoSided, "LCLconstrained"), "CI LCL"], "*", sep="")
+		
+		if(!is.null(attr(x$ConfInt$VC$TwoSided, "UCLconstrained")))                 # see above
+			SD[attr(x$ConfInt$VC$TwoSided, "UCLconstrained"), "CI UCL"] <- paste(SD[attr(x$ConfInt$VC$TwoSided, "UCLconstrained"), "CI UCL"], "*", sep="")
+		
 		if(!is.null(attr(x$ConfInt$VC$OneSided, "LCLconstrained")))                 # see above
 			SD[attr(x$ConfInt$VC$OneSided, "LCLconstrained"), "One-Sided LCL"] <- paste(SD[attr(x$ConfInt$VC$OneSided, "LCLconstrained"), "One-Sided LCL"], "*", sep="")
-				
-        if(!is.null(attr(x$ConfInt$VC$OneSided, "UCLconstrained")))                 # see above
-            SD[attr(x$ConfInt$VC$OneSided, "UCLconstrained"), "One-Sided UCL"] <- paste(SD[attr(x$ConfInt$VC$OneSided, "UCLconstrained"), "One-Sided UCL"], "*", sep="")
-        
-        print(noquote(SD), na.print="")
-        
-        ret$SD <- SD
-    }
-    
-    if( any( c("all", "cv") %in% what) )
-    {
-        cat("\n> CV[%]:\n--------\n")
-        CV <- as.data.frame(as.matrix(VCAobj$aov.tab)[,"CV[%]", drop=FALSE])
-        colnames(CV) <- "Estimate"
-
-        if(any(!is.na(x$ChiSqTest[,"Claim"])) && claim.type == "CV")
-        {
-            CV$Claim <- as.numeric(rep(NA, nrow(CV)))
-            CV$"ChiSq" <- as.numeric(rep(NA, nrow(CV)))
-            CV$"Pr(>ChiSq)" <- as.numeric(rep(NA, nrow(CV)))
-            CV[as.character(x$ChiSqTest[,"Name"]), c("Claim", "ChiSq", "Pr(>ChiSq)")] <- x$ChiSqTest[,-1]
-        }
-        
+		
+		if(!is.null(attr(x$ConfInt$VC$OneSided, "UCLconstrained")))                 # see above
+			SD[attr(x$ConfInt$VC$OneSided, "UCLconstrained"), "One-Sided UCL"] <- paste(SD[attr(x$ConfInt$VC$OneSided, "UCLconstrained"), "One-Sided UCL"], "*", sep="")
+		
+		print(noquote(SD), na.print="")
+		
+		ret$SD <- SD
+	}
+	
+	if( any( c("all", "cv") %in% what) )
+	{
+		cat("\n> CV[%]:\n--------\n")
+		CV <- as.data.frame(as.matrix(VCAobj$aov.tab)[,"CV[%]", drop=FALSE])
+		colnames(CV) <- "Estimate"
+		
+		if(any(!is.na(x$ChiSqTest[,"Claim"])) && claim.type == "CV")
+		{
+			CV$Claim <- as.numeric(rep(NA, nrow(CV)))
+			CV$"ChiSq" <- as.numeric(rep(NA, nrow(CV)))
+			CV$"Pr(>ChiSq)" <- as.numeric(rep(NA, nrow(CV)))
+			CV[as.character(x$ChiSqTest[,"Name"]), c("Claim", "ChiSq", "Pr(>ChiSq)")] <- x$ChiSqTest[,-1]
+		}
+		
 		CV$DF <- x$ConfInt$CV$TwoSided$DF
 		
-        CV$"CI LCL" <-  as.numeric(rep(NA, nrow(CV)))
-        CV$"CI UCL" <-  as.numeric(rep(NA, nrow(CV)))
-        
-        CV[as.character(x$ConfInt$CV$TwoSided[,"Name"]), c("CI LCL", "CI UCL")] <-x$ConfInt$CV$TwoSided[,c("LCL", "UCL")]
-        
+		CV$"CI LCL" <-  as.numeric(rep(NA, nrow(CV)))
+		CV$"CI UCL" <-  as.numeric(rep(NA, nrow(CV)))
+		
+		CV[as.character(x$ConfInt$CV$TwoSided[,"Name"]), c("CI LCL", "CI UCL")] <-x$ConfInt$CV$TwoSided[,c("LCL", "UCL")]
+		
 		CV$"One-Sided LCL" <-  as.numeric(rep(NA, nrow(CV)))
-        CV$"One-Sided UCL" <-  as.numeric(rep(NA, nrow(CV)))
-        
-        CV[as.character(x$ConfInt$CV$OneSided[,"Name"]), c("One-Sided LCL","One-Sided UCL")] <-x$ConfInt$CV$OneSided[,c("LCL", "UCL")]
-        
-        CV <- as.matrix(CV)
-        CV <- apply(CV, 1:2, round, digits)   
-        
-        if(!is.null(attr(x$ConfInt$VC$TwoSided, "LCLconstrained")))                 # Note: attribute "LCLconstrained" exists only for VC since SD and CV computed from VC
-            CV[attr(x$ConfInt$VC$TwoSided, "LCLconstrained"), "CI LCL"] <- paste(CV[attr(x$ConfInt$VC$TwoSided, "LCLconstrained"), "CI LCL"], "*", sep="")
-        
-        if(!is.null(attr(x$ConfInt$VC$TwoSided, "UCLconstrained")))                 # see above
-            CV[attr(x$ConfInt$VC$TwoSided, "UCLconstrained"), "CI UCL"] <- paste(CV[attr(x$ConfInt$VC$TwoSided, "UCLconstrained"), "CI UCL"], "*", sep="")
-        
+		CV$"One-Sided UCL" <-  as.numeric(rep(NA, nrow(CV)))
+		
+		CV[as.character(x$ConfInt$CV$OneSided[,"Name"]), c("One-Sided LCL","One-Sided UCL")] <-x$ConfInt$CV$OneSided[,c("LCL", "UCL")]
+		
+		CV <- as.matrix(CV)
+		CV <- apply(CV, 1:2, round, digits)   
+		
+		if(!is.null(attr(x$ConfInt$VC$TwoSided, "LCLconstrained")))                 # Note: attribute "LCLconstrained" exists only for VC since SD and CV computed from VC
+			CV[attr(x$ConfInt$VC$TwoSided, "LCLconstrained"), "CI LCL"] <- paste(CV[attr(x$ConfInt$VC$TwoSided, "LCLconstrained"), "CI LCL"], "*", sep="")
+		
+		if(!is.null(attr(x$ConfInt$VC$TwoSided, "UCLconstrained")))                 # see above
+			CV[attr(x$ConfInt$VC$TwoSided, "UCLconstrained"), "CI UCL"] <- paste(CV[attr(x$ConfInt$VC$TwoSided, "UCLconstrained"), "CI UCL"], "*", sep="")
+		
 		if(!is.null(attr(x$ConfInt$VC$OneSided, "LCLconstrained")))                 # see above
 			CV[attr(x$ConfInt$VC$OneSided, "LCLconstrained"), "One-Sided LCL"] <- paste(CV[attr(x$ConfInt$VC$OneSided, "LCLconstrained"), "One-Sided LCL"], "*", sep="")
 		
-        if(!is.null(attr(x$ConfInt$VC$OneSided, "UCLconstrained")))                 # see above
-            CV[attr(x$ConfInt$VC$OneSided, "UCLconstrained"), "One-Sided UCL"] <- paste(CV[attr(x$ConfInt$VC$OneSided, "UCLconstrained"), "One-Sided UCL"], "*", sep="")
-        
-        print(noquote(CV), na.print="")
-        
-        ret$CV <- CV
-    }
-    
+		if(!is.null(attr(x$ConfInt$VC$OneSided, "UCLconstrained")))                 # see above
+			CV[attr(x$ConfInt$VC$OneSided, "UCLconstrained"), "One-Sided UCL"] <- paste(CV[attr(x$ConfInt$VC$OneSided, "UCLconstrained"), "One-Sided UCL"], "*", sep="")
+		
+		print(noquote(CV), na.print="")
+		
+		ret$CV <- CV
+	}
+	
 	ci.method <- attr(x, "ci.method")
 	
-    if( any(c("all", "vc", "sd", "cv") %in% what) )
-        cat( paste("\n\n", 100*(1-x$alpha), "% Confidence Level  ", ifelse(attr(x, "excludeNeg") && (VCAobj$aov.tab[,"VC"] <= 0), "|  CIs for negative VCs excluded  ", ""),
-                   ifelse(!is.null(attr(x$ConfInt$VC$TwoSided, "LCLconstrained")), "| * CI-limits constrained to be >= 0", ""), 
-				   ifelse(ci.method=="sas", "\nSAS PROC MIXED method used for computing CIs", "\nSatterthwaite methodology used for computing CIs"), sep=""), "\n\n")
-    
-    if(length(ret) > 1)                     # extracting parts of the 'VCAinference' object
-        invisible(ret)
-    else if(length(ret) == 1)
-        invisible(ret[[1]])
-    
+	if( any(c("all", "vc", "sd", "cv") %in% what) )
+		cat( paste("\n\n", 100*(1-x$alpha), "% Confidence Level  ", ifelse(attr(x, "excludeNeg") && (VCAobj$aov.tab[,"VC"] <= 0), "|  CIs for negative VCs excluded  ", ""),
+						ifelse(!is.null(attr(x$ConfInt$VC$TwoSided, "LCLconstrained")), "| * CI-limits constrained to be >= 0", ""), 
+						ifelse(ci.method=="sas", "\nSAS PROC MIXED method used for computing CIs", "\nSatterthwaite methodology used for computing CIs"), sep=""), "\n\n")
+	
+	if(length(ret) > 1)                     # extracting parts of the 'VCAinference' object
+		invisible(ret)
+	else if(length(ret) == 1)
+		invisible(ret[[1]])
+	
 }
 
 
@@ -4100,10 +5468,10 @@ print.VCAinference <- function(x, digits=4L, what=c("all", "VC", "SD", "CV", "VC
 
 isBalanced <- function(form, Data, na.rm=TRUE)
 {
-    form <- terms(form, simplify=TRUE, keep.order=TRUE)
-    if(length(attr(form, "factors")) == 0)
-        return(TRUE)
-    
+	form <- terms(form, simplify=TRUE, keep.order=TRUE)
+	if(length(attr(form, "factors")) == 0)
+		return(TRUE)
+	
 	rn   <- rownames(attr(form, "factors"))
 	
 	for(i in 2:length(rn))
@@ -4114,59 +5482,59 @@ isBalanced <- function(form, Data, na.rm=TRUE)
 		}
 	}
 	
-    if(na.rm)
-    {
-        stopifnot(attr(form, "response") == 1)
-        resp <- rn[1]
-        Data <- Data[,rn]                           # only used variable appearing in the formula
-        Data <- na.omit(Data)
-    }
-    
-    fac  <- attr(form, "term.labels")
-  
-    mainFac  <- character()
-    balanced <- TRUE
-    
-    for(i in 1:length(fac))
-    {
-        if(!balanced)
-            break
-        
-        tmp  <- unlist(strsplit(fac[i], ":"))		# split interaction terms into variables
-        Nvar <- length(tmp) 
-        
-        if( Nvar == 1)                              # main factor
-        {
-            mainFac <- c(mainFac, tmp)       
-        } 
-        else                                        # nested factors ("a:b" interpreted as b nested in a, since no possible main factor "b" is taken into account)
-        {
-            tmp.df <- data.frame(var1=apply(Data[,tmp[-Nvar], drop=FALSE], 1, function(x){
-                                return(paste(paste(letters[1:length(x)], x, sep=""), collapse=""))
-                            }))
-            var2    <- character()
-            var1Lev <- unique(tmp.df$var1)
-            
-            for(j in 1:length(var1Lev))             # start testing each term with nested factors ("a:b")
-            {
-                ind  <- which(tmp.df$var1 == var1Lev[j])
-                var2 <- c(var2, as.factor(as.integer(Data[ind, tmp[Nvar]]))) 
-            }
-            tmp.df$var2 <- var2
-            tmp.tab     <- table(tmp.df)           	# generate contingency table -> ...
-
-            balanced <- all(c(tmp.tab) == tmp.tab[1,1])		# ... check for equal numbers in cells of the contingency table
-        }
-    }
-
-    if(length(mainFac) > 0 && balanced)           	# check all main factors if no evidence of unbalncedness
-    {
-        tmp.tab  <- table(Data[,mainFac])
-        tmp.df   <- as.data.frame(tmp.tab)
-        balanced <- all(tmp.df[,"Freq"] == tmp.df[1, "Freq"])
-    }
-    
-    return(balanced)
+	if(na.rm)
+	{
+		stopifnot(attr(form, "response") == 1)
+		resp <- rn[1]
+		Data <- Data[,rn]                           # only used variable appearing in the formula
+		Data <- na.omit(Data)
+	}
+	
+	fac  <- attr(form, "term.labels")
+	
+	mainFac  <- character()
+	balanced <- TRUE
+	
+	for(i in 1:length(fac))
+	{
+		if(!balanced)
+			break
+		
+		tmp  <- unlist(strsplit(fac[i], ":"))		# split interaction terms into variables
+		Nvar <- length(tmp) 
+		
+		if( Nvar == 1)                              # main factor
+		{
+			mainFac <- c(mainFac, tmp)       
+		} 
+		else                                        # nested factors ("a:b" interpreted as b nested in a, since no possible main factor "b" is taken into account)
+		{
+			tmp.df <- data.frame(var1=apply(Data[,tmp[-Nvar], drop=FALSE], 1, function(x){
+								return(paste(paste(letters[1:length(x)], x, sep=""), collapse=""))
+							}))
+			var2    <- character()
+			var1Lev <- unique(tmp.df$var1)
+			
+			for(j in 1:length(var1Lev))             # start testing each term with nested factors ("a:b")
+			{
+				ind  <- which(tmp.df$var1 == var1Lev[j])
+				var2 <- c(var2, as.factor(as.integer(Data[ind, tmp[Nvar]]))) 
+			}
+			tmp.df$var2 <- var2
+			tmp.tab     <- table(tmp.df)           	# generate contingency table -> ...
+			
+			balanced <- all(c(tmp.tab) == tmp.tab[1,1])		# ... check for equal numbers in cells of the contingency table
+		}
+	}
+	
+	if(length(mainFac) > 0 && balanced)           	# check all main factors if no evidence of unbalncedness
+	{
+		tmp.tab  <- table(Data[,mainFac])
+		tmp.df   <- as.data.frame(tmp.tab)
+		balanced <- all(tmp.df[,"Freq"] == tmp.df[1, "Freq"])
+	}
+	
+	return(balanced)
 }
 
 
@@ -4174,14 +5542,15 @@ isBalanced <- function(form, Data, na.rm=TRUE)
 #' 
 #' Function computes the sum of main-diagonal elements of a squared matrix.
 #' 
-#' @param x     (matrix, Matrix) object
+#' @param x     	(matrix, Matrix) object
+#' @param quiet		(logical) TRUE = will suppress any warning, which will be issued otherwise 
 #' @return (numeric) value, the trace of the matrix
 
-Trace <- function(x)
+Trace <- function(x, quiet=FALSE)
 {
-	if(ncol(x) != nrow(x))
+	if(ncol(x) != nrow(x) && !quiet)
 		warning("Matrix is not quadratic!")
-    return(sum(diag(as.matrix(x))))
+	return(sum(diag(as.matrix(x))))
 }
 
 
@@ -4205,14 +5574,14 @@ Trace <- function(x)
 
 as.matrix.VCA <- function(x, ...)
 {
-    Mean <- x$Mean
-    Nobs <- x$Nobs
-    rn <- rownames(x$aov.tab)
-    cn <- colnames(x$aov.tab)
-    mat <- matrix(x$aov.tab, nrow=length(rn), ncol=length(cn), dimnames=list(rn, cn))
-    attr(mat, "Mean") <- Mean
-    attr(mat, "Nobs") <- Nobs
-    return(mat)
+	Mean <- x$Mean
+	Nobs <- x$Nobs
+	rn <- rownames(x$aov.tab)
+	cn <- colnames(x$aov.tab)
+	mat <- matrix(x$aov.tab, nrow=length(rn), ncol=length(cn), dimnames=list(rn, cn))
+	attr(mat, "Mean") <- Mean
+	attr(mat, "Nobs") <- Nobs
+	return(mat)
 }
 
 
@@ -4255,7 +5624,7 @@ as.matrix.VCA <- function(x, ...)
 #' @param by			(factor, character) variable specifying groups for which the analysis should be performed individually,
 #' 						i.e. by-processing
 #' @param NegVC         (logical) FALSE = negative variance component estimates (VC) will be set to 0 and they will not contribute to the total variance 
-#'                      (as done in SAS PROC NESTED, conservative estimate of total variance). The original ANOVA estimates can be found in attribute 'VCoriginal'. 
+#'                      (as done in SAS PROC NESTED, conservative estimate of total variance). The original ANOVA estimates can be found in element 'VCoriginal'. 
 #'                      The degrees of freedom of the total variance are based on adapted mean squares (MS), i.e. adapted MS are computed as \eqn{D * VC}, where VC is 
 #'                      the column vector with negative VCs set to 0. \cr
 #' 						TRUE = negative variance component estimates will not be set to 0 and they will contribute to the total variance (original definition of the total variance).
@@ -4271,13 +5640,14 @@ as.matrix.VCA <- function(x, ...)
 #' 						"RandomEffects", "FixedEffects", "VarFixed" (variance-covariance matrix of fixed effects) and the "Matrices"
 #' 						element has addional elements corresponding to intermediate results of solving MMEs.
 #' 						FALSE = do not solve MMEs, which reduces the computation time for very complex models significantly.
+#' @param quiet			(logical) TRUE = will suppress any warning, which will be issued otherwise 
 #' 
 #' @return (object) of class 'VCA'
 #' 
 #' @aliases anovaVCA
 #' 
-#' @seealso \code{\link{anovaMM}}, \code{\link{stepwiseVCA}}, \code{\link{print.VCA}}, \code{\link{VCAinference}}, 
-#' 			\code{\link{getCmatrix}}, \code{\link{ranef}}, \code{\link{plotRandVar}}
+#' @seealso \code{\link{anovaMM}}, \code{\link{remlVCA}}, \code{\link{remlMM}}, \code{\link{print.VCA}}, \code{\link{VCAinference}}, 
+#' 			\code{\link{getCmatrix}}, \code{\link{ranef}}, \code{\link{plotRandVar}}, \code{\link{stepwiseVCA}}
 #' 
 #' @references 
 #' 
@@ -4416,7 +5786,7 @@ as.matrix.VCA <- function(x, ...)
 #' }
 
 anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "qf"), 
-						VarVC.method=c("gb", "scm"), MME=FALSE)
+		VarVC.method=c("gb", "scm"), MME=FALSE, quiet=FALSE)
 {
 	if(!is.null(by))
 	{
@@ -4425,7 +5795,7 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 		stopifnot(is.factor(by) || is.character(by))
 		
 		levels  <- unique(Data[,by])
-		res <- lapply(levels, function(x) anovaVCA(form=form, Data[Data[,by] == x,], NegVC=NegVC, SSQ.method=SSQ.method, VarVC.method=VarVC.method, MME=MME))
+		res <- lapply(levels, function(x) anovaVCA(form=form, Data[Data[,by] == x,], NegVC=NegVC, SSQ.method=SSQ.method, VarVC.method=VarVC.method, MME=MME, quiet=quiet))
 		names(res) <- paste(by, levels, sep=".")
 		return(res)
 	}
@@ -4434,18 +5804,19 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 	stopifnot(is.data.frame(Data))
 	stopifnot(nrow(Data) > 2)                                               # at least 2 observations for estimating a variance
 	stopifnot(is.logical(NegVC))
-		
+	
 	VarVC.method <- match.arg(VarVC.method)
 	SSQ.method   <- match.arg(SSQ.method)
 	VarVC.method <- ifelse(SSQ.method == "sweep", "gb", VarVC.method)		# always use "gb", since A-matrices will not be computed	
 	tobj <- terms(form, simplify=TRUE, keep.order=TRUE)                     # expand nested factors if necessary, retain ordering of terms in the formula
 	form <- formula(tobj)
 	
-	res       <- list()
-	res$call  <- match.call()
-	res$Type  <- "Random Model"
-	res$data  <- Data
-	res$terms <- tobj
+	res       	<- list()
+	res$call  	<- match.call()
+	res$Type  	<- "Random Model"
+	res$data  	<- Data
+	res$terms 	<- tobj
+	res$VCnames <- c(attr(tobj, "term.labels"), "error")
 	
 	int <- res$intercept <- attr(tobj, "intercept") == 1	
 	
@@ -4466,7 +5837,8 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 	if(any(resp.NA))
 	{    
 		rmInd <- c(rmInd, which(resp.NA))
-		warning("There are ", length(which(resp.NA))," missing values for the response variable (obs: ", paste(which(resp.NA), collapse=", "), ")!")
+		if(!quiet)
+			warning("There are ", length(which(resp.NA))," missing values for the response variable (obs: ", paste(which(resp.NA), collapse=", "), ")!")
 	}    
 	
 	fac  <- attr(tobj, "term.labels")
@@ -4481,10 +5853,12 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 			{
 				NAind <- which(is.na(Data[,i]))
 				rmInd <- c(rmInd, NAind)
-				warning("Variable '", i,"' has ",length(NAind)," missing values (obs: ", paste(NAind, collapse=", "), ")!" )
+				if(!quiet)
+					warning("Variable '", i,"' has ",length(NAind)," missing values (obs: ", paste(NAind, collapse=", "), ")!" )
 			}
 			Data[,i] <- factor(Data[,i])
-			if(length(levels(Data[,i])) >= 0.75*nrow(Data))
+			
+			if(length(levels(Data[,i])) >= 0.75*nrow(Data) && !quiet)
 				warning("Variable >>> ", i," <<< has at least 0.75 * nrow(Data) levels!")
 		}
 		rmInd <- unique(rmInd)
@@ -4499,14 +5873,14 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 		vcol <- resp
 	Data <- na.omit(Data[,vcol, drop=F])
 	Nobs <- N <- nrow(Data)
-
+	
 	if(SSQ.method == "qf")
 		tmp.res <- getSSQqf(Data, tobj)										# determine ANOVA Type-1 sum of squares using the quadratic form approach									
 	else
 		tmp.res <- getSSQsweep(Data, tobj)									# determine ANOVA Type-1 sum of squares using sweeping
-
+	
 	gc(verbose=FALSE)
-
+	
 	Lmat    <- tmp.res$Lmat
 	aov.tab <- tmp.res$aov.tab												# basic ANOVA-table
 	DF <- aov.tab[,"DF"]
@@ -4547,6 +5921,7 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 	res$aov.tab <- aov.tab
 	res$rmInd   <- rmInd
 	
+	res$Nvc			 <- Nvc
 	res$VarVC.method <- VarVC.method
 	res$SSQ.method   <- SSQ.method
 	res$Mean         <- Mean
@@ -4557,7 +5932,7 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 	res$NegVC        <- NegVC
 	if(Nobs != Ndata)
 		res$Nrm <- Ndata - Nobs                                	# save number of observations that were removed due to missing data
-
+	
 	Lmat$C.SS	<- C
 	Lmat$C.MS	<- C2
 	Lmat$Ci.SS  <- Ci
@@ -4619,6 +5994,7 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 #' @param mode			(character) string or abbreviation specifying the specific transformation
 #'                      applied to a certain type of residuals. There are "raw" (untransformed), 
 #'                      "standardized", "studentized" and "pearson" (see details) residuals.
+#' @param quiet			(logical) TRUE = will suppress any warning, which will be issued otherwise 
 #' @param ...			additional parameters
 #' 
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
@@ -4661,10 +6037,34 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 #' 
 #' @seealso \code{\link{ranef}}, \code{\link{anovaVCA}}, \code{\link{anovaMM}}
 
-residuals.VCA <- function(object, type=c("conditional", "marginal"), mode=c("raw", "student", "standard", "pearson"), ...)
+residuals.VCA <- function(object, type=c("conditional", "marginal"), mode=c("raw", "student", "standard", "pearson"), quiet=FALSE, ...)
 {		
 	Call <- match.call()
 	obj <- object
+	
+	if(is.list(obj) && class(obj) != "VCA")
+	{
+		if(!all(sapply(obj, class) == "VCA"))
+			stop("Only lists of 'VCA' object are accepted!")
+		
+		obj.len <- length(obj)
+		
+		assign("VCAinference.obj.is.list", TRUE, envir=msgEnv)			# indicate that a list-type object was passed intially
+		
+		
+		res <- mapply(	FUN=residuals.VCA, object=obj,
+				type=type[1], mode=mode[1], SIMPLIFY=FALSE)
+		
+		names(res) <- names(obj)
+		
+		if(obj.len == 1)			# mapply returns a list of length 2 in case that length(obj) was equal to 1
+			res <- res[1]
+		
+		rm("VCAinference.obj.is.list", envir=msgEnv)
+		
+		return(res)
+	}	
+	
 	stopifnot(class(obj) == "VCA")
 	
 	type <- match.arg(type)
@@ -4673,14 +6073,19 @@ residuals.VCA <- function(object, type=c("conditional", "marginal"), mode=c("raw
 	if(is.null(obj$FixedEffects))
 	{
 		obj  <- solveMME(obj)
-		nam  <- as.character(as.list(Call)$object)
-		if(length(nam) == 1 && nam %in% names(as.list(.GlobalEnv)))
+		nam0 <- deparse(Call$object)
+		nam1 <- sub("\\[.*", "", nam0)
+		
+		if(length(nam1) == 1 && nam1 %in% names(as.list(.GlobalEnv)))
 		{
-			expr <- paste(nam, "<<- obj")		# update object missing MME results
+			expr <- paste(nam0, "<<- obj")		# update object missing MME results
 			eval(parse(text=expr))
 		}
 		else
-			warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+		{
+			if( !"VCAinference.obj.is.list" %in% names(as.list(msgEnv)) && !quiet)
+				warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
+		}
 	}
 	
 	Xb <- getMat(obj, "X") %*% obj$FixedEffects
@@ -4713,8 +6118,14 @@ residuals.VCA <- function(object, type=c("conditional", "marginal"), mode=c("raw
 	}
 	else															# conditional residuals
 	{
-		Zg  <- getMat(obj, "Z") %*% ranef(obj)
+		Z   <- getMat(obj, "Z")
+		if(obj$EstMethod == "REML")									# re-order Z to align with random effects
+			Z <- Z[,unlist(obj$ColOrderZ)]
+		
+		Zg  <- Z %*% ranef(obj)										# order according to column-order of Z
+		
 		res <- y - Xb - Zg
+		
 		R  	<- getMat(obj, "R")
 		
 		if(mode == "student")
@@ -4731,12 +6142,13 @@ residuals.VCA <- function(object, type=c("conditional", "marginal"), mode=c("raw
 				mats$H <- H  <- X %*% T
 				mats$Q <- Q  <- Vi %*% (diag(nrow(H))-H)
 				
-				nam  <- as.character(as.list(Call)$object)			
-	
-				if(length(nam) == 1 && nam %in% names(as.list(.GlobalEnv)))	# write back to object in the calling env
+				nam0 <- deparse(Call$object)	
+				nam1 <- sub("\\[.*", "", nam0) 
+				
+				if(length(nam1) == 1 && nam1 %in% names(as.list(.GlobalEnv)))	# write back to object in the calling env
 				{
 					obj$Matrices <- mats
-					expr <- paste(nam, "<<- obj")
+					expr <- paste(nam0, "<<- obj")
 					eval(parse(text=expr))
 				}
 			}
@@ -4749,7 +6161,7 @@ residuals.VCA <- function(object, type=c("conditional", "marginal"), mode=c("raw
 		}
 	}
 	res <- c(res[,1])											
-
+	
 	if(mode=="standard")
 	{
 		res <- res / sd(res)										# apply standardization
@@ -4846,7 +6258,7 @@ stepwiseVCA <- function(obj, VarVC=FALSE, VarVC.method=c("scm", "gb"))
 			ele$VarCov <- VarCov[(N-i-1):(N-1), (N-i-1):(N-1)]
 			ele$VarVC.method <- VarVC.method
 		}
-
+		
 		res[[i]] <- ele
 	}
 	return(res)

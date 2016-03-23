@@ -4,13 +4,15 @@
 \alias{lsmMat}
 \title{Contrast Matrix for LS Means.}
 \usage{
-lsmMat(obj, var = NULL)
+lsmMat(obj, var = NULL, quiet = FALSE)
 }
 \arguments{
 \item{obj}{(VCA) object}
 
 \item{var}{(character) string specifyig the fixed effects variable for which
-                     the LS Means generating matrices should be computed}
+the LS Means generating matrices should be computed}
+
+\item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
 }
 \value{
 (matrix) where each row corresponds to a LS Means generating contrast

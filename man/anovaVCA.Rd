@@ -5,7 +5,7 @@
 \title{ANOVA-Type Estimation of Variance Components for Random Models.}
 \usage{
 anovaVCA(form, Data, by = NULL, NegVC = FALSE, SSQ.method = c("sweep",
-  "qf"), VarVC.method = c("gb", "scm"), MME = FALSE)
+  "qf"), VarVC.method = c("gb", "scm"), MME = FALSE, quiet = FALSE)
 }
 \arguments{
 \item{form}{(formula) specifying the model to be fit, a response variable left of the '~' is mandatory}
@@ -16,7 +16,7 @@ anovaVCA(form, Data, by = NULL, NegVC = FALSE, SSQ.method = c("sweep",
 i.e. by-processing}
 
 \item{NegVC}{(logical) FALSE = negative variance component estimates (VC) will be set to 0 and they will not contribute to the total variance
-(as done in SAS PROC NESTED, conservative estimate of total variance). The original ANOVA estimates can be found in attribute 'VCoriginal'.
+(as done in SAS PROC NESTED, conservative estimate of total variance). The original ANOVA estimates can be found in element 'VCoriginal'.
 The degrees of freedom of the total variance are based on adapted mean squares (MS), i.e. adapted MS are computed as \eqn{D * VC}, where VC is
 the column vector with negative VCs set to 0. \cr
    TRUE = negative variance component estimates will not be set to 0 and they will contribute to the total variance (original definition of the total variance).}
@@ -32,9 +32,11 @@ is the exact algorithm but slower, "gb" (Giesbrecht, Burns) is termed "rough app
 methods give identical results, only in unbalanced designs differences occur.}
 
 \item{MME}{(logical) TRUE = (M)ixed (M)odel (E)quations will be solved, i.e. 'VCA' object will have additional elements
-                        "RandomEffects", "FixedEffects", "VarFixed" (variance-covariance matrix of fixed effects) and the "Matrices"
-                        element has addional elements corresponding to intermediate results of solving MMEs.
-                        FALSE = do not solve MMEs, which reduces the computation time for very complex models significantly.}
+"RandomEffects", "FixedEffects", "VarFixed" (variance-covariance matrix of fixed effects) and the "Matrices"
+element has addional elements corresponding to intermediate results of solving MMEs.
+FALSE = do not solve MMEs, which reduces the computation time for very complex models significantly.}
+
+\item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
 }
 \value{
 (object) of class 'VCA'
@@ -209,7 +211,7 @@ SAS Help and Documentation PROC MIXED, SAS Institute Inc., Cary, NC, USA
 SAS Help and Documentation PROC VARCOMP, SAS Institute Inc., Cary, NC, USA
 }
 \seealso{
-\code{\link{anovaMM}}, \code{\link{stepwiseVCA}}, \code{\link{print.VCA}}, \code{\link{VCAinference}},
-			\code{\link{getCmatrix}}, \code{\link{ranef}}, \code{\link{plotRandVar}}
+\code{\link{anovaMM}}, \code{\link{remlVCA}}, \code{\link{remlMM}}, \code{\link{print.VCA}}, \code{\link{VCAinference}},
+			\code{\link{getCmatrix}}, \code{\link{ranef}}, \code{\link{plotRandVar}}, \code{\link{stepwiseVCA}}
 }
 

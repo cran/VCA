@@ -58,34 +58,44 @@ order random term in the model (see examples).
 \dontrun{
 data(dataEP05A2_2)
 ub.dat <- dataEP05A2_2[-c(11,12,23,32,40,41,42),]
-fit <- anovaMM(y~day/(run), ub.dat)
-fe <- fixef(fit)
-fe
-lc.mat <- getL( fit, c("day1-day2", "day3-day6"))
+fit1 <- anovaMM(y~day/(run), ub.dat)
+fit2 <- remlMM(y~day/(run), ub.dat)
+fe1 <- fixef(fit1)
+fe1
+fe2 <- fixef(fit2)
+fe2
+lc.mat <- getL( fit1, c("day1-day2", "day3-day6"))
 lc.mat
-test.fixef(fit, lc.mat)
+test.fixef(fit1, lc.mat, ddfm="satt")
+test.fixef(fit2, lc.mat, ddfm="satt")
 
 # some inferential statistics about fixed effects estimates
-L <- diag(nrow(fe))
-rownames(L) <- colnames(L) <- rownames(fe)
-test.fixef(fit, L)
+L <- diag(nrow(fe1))
+rownames(L) <- colnames(L) <- rownames(fe1)
+test.fixef(fit1, L)
+test.fixef(fit2, L)
 
 # using different "residual" method determining DFs
-test.fixef(fit, L, ddfm="res")
+test.fixef(fit1, L, ddfm="res")
+test.fixef(fit2, L, ddfm="res")
 
 # having 'opt=TRUE' is a good idea to save time
 # (in case of balanced designs)
 data(VCAdata1)
 datS3 <- VCAdata1[VCAdata1$sample==3,]
-fit <- anovaMM(y~(lot+device)/(day)/run, datS3)
-fit$VarCov <- vcovVC(fit)
-fe <- fixef(fit)
-L <- diag(nrow(fe))
+fit3 <- anovaMM(y~(lot+device)/(day)/run, datS3)
+fit4 <- remlMM(y~(lot+device)/(day)/run, datS3)
+fit3$VarCov <- vcovVC(fit3)
+fe3 <- fixef(fit3)
+fe4 <- fixef(fit4)
+L <- diag(nrow(fe3))
 rownames(L) <- colnames(L) <- rownames(fe)
-system.time(tst1 <- test.fixef(fit, L))
-system.time(tst2 <- test.fixef(fit, L, opt=FALSE))
+system.time(tst1 <- test.fixef(fit3, L))
+system.time(tst2 <- test.fixef(fit3, L, opt=FALSE))
+system.time(tst3 <- test.fixef(fit4, L, opt=FALSE))
 tst1
 tst2
+tst3
 }
 }
 \author{

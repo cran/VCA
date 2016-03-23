@@ -39,12 +39,12 @@ data(dataRS0005_3)
 
 TF001.anovaVCA.exception <- function()
 {
-    checkException(anovaVCA())                                                               # no input at all 
-    checkException(anovaVCA(Data=1))                                                                                               
-    checkException(anovaVCA(Data=data.frame()))                 
-    checkException(anovaVCA(Data=data.frame(y=1:10)))
-    checkException(anovaVCA(z~day/run, Data=data.frame(y=1:10)))
-    checkException(anovaVCA(y~day/run, Data=data.frame(y=1:10, day=1:10)))
+	checkException(anovaVCA())                                                               # no input at all 
+	checkException(anovaVCA(Data=1))                                                                                               
+	checkException(anovaVCA(Data=data.frame()))                 
+	checkException(anovaVCA(Data=data.frame(y=1:10)))
+	checkException(anovaVCA(z~day/run, Data=data.frame(y=1:10)))
+	checkException(anovaVCA(y~day/run, Data=data.frame(y=1:10, day=1:10)))
 }
 
 
@@ -52,27 +52,27 @@ TF001.anovaVCA.exception <- function()
 
 TF002.anovaVCA.EP05_A2_intermediate_precision.balanced <- function()
 {        
-    res <- anovaVCA(y~day/run, Data=dataEP05A2_1)                                            # call function    
-    checkEquals(round(as.numeric(res$aov.tab[,"VC"]),6), c(3.298986, 0.001096, 1.344492, 1.953397))     # variance components are derived from mean sum of squares --> checking SSQ und MSQ not necessary
-    
-    res <- anovaVCA(y~day/run, Data=dataEP05A2_2)                                            # call function    
-    checkEquals(round(as.numeric(res$aov.tab[,"VC"]),6), c(8.400103, 1.853772, 2.826050, 3.720281))    # variance components are derived from mean sum of squares --> checking SSQ und MSQ not necessary
-    
-    res <- anovaVCA(y~day/run, Data=dataEP05A2_3)                                            # call function    
-    checkEquals(round(as.numeric(res$aov.tab[,"VC"]),6), c( 35.546313, 12.231099, 7.031193, 16.284021)) # variance components are derived from mean sum of squares --> checking SSQ und MSQ not necessary
+	res <- anovaVCA(y~day/run, Data=dataEP05A2_1)                                            # call function    
+	checkEquals(round(as.numeric(res$aov.tab[,"VC"]),6), c(3.298986, 0.001096, 1.344492, 1.953397))     # variance components are derived from mean sum of squares --> checking SSQ und MSQ not necessary
+	
+	res <- anovaVCA(y~day/run, Data=dataEP05A2_2)                                            # call function    
+	checkEquals(round(as.numeric(res$aov.tab[,"VC"]),6), c(8.400103, 1.853772, 2.826050, 3.720281))    # variance components are derived from mean sum of squares --> checking SSQ und MSQ not necessary
+	
+	res <- anovaVCA(y~day/run, Data=dataEP05A2_3)                                            # call function    
+	checkEquals(round(as.numeric(res$aov.tab[,"VC"]),6), c( 35.546313, 12.231099, 7.031193, 16.284021)) # variance components are derived from mean sum of squares --> checking SSQ und MSQ not necessary
 }    
 # unbalanced
 
 TF003.anovaVCA.EP05_A2_intermediate_precision.unbalanced <- function()
 { 
-    res <- anovaVCA(y~day/run, Data=dataEP05A2_1[-c(11, 12, 17, 37, 45, 56, 57, 68),])              
-    checkEquals(round(as.numeric(res$aov.tab[,"VC"]),6), c(3.272031, 0.278178, 0.875624, 2.118229))     
-    
-    res <- anovaVCA(y~day/run, Data=dataEP05A2_2[-c(2, 12, 22, 23, 24, 55, 56, 71),])              
-    checkEquals(round(as.numeric(res$aov.tab[,"VC"]),6), c(8.81105, 1.425126, 3.478988, 3.906936 ))  
-    
-    res <- anovaVCA(y~day/run, Data=dataEP05A2_3[-c(1,6,7,36,61:65),])              
-    checkEquals(round(as.numeric(res$aov.tab[,"VC"]),6), c( 33.701053, 10.384121, 7.937951, 15.378981 )) 
+	res <- anovaVCA(y~day/run, Data=dataEP05A2_1[-c(11, 12, 17, 37, 45, 56, 57, 68),])              
+	checkEquals(round(as.numeric(res$aov.tab[,"VC"]),6), c(3.272031, 0.278178, 0.875624, 2.118229))     
+	
+	res <- anovaVCA(y~day/run, Data=dataEP05A2_2[-c(2, 12, 22, 23, 24, 55, 56, 71),])              
+	checkEquals(round(as.numeric(res$aov.tab[,"VC"]),6), c(8.81105, 1.425126, 3.478988, 3.906936 ))  
+	
+	res <- anovaVCA(y~day/run, Data=dataEP05A2_3[-c(1,6,7,36,61:65),])              
+	checkEquals(round(as.numeric(res$aov.tab[,"VC"]),6), c( 33.701053, 10.384121, 7.937951, 15.378981 )) 
 }
 
 # check whether the reported SD-values are correctly computed by comparing the square-root values of
@@ -80,14 +80,14 @@ TF003.anovaVCA.EP05_A2_intermediate_precision.unbalanced <- function()
 
 TF004.anovaVCA.SD_results <- function()
 { 
-    res <- anovaVCA(y~day/run, Data=dataEP05A2_1[-c(11, 12, 17, 37, 45, 56, 57, 68),])              
-    checkEquals(round(sqrt(as.numeric(res$aov.tab[,"VC"])),6), round(as.numeric(res$aov.tab[,"SD"]), 6))     
-    
-    res <- anovaVCA(y~day/run, Data=dataEP05A2_2[-c(2, 12, 22, 23, 24, 55, 56, 71),])              
-    checkEquals(round(sqrt(as.numeric(res$aov.tab[,"VC"])),6), round(as.numeric(res$aov.tab[,"SD"]), 6)) 
-    
-    res <- anovaVCA(y~day/run, Data=dataEP05A2_3[-c(1,6,7,36,61:65),])              
-    checkEquals(round(sqrt(as.numeric(res$aov.tab[,"VC"])),6), round(as.numeric(res$aov.tab[,"SD"]), 6)) 
+	res <- anovaVCA(y~day/run, Data=dataEP05A2_1[-c(11, 12, 17, 37, 45, 56, 57, 68),])              
+	checkEquals(round(sqrt(as.numeric(res$aov.tab[,"VC"])),6), round(as.numeric(res$aov.tab[,"SD"]), 6))     
+	
+	res <- anovaVCA(y~day/run, Data=dataEP05A2_2[-c(2, 12, 22, 23, 24, 55, 56, 71),])              
+	checkEquals(round(sqrt(as.numeric(res$aov.tab[,"VC"])),6), round(as.numeric(res$aov.tab[,"SD"]), 6)) 
+	
+	res <- anovaVCA(y~day/run, Data=dataEP05A2_3[-c(1,6,7,36,61:65),])              
+	checkEquals(round(sqrt(as.numeric(res$aov.tab[,"VC"])),6), round(as.numeric(res$aov.tab[,"SD"]), 6)) 
 }
 
 
@@ -96,14 +96,14 @@ TF004.anovaVCA.SD_results <- function()
 
 TF005.anovaVCA.CV_perc_results <- function()
 { 
-    res <- anovaVCA(y~day/run, Data=dataEP05A2_1[-c(11, 12, 17, 37, 45, 56, 57, 68),])              
-    checkEquals(round(sqrt(as.numeric(res$aov.tab[,"VC"]))*100/res$Mean,6), round(as.numeric(res$aov.tab[,"CV[%]"]), 6))     
-    
-    res <- anovaVCA(y~day/run, Data=dataEP05A2_2[-c(2, 12, 22, 23, 24, 55, 56, 71),])              
-    checkEquals(round(sqrt(as.numeric(res$aov.tab[,"VC"]))*100/res$Mean,6), round(as.numeric(res$aov.tab[,"CV[%]"]), 6)) 
-    
-    res <- anovaVCA(y~day/run, Data=dataEP05A2_3[-c(1,6,7,36,61:65),])              
-    checkEquals(round(sqrt(as.numeric(res$aov.tab[,"VC"]))*100/res$Mean,6), round(as.numeric(res$aov.tab[,"CV[%]"]), 6)) 
+	res <- anovaVCA(y~day/run, Data=dataEP05A2_1[-c(11, 12, 17, 37, 45, 56, 57, 68),])              
+	checkEquals(round(sqrt(as.numeric(res$aov.tab[,"VC"]))*100/res$Mean,6), round(as.numeric(res$aov.tab[,"CV[%]"]), 6))     
+	
+	res <- anovaVCA(y~day/run, Data=dataEP05A2_2[-c(2, 12, 22, 23, 24, 55, 56, 71),])              
+	checkEquals(round(sqrt(as.numeric(res$aov.tab[,"VC"]))*100/res$Mean,6), round(as.numeric(res$aov.tab[,"CV[%]"]), 6)) 
+	
+	res <- anovaVCA(y~day/run, Data=dataEP05A2_3[-c(1,6,7,36,61:65),])              
+	checkEquals(round(sqrt(as.numeric(res$aov.tab[,"VC"]))*100/res$Mean,6), round(as.numeric(res$aov.tab[,"CV[%]"]), 6)) 
 }
 
 
@@ -111,14 +111,14 @@ TF005.anovaVCA.CV_perc_results <- function()
 
 TF006.anovaVCA.Percent_Total_results <- function()
 { 
-    res <- anovaVCA(y~day/run, Data=dataEP05A2_1)              
-    checkEquals(round(as.numeric(res$aov.tab[,"VC"])*100/sum(as.numeric(res$aov.tab[-1, "VC"])),6), round(as.numeric(res$aov.tab[,"%Total"]), 6))           # exclude total variance in the sum  
-    
-    res <- anovaVCA(y~day/run, Data=dataEP05A2_2)              
-    checkEquals(round(as.numeric(res$aov.tab[,"VC"])*100/sum(as.numeric(res$aov.tab[-1, "VC"])),6), round(as.numeric(res$aov.tab[,"%Total"]), 6)) 
-    
-    res <- anovaVCA(y~day/run, Data=dataEP05A2_3)              
-    checkEquals(round(as.numeric(res$aov.tab[,"VC"])*100/sum(as.numeric(res$aov.tab[-1, "VC"])),6), round(as.numeric(res$aov.tab[,"%Total"]), 6)) 
+	res <- anovaVCA(y~day/run, Data=dataEP05A2_1)              
+	checkEquals(round(as.numeric(res$aov.tab[,"VC"])*100/sum(as.numeric(res$aov.tab[-1, "VC"])),6), round(as.numeric(res$aov.tab[,"%Total"]), 6))           # exclude total variance in the sum  
+	
+	res <- anovaVCA(y~day/run, Data=dataEP05A2_2)              
+	checkEquals(round(as.numeric(res$aov.tab[,"VC"])*100/sum(as.numeric(res$aov.tab[-1, "VC"])),6), round(as.numeric(res$aov.tab[,"%Total"]), 6)) 
+	
+	res <- anovaVCA(y~day/run, Data=dataEP05A2_3)              
+	checkEquals(round(as.numeric(res$aov.tab[,"VC"])*100/sum(as.numeric(res$aov.tab[-1, "VC"])),6), round(as.numeric(res$aov.tab[,"%Total"]), 6)) 
 }
 
 
@@ -126,27 +126,27 @@ TF006.anovaVCA.Percent_Total_results <- function()
 
 TF007.anovaVCA.EP05_A3_Reproducibility.balanced <- function()
 {      
-    res <- anovaVCA(y~site/day, Data=dataEP05A3_MS_1)
-    checkEquals(round(as.numeric(res$aov.tab[,"VC"]), 6), c( 3.635232, 1.017401, 0.345882, 2.271949))
-    
-    res <- anovaVCA(y~site/day, Data=dataEP05A3_MS_2)
-    checkEquals(round(as.numeric(res$aov.tab[,"VC"]), 6), c(5.765516, 1.010798, 1.028309, 3.726408))
-    
-    res <- anovaVCA(y~site/day, Data=dataEP05A3_MS_3)
-    checkEquals(round(as.numeric(res$aov.tab[,"VC"]), 6), c(38.438903, 17.990790, 5.423654, 15.024459))
+	res <- anovaVCA(y~site/day, Data=dataEP05A3_MS_1)
+	checkEquals(round(as.numeric(res$aov.tab[,"VC"]), 6), c( 3.635232, 1.017401, 0.345882, 2.271949))
+	
+	res <- anovaVCA(y~site/day, Data=dataEP05A3_MS_2)
+	checkEquals(round(as.numeric(res$aov.tab[,"VC"]), 6), c(5.765516, 1.010798, 1.028309, 3.726408))
+	
+	res <- anovaVCA(y~site/day, Data=dataEP05A3_MS_3)
+	checkEquals(round(as.numeric(res$aov.tab[,"VC"]), 6), c(38.438903, 17.990790, 5.423654, 15.024459))
 }   
 # unbalanced
 
 TF008.anovaVCA.EP05_A3_Reproducibility.unbalanced <- function()
 {
-    res <- anovaVCA(y~site/day, Data=dataEP05A3_MS_1[-c(11, 12, 17, 37, 45, 56, 57, 68), ])
-    checkEquals(round(as.numeric(res$aov.tab[,"VC"]), 6), c( 3.244177, 0.785705, 0.396764, 2.061709 ))
-    
-    res <- anovaVCA(y~site/day, Data=dataEP05A3_MS_2[-c(2, 12, 22, 23, 24, 55, 56, 71), ])
-    checkEquals(round(as.numeric(res$aov.tab[,"VC"]), 6), c( 5.773996, 0.729652, 0.917329, 4.127015 ))
-    
-    res <- anovaVCA(y~site/day, Data=dataEP05A3_MS_3[-c(1,6,7,36,61:65),])
-    checkEquals(round(as.numeric(res$aov.tab[,"VC"]), 6), c(37.092294, 16.872368, 4.773611, 15.446314))
+	res <- anovaVCA(y~site/day, Data=dataEP05A3_MS_1[-c(11, 12, 17, 37, 45, 56, 57, 68), ])
+	checkEquals(round(as.numeric(res$aov.tab[,"VC"]), 6), c( 3.244177, 0.785705, 0.396764, 2.061709 ))
+	
+	res <- anovaVCA(y~site/day, Data=dataEP05A3_MS_2[-c(2, 12, 22, 23, 24, 55, 56, 71), ])
+	checkEquals(round(as.numeric(res$aov.tab[,"VC"]), 6), c( 5.773996, 0.729652, 0.917329, 4.127015 ))
+	
+	res <- anovaVCA(y~site/day, Data=dataEP05A3_MS_3[-c(1,6,7,36,61:65),])
+	checkEquals(round(as.numeric(res$aov.tab[,"VC"]), 6), c(37.092294, 16.872368, 4.773611, 15.446314))
 }
 
 
@@ -155,14 +155,14 @@ TF008.anovaVCA.EP05_A3_Reproducibility.unbalanced <- function()
 
 TF009.anovaVCA.WRI <- function()
 { 
-    res <- anovaVCA(y~1, Data=dataRS0003_1)
-    checkEquals( round(as.numeric(res$aov.tab[2,c("SS", "MS")]),5), c(22.44452, 1.12223) )
-    
-    res <- anovaVCA(y~1, Data=dataRS0003_2)
-    checkEquals( round(as.numeric(res$aov.tab[2,c("SS", "MS")]),4), c(367.3480, 18.3674) )
-    
-    res <- anovaVCA(y~1, Data=dataRS0003_3)
-    checkEquals( round(as.numeric(res$aov.tab[2,c("SS", "MS")]),2), c(2210.59, 110.53) )
+	res <- anovaVCA(y~1, Data=dataRS0003_1)
+	checkEquals( round(as.numeric(res$aov.tab[2,c("SS", "MS")]),5), c(22.44452, 1.12223) )
+	
+	res <- anovaVCA(y~1, Data=dataRS0003_2)
+	checkEquals( round(as.numeric(res$aov.tab[2,c("SS", "MS")]),4), c(367.3480, 18.3674) )
+	
+	res <- anovaVCA(y~1, Data=dataRS0003_3)
+	checkEquals( round(as.numeric(res$aov.tab[2,c("SS", "MS")]),2), c(2210.59, 110.53) )
 }    
 
 ## RS0005 - Confirmation of internal data by external labs - balanced
@@ -170,65 +170,65 @@ TF009.anovaVCA.WRI <- function()
 
 TF010.anovaVCA.BDI.external_labs.balanced <- function()
 {     
-    res <- anovaVCA(y~day, Data=dataRS0005_1, NegVC=TRUE)
-    checkEquals( round(as.numeric(res$aov.tab[,"VC"]), 6), c(5.193341, 1.818128, 3.375212))
-    
-    res <- anovaVCA(y~day, Data=dataRS0005_2, NegVC=TRUE)
-    checkEquals( round(as.numeric(res$aov.tab[,"VC"]), 6), c(6.611960, 0.055541, 6.556419))
-    
-    res <- anovaVCA(y~day, Data=dataRS0005_3, NegVC=TRUE)
-    checkEquals( round(as.numeric(res$aov.tab[,"VC"]), 5), c(75.69922, 22.45171, 53.24751))
+	res <- anovaVCA(y~day, Data=dataRS0005_1, NegVC=TRUE)
+	checkEquals( round(as.numeric(res$aov.tab[,"VC"]), 6), c(5.193341, 1.818128, 3.375212))
+	
+	res <- anovaVCA(y~day, Data=dataRS0005_2, NegVC=TRUE)
+	checkEquals( round(as.numeric(res$aov.tab[,"VC"]), 6), c(6.611960, 0.055541, 6.556419))
+	
+	res <- anovaVCA(y~day, Data=dataRS0005_3, NegVC=TRUE)
+	checkEquals( round(as.numeric(res$aov.tab[,"VC"]), 5), c(75.69922, 22.45171, 53.24751))
 }   
 
 # unbalanced
 
 TF011.anovaVCA.BDI.external_labs.unbalanced <- function()
 {
-    res <- anovaVCA(y~day, Data=dataRS0005_1[-c(1,10),], NegVC=TRUE)
-    checkEquals( round(as.numeric(res$aov.tab[,"VC"]), 6), c(5.460289, 3.592088, 1.868201))
-    
-    res <- anovaVCA(y~day, Data=dataRS0005_2[-c(4,5,15),], NegVC=FALSE)                              # NegVC=FALSE, because SAS PROC NESTED does not count negative VCs to total VC
-    checkEquals( round(as.numeric(res$aov.tab[,"VC"]), 6), c( 8.548521, 0, 8.548521))
-    
-    res <- anovaVCA(y~day, Data=dataRS0005_3[-c(2,7,9,14),], NegVC=FALSE)
-    checkEquals( round(as.numeric(res$aov.tab[,"VC"]), 6), c( 62.404131, 0, 62.404131 ))
+	res <- anovaVCA(y~day, Data=dataRS0005_1[-c(1,10),], NegVC=TRUE)
+	checkEquals( round(as.numeric(res$aov.tab[,"VC"]), 6), c(5.460289, 3.592088, 1.868201))
+	
+	res <- anovaVCA(y~day, Data=dataRS0005_2[-c(4,5,15),], NegVC=FALSE)                              # NegVC=FALSE, because SAS PROC NESTED does not count negative VCs to total VC
+	checkEquals( round(as.numeric(res$aov.tab[,"VC"]), 6), c( 8.548521, 0, 8.548521))
+	
+	res <- anovaVCA(y~day, Data=dataRS0005_3[-c(2,7,9,14),], NegVC=FALSE)
+	checkEquals( round(as.numeric(res$aov.tab[,"VC"]), 6), c( 62.404131, 0, 62.404131 ))
 }
 
 # test whether conversion of variables to factors is correct
 
 TF012.anovaVCA.variable_conversion <- function()
 {
-    data(dataEP05A2_1)
-    dat1 <- dataEP05A2_1
-    dat1$day <- as.integer(as.character(dat1$day))
-    dat1$run <- as.integer(as.character(dat1$run))
+	data(dataEP05A2_1)
+	dat1 <- dataEP05A2_1
+	dat1$day <- as.integer(as.character(dat1$day))
+	dat1$run <- as.integer(as.character(dat1$run))
 	
 	res1 <- anovaVCA(y~day/run, dat1)
 	res2 <- anovaVCA(y~day/run, dataEP05A2_1)
-    
-    checkEquals( res1$aov.tab, res2$aov.tab )
+	
+	checkEquals( res1$aov.tab, res2$aov.tab )
 }
 
 # test whether missing values in response and other variables are correctly handled
 
 TF013.anovaVCA.missing_value_handling <- function()
 {
-    data(dataEP05A2_3)
-    dat0 <- dataEP05A2_3
-    
-    dat0[c(5,15,25),    "y"] <- NA                      # generated missing data
-    dat0[c(3,17,58),  "day"] <- NA
-    dat0[c(51,70,77), "run"] <- NA
-    
-    datNoNA <- na.omit(dat0)
-    
-    res1 <- anovaVCA(y~day/run, dat0)
-    res2 <- anovaVCA(y~day/run, datNoNA)
-    
-    checkEquals(as.matrix(res1$aov.tab), as.matrix(res2$aov.tab))
-    checkEquals(res1$Nrm,   9)
-    checkEquals(res1$Nobs, 71)
-    checkEquals(res2$Nobs, 71)
+	data(dataEP05A2_3)
+	dat0 <- dataEP05A2_3
+	
+	dat0[c(5,15,25),    "y"] <- NA                      # generated missing data
+	dat0[c(3,17,58),  "day"] <- NA
+	dat0[c(51,70,77), "run"] <- NA
+	
+	datNoNA <- na.omit(dat0)
+	
+	res1 <- anovaVCA(y~day/run, dat0)
+	res2 <- anovaVCA(y~day/run, datNoNA)
+	
+	checkEquals(as.matrix(res1$aov.tab), as.matrix(res2$aov.tab))
+	checkEquals(res1$Nrm,   9)
+	checkEquals(res1$Nobs, 71)
+	checkEquals(res2$Nobs, 71)
 }
 
 
@@ -244,22 +244,22 @@ TF013.anovaVCA.missing_value_handling <- function()
 
 TF014.anovaVCA.crossed_nested.balanced <- function()
 {
-    data(VCAdata1)
-    sample1 <- VCAdata1[which(VCAdata1$sample==1),]
-    sample1$device <- gl(3,28,252)                                      # add device variable
-    set.seed(505)
-    sample1$y <- sample1$y + rep(rep(rnorm(3,,.25), c(28,28,28)),3)     # add error component according to 
-    
-    # write.table(sample1, file="sample1.txt", quote=FALSE, row.names=FALSE, col.names=TRUE, sep="\t")      # export data, import to SAS and apply SAS-code given above
-    
-    res1 <- anovaVCA(y~lot+device+(lot:device:day)/run, sample1)
-    
-    checkEquals(round(res1$aov.tab[2, "VC"], 5), 0.01552)                        # round to precision of SAS PROC MIXED output
-    checkEquals(round(res1$aov.tab[3, "VC"], 5), 0.06214)
-    checkEquals(round(res1$aov.tab[4, "VC"], 5), 0.01256)
-    checkEquals(round(res1$aov.tab[5, "VC"], 5), 0.05074)
-    checkEquals(round(res1$aov.tab[6, "VC"], 6), 0.001152)
-    
+	data(VCAdata1)
+	sample1 <- VCAdata1[which(VCAdata1$sample==1),]
+	sample1$device <- gl(3,28,252)                                      # add device variable
+	set.seed(505)
+	sample1$y <- sample1$y + rep(rep(rnorm(3,,.25), c(28,28,28)),3)     # add error component according to 
+	
+	# write.table(sample1, file="sample1.txt", quote=FALSE, row.names=FALSE, col.names=TRUE, sep="\t")      # export data, import to SAS and apply SAS-code given above
+	
+	res1 <- anovaVCA(y~lot+device+(lot:device:day)/run, sample1)
+	
+	checkEquals(round(res1$aov.tab[2, "VC"], 5), 0.01552)                        # round to precision of SAS PROC MIXED output
+	checkEquals(round(res1$aov.tab[3, "VC"], 5), 0.06214)
+	checkEquals(round(res1$aov.tab[4, "VC"], 5), 0.01256)
+	checkEquals(round(res1$aov.tab[5, "VC"], 5), 0.05074)
+	checkEquals(round(res1$aov.tab[6, "VC"], 6), 0.001152)
+	
 }
 
 # now test numerical equivalence to SAS PROC MIXED results with unbalanced data 
@@ -279,24 +279,24 @@ TF014.anovaVCA.crossed_nested.balanced <- function()
 
 TF015.anovaVCA.crossed_nested.unbalanced <- function()
 {
-    data(VCAdata1)
-    sample1 <- VCAdata1[which(VCAdata1$sample==1),]
-    sample1$device <- gl(3,28,252)                                      # add device variable
-    set.seed(505)
-    sample1$y <- sample1$y + rep(rep(rnorm(3,,.25), c(28,28,28)),3)     # add error component according to 
-    
-    sample1UB <- sample1[-c(5,31,55),]                                  # delete some observations
-    
-    # write.table(sample1UB, file="sample1UB.txt", quote=FALSE, row.names=FALSE, col.names=TRUE, sep="\t")      # export data, import to SAS and apply SAS-code given above
-    
-    res1UB <- anovaVCA(y~lot+device+(lot:device:day)/run, sample1UB)
-    
-    checkEquals(round(res1UB$aov.tab[2, "VC"], 5), 0.01507)                        # round to precision of SAS PROC MIXED output
-    checkEquals(round(res1UB$aov.tab[3, "VC"], 5), 0.06284)
-    checkEquals(round(res1UB$aov.tab[4, "VC"], 5), 0.01259)
-    checkEquals(round(res1UB$aov.tab[5, "VC"], 5), 0.05143)
-    checkEquals(round(res1UB$aov.tab[6, "VC"], 6), 0.001145)
-    
+	data(VCAdata1)
+	sample1 <- VCAdata1[which(VCAdata1$sample==1),]
+	sample1$device <- gl(3,28,252)                                      # add device variable
+	set.seed(505)
+	sample1$y <- sample1$y + rep(rep(rnorm(3,,.25), c(28,28,28)),3)     # add error component according to 
+	
+	sample1UB <- sample1[-c(5,31,55),]                                  # delete some observations
+	
+	# write.table(sample1UB, file="sample1UB.txt", quote=FALSE, row.names=FALSE, col.names=TRUE, sep="\t")      # export data, import to SAS and apply SAS-code given above
+	
+	res1UB <- anovaVCA(y~lot+device+(lot:device:day)/run, sample1UB)
+	
+	checkEquals(round(res1UB$aov.tab[2, "VC"], 5), 0.01507)                        # round to precision of SAS PROC MIXED output
+	checkEquals(round(res1UB$aov.tab[3, "VC"], 5), 0.06284)
+	checkEquals(round(res1UB$aov.tab[4, "VC"], 5), 0.01259)
+	checkEquals(round(res1UB$aov.tab[5, "VC"], 5), 0.05143)
+	checkEquals(round(res1UB$aov.tab[6, "VC"], 6), 0.001145)
+	
 }
 
 
@@ -306,22 +306,22 @@ TF015.anovaVCA.crossed_nested.unbalanced <- function()
 
 TF016.anovaVCA.crossed_nested.balanced <- function()
 {
-    data(VCAdata1)
-    sample8 <- VCAdata1[which(VCAdata1$sample==8),]
-    sample8$device <- gl(3,28,252)                                      # add device variable
-    set.seed(903211)
-    sample8$y <- sample8$y + rep(rep(rnorm(3,,.75), c(28,28,28)),3)     # add error component according to 
-    
-    # write.table(sample8, file="sample8.txt", quote=FALSE, row.names=FALSE, col.names=TRUE, sep="\t")      # export data, import to SAS and apply SAS-code given above
-    
-    res8 <- anovaVCA(y~lot+device+(lot:device:day)/run, sample8)
-    
-    checkEquals(round(res8$aov.tab[2, "VC"], 4), 7.3463)                        # round to precision of SAS PROC MIXED output
-    checkEquals(round(res8$aov.tab[3, "VC"], 4), 2.2716)
-    checkEquals(round(res8$aov.tab[4, "VC"], 4), 3.4588)
-    checkEquals(round(res8$aov.tab[5, "VC"], 4), 2.0302)
-    checkEquals(round(res8$aov.tab[6, "VC"], 4), 1.2219)
-    
+	data(VCAdata1)
+	sample8 <- VCAdata1[which(VCAdata1$sample==8),]
+	sample8$device <- gl(3,28,252)                                      # add device variable
+	set.seed(903211)
+	sample8$y <- sample8$y + rep(rep(rnorm(3,,.75), c(28,28,28)),3)     # add error component according to 
+	
+	# write.table(sample8, file="sample8.txt", quote=FALSE, row.names=FALSE, col.names=TRUE, sep="\t")      # export data, import to SAS and apply SAS-code given above
+	
+	res8 <- anovaVCA(y~lot+device+(lot:device:day)/run, sample8)
+	
+	checkEquals(round(res8$aov.tab[2, "VC"], 4), 7.3463)                        # round to precision of SAS PROC MIXED output
+	checkEquals(round(res8$aov.tab[3, "VC"], 4), 2.2716)
+	checkEquals(round(res8$aov.tab[4, "VC"], 4), 3.4588)
+	checkEquals(round(res8$aov.tab[5, "VC"], 4), 2.0302)
+	checkEquals(round(res8$aov.tab[6, "VC"], 4), 1.2219)
+	
 }
 
 
@@ -329,23 +329,23 @@ TF016.anovaVCA.crossed_nested.balanced <- function()
 
 TF017.anovaVCA.crossed_nested.unbalanced <- function()
 {
-    data(VCAdata1)
-    sample8 <- VCAdata1[which(VCAdata1$sample==8),]
-    sample8$device <- gl(3,28,252)                                      # add device variable
-    set.seed(903211)
-    sample8$y <- sample8$y + rep(rep(rnorm(3,,.75), c(28,28,28)),3)     # add error component according to 
-    sample8UB <- sample8[-c(7, 18, 19, 101, 191, 193, 202, 203, 204, 222),]
-    
-    # write.table(sample8UB, file="sample8UB.txt", quote=FALSE, row.names=FALSE, col.names=TRUE, sep="\t")      # export data, import to SAS and apply SAS-code given above
-    
-    res8UB <- anovaVCA(y~lot+device+(lot:device:day)/run, sample8UB)
-    
-    checkEquals(round(res8UB$aov.tab[2, "VC"], 4), 7.2724)                        # round to precision of SAS PROC MIXED output
-    checkEquals(round(res8UB$aov.tab[3, "VC"], 4), 2.2278)
-    checkEquals(round(res8UB$aov.tab[4, "VC"], 4), 3.6385)
-    checkEquals(round(res8UB$aov.tab[5, "VC"], 4), 1.9844)
-    checkEquals(round(res8UB$aov.tab[6, "VC"], 4), 1.2451)
-    
+	data(VCAdata1)
+	sample8 <- VCAdata1[which(VCAdata1$sample==8),]
+	sample8$device <- gl(3,28,252)                                      # add device variable
+	set.seed(903211)
+	sample8$y <- sample8$y + rep(rep(rnorm(3,,.75), c(28,28,28)),3)     # add error component according to 
+	sample8UB <- sample8[-c(7, 18, 19, 101, 191, 193, 202, 203, 204, 222),]
+	
+	# write.table(sample8UB, file="sample8UB.txt", quote=FALSE, row.names=FALSE, col.names=TRUE, sep="\t")      # export data, import to SAS and apply SAS-code given above
+	
+	res8UB <- anovaVCA(y~lot+device+(lot:device:day)/run, sample8UB)
+	
+	checkEquals(round(res8UB$aov.tab[2, "VC"], 4), 7.2724)                        # round to precision of SAS PROC MIXED output
+	checkEquals(round(res8UB$aov.tab[3, "VC"], 4), 2.2278)
+	checkEquals(round(res8UB$aov.tab[4, "VC"], 4), 3.6385)
+	checkEquals(round(res8UB$aov.tab[5, "VC"], 4), 1.9844)
+	checkEquals(round(res8UB$aov.tab[6, "VC"], 4), 1.2451)
+	
 }
 
 
@@ -355,7 +355,7 @@ TF018.anovaDF.balanced <- function()
 {
 	aov.fit <- anova(lm(y~day/run, dataEP05A2_1))
 	rm.fit  <- anovaVCA(y~day/run, dataEP05A2_1)
-
+	
 	checkEquals(as.numeric(rm.fit$aov.tab[-1, "DF"]), as.numeric(aov.fit[,"Df"]))
 }
 
@@ -363,7 +363,7 @@ TF019.anovaDF.unbalanced <- function()
 {
 	aov.fit <- anova(lm(y~day/run, dataEP05A2_1[-c(1,7,11,41,50:55),]))
 	rm.fit  <- anovaVCA(y~day/run, dataEP05A2_1[-c(1,7,11,41,50:55),])
-
+	
 	checkEquals(as.numeric(rm.fit$aov.tab[-1, "DF"]), as.numeric(aov.fit[,"Df"]))
 }
 
@@ -396,7 +396,7 @@ datS4to5.ub <- datS1to2[-c(56, 116, 170, 184, 211, 219, 221, 256, 257, 261, 309,
 TF022.anovaDF.balanced <- function()
 {
 	aov.fit <- anova(lm(y~lot:sample+sample:day+sample:day:run, datS1to2))
-
+	
 	rm.fit  <- anovaVCA(y~lot:sample+sample:day+sample:day:run, datS1to2)
 	
 	checkEquals(as.numeric(rm.fit$aov.tab[-1, "DF"]), as.numeric(aov.fit[,"Df"]))
@@ -506,8 +506,8 @@ TF031.check.sweep_vs_qf_ssq_computation.unbalanced <- function()
 TF032.check.getAmatBmat.dense.C <- function()
 {
 	tmp.dat <- data.frame(	y=c(1.91935483870968, 1.88709677419355, 1.9741935483871, 1.88387096774194),
-							v=c(1,1,2,3))
-					
+			v=c(1,1,2,3))
+	
 	fit <- anovaVCA(y~v, tmp.dat)
 	
 	checkEquals(round(as.numeric(fit$aov.tab[-1, "VC"]), 6), c(0.001482, 0.000520))

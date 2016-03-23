@@ -4,11 +4,13 @@
 \alias{vcov.VCA}
 \title{Calculate Variance-Covariance Matrix of Fixed Effects for an 'VCA' Object.}
 \usage{
-\method{vcov}{VCA}(object, ...)
+\method{vcov}{VCA}(object, quiet = FALSE, ...)
 }
 \arguments{
 \item{object}{(VCA) object for which the variance-covariance matrix of
 fixed effects shall be calculated}
+
+\item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
 
 \item{...}{additional parameters}
 }

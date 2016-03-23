@@ -65,12 +65,12 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 	
 	stopifnot(class(obj) == "VCA")
 	stopifnot(!is.null(term))
-		
+	
 	if(length(mode) > 1)
 		mode <- mode[1]
-
+	
 	ObjNam  <- as.character(as.list(Call)$obj)	
-
+	
 	if(is.null(obj$RandomEffects))					# compute required matrices
 	{
 		obj  <- solveMME(obj)
@@ -102,7 +102,7 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 		else
 			warning("Some required information missing! Usually solving mixed model equations has to be done as a prerequisite!")
 	}
-
+	
 	if(!is.character(term))
 	{
 		term <- obj$re.assign$terms[as.integer(term)]
@@ -255,7 +255,8 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' 						The factor variable for which mean-values of factor-levels are plotted can be specified via list-element "var" accepting any factor 
 #' 						variable specified in 'form'. List element "mar" takes values in [0;.5] setting the left and right margin size of mean-lines.
 #' 						Set equal to NULL to omit. Use 'var="int"' for specifying the overall mean (grand mean, intercept).
-#' 						If this list contains logical 'join' which is set to TRUE, these mean lines will be joined.
+#' 						If this list contains logical 'join' which is set to TRUE, these mean lines will be joined. If list-element "top" is set to TRUE, 
+#' 						these lines will be plotted on top, which is particularily useful for very large datasets.
 #' @param VCnam         (list) specifying the text-labels (names of variance components) appearing as axis-labels. These parameters are passed to function
 #'                      'mtext'. Set to NULL to omit VC-names. 
 #' @param useVarNam     (logical) TRUE = each factor-level specifier is pasted to the variable name of the current variable and used as list-element name, 
@@ -404,47 +405,47 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' }
 
 varPlot <- function(form, Data, keep.order=TRUE, 
-                    type=c(1L, 2L, 3L)[1], VARtype="SD", htab=.5,
-					Title=NULL, VSpace=NULL,
-                    VarLab=list(cex=.75, adj=c(.5, .5)),
-                    YLabel=list(text="Value", side=2, line=2.5),
-                    SDYLabel=list(side=2, line=2.5),
-                    Points=list(pch=16, cex=.5, col="black"),
-                    SDs=list(pch=16, col="blue", cex=.75),
-                    SDline=list(lwd=1, lty=1, col="blue"),
-                    BG=list(border="lightgray", col.table=FALSE),
-					VLine=NULL,
-                    Join=list(lty=1, lwd=1, col="gray"),
-					JoinLevels=NULL,
-                    Mean=list(pch=3, col="red", cex=.5),
-					MeanLine=NULL,
-                    VCnam=list(cex=.75, col="black", line=0.25),
-                    useVarNam=FALSE, 
-                    ylim=NULL, max.level=25, ...)
+		type=c(1L, 2L, 3L)[1], VARtype="SD", htab=.5,
+		Title=NULL, VSpace=NULL,
+		VarLab=list(cex=.75, adj=c(.5, .5)),
+		YLabel=list(text="Value", side=2, line=2.5),
+		SDYLabel=list(side=2, line=2.5),
+		Points=list(pch=16, cex=.5, col="black"),
+		SDs=list(pch=16, col="blue", cex=.75),
+		SDline=list(lwd=1, lty=1, col="blue"),
+		BG=list(border="lightgray", col.table=FALSE),
+		VLine=NULL,
+		Join=list(lty=1, lwd=1, col="gray"),
+		JoinLevels=NULL,
+		Mean=list(pch=3, col="red", cex=.5),
+		MeanLine=NULL,
+		VCnam=list(cex=.75, col="black", line=0.25),
+		useVarNam=FALSE, 
+		ylim=NULL, max.level=25, ...)
 {        
-    stopifnot(is.data.frame(Data))
+	stopifnot(is.data.frame(Data))
 	stopifnot(class(form) == "formula")
 	stopifnot(nrow(Data) > 2)                                               # at least 2 observations for estimating a variance
 	
 	args <- list(...)
-    
-    VARtype <- match.arg(toupper(VARtype), c("SD", "CV"))
-
-    form <- terms(form, simplify=TRUE)
-    stopifnot(attr(form, "response") == 1)
-    resp <- rownames(attr(form, "factors"))[1]
+	
+	VARtype <- match.arg(toupper(VARtype), c("SD", "CV"))
+	
+	form <- terms(form, simplify=TRUE)
+	stopifnot(attr(form, "response") == 1)
+	resp <- rownames(attr(form, "factors"))[1]
 	
 	IntVal <- mean(Data[,resp], na.rm=TRUE)									# grand mean, possibly needed for MeanLine-functionality
-    
-    nest <- attr(form, "term.labels")
+	
+	nest <- attr(form, "term.labels")
 	if(length(nest) == 0)
 		stop("Models, where the intercept is the only coefficient, are not supported!")
-
-    nest <- sapply(nest, function(x){
-                x <- unlist(strsplit(x, ":"))
-                return(x[length(x)])
-            })
-
+	
+	nest <- sapply(nest, function(x){
+				x <- unlist(strsplit(x, ":"))
+				return(x[length(x)])
+			})
+	
 	tab <- table(nest)
 	if(any(tab > 1))
 	{
@@ -469,38 +470,38 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		VSpace <- rep(1/Nvc, Nvc)                					 		# fraction of the table reserved for vertical names is automatically set (e.g. run/part)
 	
 	
-   
-    if( !is.null(BG) && is.null(BG$var) )
-        BG$var <- nest[1]                                   				# use top-level factor for separating factor-levels if not otherwise specified 
- 
-    if(nest[1] != "1")                                         				# travers nesting structure and build nested list
-    {
-        lst <- buildList(Data=Data, Nesting=nest, Current=nest[1], resp=resp,
-                         keep.order=keep.order, useVarNam=useVarNam, Points=Points)
-    }
-    else
-    {
-        lst <- as.list(Data[,resp])
-
-        names(lst) <- paste("rep", 1:nrow(Data), sep="")
-        attr(lst, "Nelem") <- rep(1, length(lst))
+	
+	if( !is.null(BG) && is.null(BG$var) )
+		BG$var <- nest[1]                                   				# use top-level factor for separating factor-levels if not otherwise specified 
+	
+	if(nest[1] != "1")                                         				# travers nesting structure and build nested list
+	{
+		lst <- buildList(Data=Data, Nesting=nest, Current=nest[1], resp=resp,
+				keep.order=keep.order, useVarNam=useVarNam, Points=Points)
+	}
+	else
+	{
+		lst <- as.list(Data[,resp])
+		
+		names(lst) <- paste("rep", 1:nrow(Data), sep="")
+		attr(lst, "Nelem") <- rep(1, length(lst))
 		
 		# point colors used to indicated class levels?
-        
-        if( (is.list(Points$col)) && ("var" %in% names(Points$col)) && (Points$col$var %in% colnames(Data)) )
-        {
-            if(length(unique(Data[,Points$col$var])) > length(unique(Points$col$col)))          # not enough colors, need to be recycled
-            {
-                Points$col$col <- rep(Points$col$col, ceiling(length(unique(Data[,Points$col$var])) / length(unique(Points$col$col))))
-            }
-            tmp <- 1:length(unique(Data[,Points$col$var]))
-            names(tmp) <- unique(Data[,Points$col$var])
-            attr(lst, "Color") <- Points$col$col[tmp[Data[,Points$col$var]]]                   # assign colors to class-levels of Points$col$var variable
-        }
-        else
-        {
-            attr(lst, "Color") <- rep(Points$col, nrow(Data))
-        }
+		
+		if( (is.list(Points$col)) && ("var" %in% names(Points$col)) && (Points$col$var %in% colnames(Data)) )
+		{
+			if(length(unique(Data[,Points$col$var])) > length(unique(Points$col$col)))          # not enough colors, need to be recycled
+			{
+				Points$col$col <- rep(Points$col$col, ceiling(length(unique(Data[,Points$col$var])) / length(unique(Points$col$col))))
+			}
+			tmp <- 1:length(unique(Data[,Points$col$var]))
+			names(tmp) <- unique(Data[,Points$col$var])
+			attr(lst, "Color") <- Points$col$col[tmp[Data[,Points$col$var]]]                   # assign colors to class-levels of Points$col$var variable
+		}
+		else
+		{
+			attr(lst, "Color") <- rep(Points$col, nrow(Data))
+		}
 		
 		# plotting symbols used to indicated class levels?
 		
@@ -518,47 +519,47 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		{
 			attr(lst, "Symbol") <- rep(Points$pch, nrow(Data))
 		}
-    }
-
-    Nelem <- attr(lst, "Nelem")                                             # number of bottom-level sub-classes per top-level factor-level  
-    Nbin <- attr(lst, "Nbin")                                               # number of bins, i.e. scatterplots
-    Xdiff <- length(lst)/sum(Nelem)                                         # basic cell-width of the tabular        
-
-    Range <- range(Data[, resp], na.rm=TRUE)                                # plotting limits (Y-direction) for the variability-plot    
-    Range[1] <- Range[1] - diff(Range) * .1
-    Range[2] <- Range[2] + diff(Range) * .1
-    Range <- range(pretty(Range))
-
-    if( !is.null(ylim) )                                                    # user-defined Y-limits
-    {
-        if( is.numeric(ylim) && length(ylim) > 1)
-        	Range <- ylim[1:2]
-    }
-
-    YLim <- Range
-    
-    YLim[1] <- YLim[1] - diff(YLim) * htab
-    
-    if(VARtype == "SD")
-        SDrange <- attr(lst, "SDrange")                                     # plotting limits (Y-direction) for the SD-plot
-    if(VARtype == "CV")
-        SDrange <- attr(lst, "CVrange")                                     # use CV instead of SD
-    
-    SDrange[1] <- SDrange[1] - diff(SDrange) * .05
-    SDrange[2] <- SDrange[2] + diff(SDrange) * .1
-    SDrange <- range(pretty(SDrange))
-    SDYLim <- SDrange
-    SDYLim[1] <- SDYLim[1] - diff(SDYLim) * htab
-    
-    if(type == 3L)
-        MFROW <- c(2,1)
-    else
-        MFROW <- c(1,1)
-    
+	}
+	
+	Nelem <- attr(lst, "Nelem")                                             # number of bottom-level sub-classes per top-level factor-level  
+	Nbin <- attr(lst, "Nbin")                                               # number of bins, i.e. scatterplots
+	Xdiff <- length(lst)/sum(Nelem)                                         # basic cell-width of the tabular        
+	
+	Range <- range(Data[, resp], na.rm=TRUE)                                # plotting limits (Y-direction) for the variability-plot    
+	Range[1] <- Range[1] - diff(Range) * .1
+	Range[2] <- Range[2] + diff(Range) * .1
+	Range <- range(pretty(Range))
+	
+	if( !is.null(ylim) )                                                    # user-defined Y-limits
+	{
+		if( is.numeric(ylim) && length(ylim) > 1)
+			Range <- ylim[1:2]
+	}
+	
+	YLim <- Range
+	
+	YLim[1] <- YLim[1] - diff(YLim) * htab
+	
+	if(VARtype == "SD")
+		SDrange <- attr(lst, "SDrange")                                     # plotting limits (Y-direction) for the SD-plot
+	if(VARtype == "CV")
+		SDrange <- attr(lst, "CVrange")                                     # use CV instead of SD
+	
+	SDrange[1] <- SDrange[1] - diff(SDrange) * .05
+	SDrange[2] <- SDrange[2] + diff(SDrange) * .1
+	SDrange <- range(pretty(SDrange))
+	SDYLim <- SDrange
+	SDYLim[1] <- SDYLim[1] - diff(SDYLim) * htab
+	
+	if(type == 3L)
+		MFROW <- c(2,1)
+	else
+		MFROW <- c(1,1)
+	
 	if(is.null(Title))
 		mar <- c(1,4.1,1,1) 
 	else
-	    mar <- c(2,4.1,3.5,1)
+		mar <- c(2,4.1,3.5,1)
 	
 	if(!is.null(args))
 	{
@@ -572,21 +573,21 @@ varPlot <- function(form, Data, keep.order=TRUE,
 	{
 		args <- list(mar=mar, xaxs="i", yaxs="i", mfrow=MFROW)
 	}
-
+	
 	old.par <- do.call("par", args)											# set graphical parameters
 	
 	Ybound   <- YLim[1]														# generate Y-limits for the tabular environment(s)
 	SDYbound <- SDYLim[1]
-
+	
 	for(i in 1:Nvc)
 	{
 		Ybound   <- c(Ybound,     Ybound[length(  Ybound)] + VSpace[i] * abs(diff(c(Range[1], YLim[1]))) )
 		SDYbound <- c(SDYbound, SDYbound[length(SDYbound)] + VSpace[i] * abs(diff(c(SDrange[1], SDYLim[1]))) )
 	}	
 	
-    Xbound <- c(0, cumsum(Xdiff * Nelem))
- 
-    VarLab.default <- list(cex=.75, adj=c(.5, .5))
+	Xbound <- c(0, cumsum(Xdiff * Nelem))
+	
+	VarLab.default <- list(cex=.75, adj=c(.5, .5))
 	tmpList <- list()
 	for(i in 1:Nvc)																			# replicate default-settings list as many times as there are VCs
 		tmpList[[i]] <- VarLab.default
@@ -608,22 +609,22 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		}
 	}
 	VarLab <- VarLab.default
-
-    YLabel.default <- list(text="Value", side=2, line=2, at=mean(Range))
-    YLabel.default[names(YLabel)] <- YLabel
-    YLabel <- YLabel.default
-    
-    SDYLabel.default <- list(text=ifelse(VARtype=="SD", "SD", "CV %"), side=2, line=2, at=mean(SDrange))
-    SDYLabel.default[names(SDYLabel)] <- SDYLabel
-    SDYLabel <- SDYLabel.default
-    
-    Points.default <- list(pch=16, cex=.5, col="black")
-    Points.default[names(Points)] <- Points
-    Points <- Points.default
-    
-    SDs.default <- list(pch=16, col="blue", cex=.75)
-    SDs.default[names(SDs)] <- SDs
-    SDs <- SDs.default
+	
+	YLabel.default <- list(text="Value", side=2, line=2, at=mean(Range))
+	YLabel.default[names(YLabel)] <- YLabel
+	YLabel <- YLabel.default
+	
+	SDYLabel.default <- list(text=ifelse(VARtype=="SD", "SD", "CV %"), side=2, line=2, at=mean(SDrange))
+	SDYLabel.default[names(SDYLabel)] <- SDYLabel
+	SDYLabel <- SDYLabel.default
+	
+	Points.default <- list(pch=16, cex=.5, col="black")
+	Points.default[names(Points)] <- Points
+	Points <- Points.default
+	
+	SDs.default <- list(pch=16, col="blue", cex=.75)
+	SDs.default[names(SDs)] <- SDs
+	SDs <- SDs.default
 	
 	if(!is.null(BG))
 	{
@@ -634,7 +635,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		if(!is.null(BG$col) && !is.null(BG$var))			# color(s) and variable specified
 		{
 			Lvls <- unique(Data[,BG$var])
-	
+			
 			if(length(BG$col) == length(Lvls))
 			{
 				names(BG$col) <- Lvls						# same color will be used for same level
@@ -645,32 +646,32 @@ varPlot <- function(form, Data, keep.order=TRUE,
 			BG$border <- NA
 	}
 	
-    if(!is.null(SDline))
-    {
-        SDline.default <- list(lwd=1, lty=1, col="blue")
-        SDline.default[names(SDline)] <- SDline
-        SDline <- SDline.default
-    }
-
-    if(!is.null(VCnam))
-    {
-        VCnam.default <- list(cex=.75, col="black", line=0.25)
-        VCnam.default[names(VCnam)] <- VCnam
-        VCnam <- VCnam.default
-    }
-    
-    if(!is.null(Join))
-    {
-        Join.default <- list(lty=1, lwd=1, col="gray")
-        Join.default[names(Join)] <- Join   
-        Join <- Join.default
-    }
-    
-    if (!is.null(Mean)) {
-        Mean.default <- list(pch = 3, col = "yellow", cex = 0.35)
-        Mean.default[names(Mean)] <- Mean
-        Mean <- Mean.default
-    }
+	if(!is.null(SDline))
+	{
+		SDline.default <- list(lwd=1, lty=1, col="blue")
+		SDline.default[names(SDline)] <- SDline
+		SDline <- SDline.default
+	}
+	
+	if(!is.null(VCnam))
+	{
+		VCnam.default <- list(cex=.75, col="black", line=0.25)
+		VCnam.default[names(VCnam)] <- VCnam
+		VCnam <- VCnam.default
+	}
+	
+	if(!is.null(Join))
+	{
+		Join.default <- list(lty=1, lwd=1, col="gray")
+		Join.default[names(Join)] <- Join   
+		Join <- Join.default
+	}
+	
+	if (!is.null(Mean)) {
+		Mean.default <- list(pch = 3, col = "yellow", cex = 0.35)
+		Mean.default[names(Mean)] <- Mean
+		Mean <- Mean.default
+	}
 	
 	if(!is.null(JoinLevels) && is.list(JoinLevels) && JoinLevels$var %in% nest[2:length(nest)])
 	{
@@ -694,15 +695,15 @@ varPlot <- function(form, Data, keep.order=TRUE,
 	rec.env$MeanLineCollection <- list()
 	rec.env$MeansCollection <- list()
 	rec.env$PointCollection <- list()
-	    
-    #abline(h=Ybound[Nvc+1])
- 
-    tlNames <- names(lst)
+	
+	#abline(h=Ybound[Nvc+1])
+	
+	tlNames <- names(lst)
 	
 	global.Points <- list()
-
-    # adding tabluar environment at the bottom and scatterplot of observed values
-    #
+	
+	# adding tabluar environment at the bottom and scatterplot of observed values
+	#
 	# lst       	... (list) to be processed 
 	# xlim      	... (numeric) vector specifying the X-limits for the current list
 	# yval      	... (numeric) vector specifying the Y-coordinates of horizontal lines
@@ -716,80 +717,80 @@ varPlot <- function(form, Data, keep.order=TRUE,
 	# Intercept 	... (list) of function arguments specifying the horizontal intercept-line
 	# JoinLevels	... (list) of functin arguments specifying lines joining factor-level means, nested within higher order factor
 	# draw.vertical ... (logical) indicating whether vertical lines in the table should be drawn or not, depends on 'max.level'
-    
-    processList <- function(lst, xlim, yval, Xdiff, type, VARtype, StatsList, index=1, 
-							VarLab, MeanLine, VLine, Intercept, JoinLevels, draw.vertical=TRUE)
-    {
-        Xlower <- xlim[1]    
-
-        Stats  <- attr(lst, "Stats")
-        Nelem  <- attr(lst, "Nelem")
+	
+	processList <- function(lst, xlim, yval, Xdiff, type, VARtype, StatsList, index=1, 
+			VarLab, MeanLine, VLine, Intercept, JoinLevels, draw.vertical=TRUE)
+	{
+		Xlower <- xlim[1]    
+		
+		Stats  <- attr(lst, "Stats")
+		Nelem  <- attr(lst, "Nelem")
 		Nlevel <- attr(lst, "Nlevel")
-        
-        Names <- names(lst)
+		
+		Names <- names(lst)
 		
 		col.table <- FALSE
-     
-        if( !is.null(BG))                                                           # draw vertical lines between or color background for factor-levels
-        {
-            if( BG$var == attr(lst, "factor") )                                  	# apply BG-list to the current factor
+		
+		if( !is.null(BG))                                                           # draw vertical lines between or color background for factor-levels
+		{
+			if( BG$var == attr(lst, "factor") )                                  	# apply BG-list to the current factor
 			{
 				tmpBG <- BG
 				ColNames <- names(BG$col)											# might be NULL
-
+				
 				col.table <- tmpBG$col.table
 				tmpBG$col.table <- NULL
 			}               
-            else
-                tmpBG <- NULL
-        }
-        else																		# background will not be colored
+			else
+				tmpBG <- NULL
+		}
+		else																		# background will not be colored
 		{
 			tmpBG <- NULL
 			
 			if(!is.null(Intercept))													# horizontal intercept line will not be covered by 'BG'
 				do.call("lines", Intercept)
 		}
-
+		
 		
 		Factor <- attr(lst, "factor")												# current factor-variable to be processed
-  
-        for(i in 1:length(lst))
-        {  
+		
+		for(i in 1:length(lst))
+		{  
 			tmp <- lst[[i]]    
 			tmp.draw.vertical <- Nlevel[i] <= max.level								# no further sub-division if too many levels
-
-            Xupper <- Xlower + Xdiff * Nelem[i]
-
-            if( !is.null(tmpBG) )                                                   # apply BG-settings
-            {
-                tmpBG$factor    <- NULL
-                tmpBG$xleft     <- Xlower
-                tmpBG$xright    <- Xupper
-		
+			
+			Xupper <- Xlower + Xdiff * Nelem[i]
+			
+			if( !is.null(tmpBG) )                                                   # apply BG-settings
+			{
+				tmpBG$factor    <- NULL
+				tmpBG$xleft     <- Xlower
+				tmpBG$xright    <- Xupper
+				
 				if(type %in% c(1,3))
-                {
-                    tmpBG$ybottom   <- Range[1]										# outside of 'processList' defined
-                    tmpBG$ytop      <- Range[2]
-                }
-                else if(type %in% c(2,3))
-                {
-                    tmpBG$ybottom   <- SDYbound[length(SDYbound)] 
-                    tmpBG$ytop      <- SDYLim[2] * 2
-                }
-
-                if( length(BG$col) > 1 )
-                {
+				{
+					tmpBG$ybottom   <- Range[1]										# outside of 'processList' defined
+					tmpBG$ytop      <- Range[2]
+				}
+				else if(type %in% c(2,3))
+				{
+					tmpBG$ybottom   <- SDYbound[length(SDYbound)] 
+					tmpBG$ytop      <- SDYLim[2] * 2
+				}
+				
+				if( length(BG$col) > 1 )
+				{
 					if(!is.null(ColNames))
 						tmpBG$col <- BG$col[Names[i]]
 					else
-                    	tmpBG$col <- BG$col[index]
-                    last.index <- index
-                }
-
+						tmpBG$col <- BG$col[index]
+					last.index <- index
+				}
+				
 				tmpBG$var <- NULL													# "var" is no graphical parameter
 				
-                do.call("rect", tmpBG)                                              # draw the rectangle as background for the specified group
+				do.call("rect", tmpBG)                                              # draw the rectangle as background for the specified group
 				
 				if(col.table)														# color levels for the factor determining BG-colors
 				{
@@ -798,54 +799,54 @@ varPlot <- function(form, Data, keep.order=TRUE,
 					
 					do.call("rect", tmpBG)
 				}
-                
-                if( length(BG$col) > 1 )
-                {
-                    if( index + 1 > length(BG$col) )
-                        index <- 1
-                    else
-                        index <- index + 1                                          # use color (i+1) or go back to 1st color
-                }
-            }
-            
+				
+				if( length(BG$col) > 1 )
+				{
+					if( index + 1 > length(BG$col) )
+						index <- 1
+					else
+						index <- index + 1                                          # use color (i+1) or go back to 1st color
+				}
+			}
+			
 			if(draw.vertical || i == length(lst))
-            	lines(x=rep(Xupper, 2), y=yval[1:2])                                # draw vertical lines of the table       
-  
-            if(is.list(tmp))                                                        # recursive descent
-            {	
+				lines(x=rep(Xupper, 2), y=yval[1:2])                                # draw vertical lines of the table       
+			
+			if(is.list(tmp))                                                        # recursive descent
+			{	
 				VarLabel <- VarLab[[1]]												# use different variable name because VarLab is passed down and is not allowed to be manipulated
 				
-                VarLabel$x=mean(c(Xlower, Xupper))
-                VarLabel$y=mean(yval[1:2])
-                VarLabel$labels=Names[i]
+				VarLabel$x=mean(c(Xlower, Xupper))
+				VarLabel$y=mean(yval[1:2])
+				VarLabel$labels=Names[i]
 				
 				if(draw.vertical)
-                	do.call("text", args=VarLabel)
+					do.call("text", args=VarLabel)
 				
 				if(!tmp.draw.vertical)
 				{
 					text(mean(c(Xlower, Xupper)),  mean(yval[2:3]), 
-						 paste("N=", Nlevel[i], sep=""), cex=.75)
-			 	}
+							paste("N=", Nlevel[i], sep=""), cex=.75)
+				}
 				
-                StatsList <- processList(lst=tmp, xlim=c(Xlower, Xupper), yval=yval[-1], Xdiff=Xdiff, type=type, 
-										 VARtype=VARtype, StatsList=StatsList, index=index, VarLab=VarLab[-1],
-										 MeanLine=MeanLine, VLine=VLine, Intercept=Intercept, JoinLevels=JoinLevels,
-										 draw.vertical=tmp.draw.vertical)
-                index <- attr(StatsList, "index")
-            }
-            else                                                                    # leaf-node reached (numeric vector)
-            {
+				StatsList <- processList(lst=tmp, xlim=c(Xlower, Xupper), yval=yval[-1], Xdiff=Xdiff, type=type, 
+						VARtype=VARtype, StatsList=StatsList, index=index, VarLab=VarLab[-1],
+						MeanLine=MeanLine, VLine=VLine, Intercept=Intercept, JoinLevels=JoinLevels,
+						draw.vertical=tmp.draw.vertical)
+				index <- attr(StatsList, "index")
+			}
+			else                                                                    # leaf-node reached (numeric vector)
+			{
 				VarLabel <- VarLab[[1]]
-                VarLabel$x=mean(c(Xlower, Xupper))
-                VarLabel$y=mean(yval[1:2])
-                VarLabel$labels=Names[i]
-
+				VarLabel$x=mean(c(Xlower, Xupper))
+				VarLabel$y=mean(yval[1:2])
+				VarLabel$labels=Names[i]
+				
 				if(draw.vertical)
 					do.call("text", args=VarLabel)
-                
-                if(type == 1)
-                {
+				
+				if(type == 1)
+				{
 					Points$x=rep(mean(mean(c(Xlower, Xupper))), length(tmp))        # add points to plot (X-coordinates)
 					
 					stylim <- tmp < ylim[1]											# smaller than ylim
@@ -861,20 +862,20 @@ varPlot <- function(form, Data, keep.order=TRUE,
 					Points$y <- tmp.points						
 					
 					rec.env$dat$x <- c(rec.env$dat$x, Points$x)						# record coordinates for later use
-                }
-                else
-                {
-                    SDs$x=mean(c(Xlower, Xupper))
-                    SDs$y=ifelse(VARtype=="SD", Stats$SD[i], Stats$CV[i])
-                    StatsList$SDvec <- c(StatsList$SDvec, SDs$y)
-                    names(StatsList$SDvec)[length(StatsList$SDvec)] <- SDs$x
-                }
-                
-                StatsList$Nobs <- c(StatsList$Nobs, length(na.omit(tmp)))           # record number of non-NA observation
-                
-                if(!is.null(Join) && type == 1)
-                {
-                    Join$x=Points$x
+				}
+				else
+				{
+					SDs$x=mean(c(Xlower, Xupper))
+					SDs$y=ifelse(VARtype=="SD", Stats$SD[i], Stats$CV[i])
+					StatsList$SDvec <- c(StatsList$SDvec, SDs$y)
+					names(StatsList$SDvec)[length(StatsList$SDvec)] <- SDs$x
+				}
+				
+				StatsList$Nobs <- c(StatsList$Nobs, length(na.omit(tmp)))           # record number of non-NA observation
+				
+				if(!is.null(Join) && type == 1)
+				{
+					Join$x=Points$x
 					
 					if(any( stylim | gtylim ))										# set extreme values to ylim
 					{
@@ -882,22 +883,22 @@ varPlot <- function(form, Data, keep.order=TRUE,
 						
 						if(any(stylim))
 							tmp.points[stylim] <- ylim[1]
-					 	if(any(gtylim))
+						if(any(gtylim))
 							tmp.points[gtylim] <- ylim[2]
-							
+						
 						Join$y <- tmp.points
 					}
 					else
-                    	Join$y=Points$y
+						Join$y=Points$y
 					
-                    #do.call("lines", args=Join)
+					#do.call("lines", args=Join)
 					rec.env$JoinCollection[[length(rec.env$JoinCollection)+1]] <- Join
-                }
+				}
 				
-                if(!is.null(Mean) && type == 1)
-                {
-                    Mean$x=Points$x[1]
-                    Mean$y=Stats$Mean[i]
+				if(!is.null(Mean) && type == 1)
+				{
+					Mean$x=Points$x[1]
+					Mean$y=Stats$Mean[i]
 					mstylim <- Mean$y < ylim[1]
 					mgtylim <- Mean$y > ylim[2]
 					if(any(mstylim))												# do plot mean-value if outside the plotting region
@@ -905,21 +906,21 @@ varPlot <- function(form, Data, keep.order=TRUE,
 					if(any(mgtylim))
 						Mean$y[mgtylim] <- NA
 					
-                    #do.call("points", args=Mean)
+					#do.call("points", args=Mean)
 					rec.env$MeanCollection[[length(rec.env$MeanCollection) + 1]] <- Mean
-                }
-                
-                Points$col <- attr(tmp, "Color")
+				}
+				
+				Points$col <- attr(tmp, "Color")
 				Points$pch <- attr(tmp, "Symbol")
-   
-                if(type == 1)
+				
+				if(type == 1)
 				{
-                    #do.call("points", args=Points)
-                	rec.env$PointsCollection[[length(rec.env$PointsCollection) + 1]] <- Points
+					#do.call("points", args=Points)
+					rec.env$PointsCollection[[length(rec.env$PointsCollection) + 1]] <- Points
 				}
 				else
-                    do.call("points", args=SDs)
-            }
+					do.call("points", args=SDs)
+			}
 			
 			if( !is.null(MeanLine) && !is.null(Factor) && Factor %in% MeanLine$var)
 			{
@@ -946,7 +947,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 				
 				Mstylim <- tmp.Mean$y < ylim[1]
 				Mgtylim <- tmp.Mean$y > ylim[2]
-
+				
 				if(any(Mstylim))
 					tmp.Mean$y[Mstylim] <- NA
 				if(any(Mgtylim))
@@ -974,7 +975,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 					if(i == length(lst))
 						drawVLine <- FALSE											# omit last vertical line for upper-most factor
 				}
-		
+				
 				if(drawVLine)														# do not draw last vertical line, this separates levels of the factor one level above
 				{
 					var.ind <- which(VLine$var == Factor)
@@ -1000,13 +1001,13 @@ varPlot <- function(form, Data, keep.order=TRUE,
 						tmpVLine$y <- c(Range[1], Range[2]+abs(diff(Range)))
 					}
 					tmpVLine$var <- NULL
-	
+					
 					#do.call("lines", tmpVLine)
 					rec.env$VLineCollection[[length(rec.env$VLineCollection) + 1]] <- tmpVLine
 				}
 			}
 			
-
+			
 			precFactor <- NULL
 			if(nestInd > 1)
 				precFactor <- nest[nestInd-1]											# preceding factor in nesting hierarchy
@@ -1042,16 +1043,26 @@ varPlot <- function(form, Data, keep.order=TRUE,
 					do.call("lines", Intercept)
 			}
 			
-            Xlower <- Xupper
-        }
+			Xlower <- Xupper
+		}
 		abline(h=yval[2])
 		
-        attr(StatsList, "index") <- index                                           # remember last values of index
-        invisible(StatsList)
-    }
+		attr(StatsList, "index") <- index                                           # remember last values of index
+		invisible(StatsList)
+	}
+	
+	MeanLineOnTop <- FALSE															# default
+	
+	if(!is.null(MeanLine$top))
+	{
+		MeanLineOnTop <- MeanLine$top
+		MeanLine$top  <- NULL 
+	}
+	
+	InterceptMeanLine <- NULL
 	
 	if(is.list(MeanLine) && "int" %in% MeanLine$var)								# draw horizontal line indicating the intercept if specified
-	{
+	{		
 		var.ind <- which(MeanLine$var == "int")
 		
 		MeanLineClone <- MeanLine
@@ -1065,7 +1076,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		Intercept <- list(lty=3, lwd=2, col="gray")									# default settings
 		Intercept[names(MeanLineClone)] <- MeanLineClone
 		Intercept$var <- NULL
-
+		
 		if("mar" %in% names(Intercept) && is.numeric(Intercept$mar) && Intercept$mar >= 0 && Intercept$mar < .5 )
 		{
 			Xlower <- Xbound[1]
@@ -1077,38 +1088,44 @@ varPlot <- function(form, Data, keep.order=TRUE,
 			Intercept$x <- range(Xbound)
 		
 		Intercept$y <- rep(IntVal, 2)	
+		
+		if(MeanLineOnTop)															# plot it on top of measurements
+		{
+			InterceptMeanLine <- Intercept
+			Intercept <- NULL
+		}
 	}
 	else
 		Intercept <- NULL
-    
-    if(type %in% c(1,3))
-    {
-        plot(1, axes=FALSE, xlab="", ylab="", ylim=YLim, xlim=c(0, length(lst)), type="n")
-        
+	
+	if(type %in% c(1,3))
+	{
+		plot(1, axes=FALSE, xlab="", ylab="", ylim=YLim, xlim=c(0, length(lst)), type="n")
+		
 		tmp.at <- pretty(Range)
 		if(any(tmp.at < min(Range)))
 			tmp.at <- tmp.at[-which(tmp.at < min(Range))]
-        axis(2, at=tmp.at) 
+		axis(2, at=tmp.at) 
 		#axis(2, at=pretty(Range))
-        
-        do.call("mtext", args=YLabel)
+		
+		do.call("mtext", args=YLabel)
 		
 		if(!is.null(Title))
-		 do.call("title", args=Title[[1]])
-        
-        StatsList <- list(SDvec=numeric(), Nobs=integer())
-
-        StatsList <- processList(lst=lst, xlim=range(Xbound), yval=Ybound, Xdiff=Xdiff, type=1, 
-								 StatsList=StatsList, VARtype=VARtype, VarLab=VarLab, MeanLine=MeanLine, 
-								 Intercept=Intercept, VLine=VLine, JoinLevels=JoinLevels)   		  											
-
-        box()
-
+			do.call("title", args=Title[[1]])
+		
+		StatsList <- list(SDvec=numeric(), Nobs=integer())
+		
+		StatsList <- processList(lst=lst, xlim=range(Xbound), yval=Ybound, Xdiff=Xdiff, type=1, 
+				StatsList=StatsList, VARtype=VARtype, VarLab=VarLab, MeanLine=MeanLine, 
+				Intercept=Intercept, VLine=VLine, JoinLevels=JoinLevels)   		  											
+		
+		box()
+		
 		if(length(rec.env$VLineCollection) > 0)
 		{
 			for(i in 1:length(rec.env$VLineCollection))								# now actually draw vertical lines, avoiding BG-coloring to partially cover them
 				do.call("lines", rec.env$VLineCollection[[i]])
-		
+			
 			rec.env$VLineCollection <- NULL											# should not be returned
 		}
 		
@@ -1116,7 +1133,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		{
 			for(i in 1:length(rec.env$JoinLevelsCollection))						# now actually draw lines joining factor-level means
 				do.call("lines", rec.env$JoinLevelsCollection[[i]])
-		
+			
 			rec.env$JoinLevelsCollection <- NULL
 		}
 		
@@ -1128,12 +1145,15 @@ varPlot <- function(form, Data, keep.order=TRUE,
 			rec.env$JoinCollection <- NULL
 		}
 		
-		if(length(rec.env$MeanLineCollection) > 0)									# mean line per factor-level
+		if(!MeanLineOnTop)															# mean-lines in front
 		{
-			for(i in 1:length(rec.env$MeanLineCollection))
-				do.call("lines", rec.env$MeanLineCollection[[i]])
-			
-			rec.env$MeanLineCollection <- NULL
+			if(length(rec.env$MeanLineCollection) > 0)									# mean line per factor-level
+			{
+				for(i in 1:length(rec.env$MeanLineCollection))
+					do.call("lines", rec.env$MeanLineCollection[[i]])
+				
+				rec.env$MeanLineCollection <- NULL
+			}
 		}
 		
 		if(length(rec.env$PointsCollection) > 0)									# observations
@@ -1152,43 +1172,57 @@ varPlot <- function(form, Data, keep.order=TRUE,
 			rec.env$MeanCollection <- NULL
 		}
 		
-        if(!is.null(VCnam))
-        {
-            VCnam$side=2
-            VCnam$at <- Ybound[-length(Ybound)]+diff(Ybound[1:2])/2
+		if(MeanLineOnTop)
+		{
+			if(!is.null(InterceptMeanLine))
+				do.call("lines", InterceptMeanLine)
+			
+			if(length(rec.env$MeanLineCollection) > 0)									# mean line per factor-level
+			{
+				for(i in 1:length(rec.env$MeanLineCollection))
+					do.call("lines", rec.env$MeanLineCollection[[i]])
+				
+				rec.env$MeanLineCollection <- NULL
+			}
+		}
+		
+		if(!is.null(VCnam))
+		{
+			VCnam$side=2
+			VCnam$at <- Ybound[-length(Ybound)]+diff(Ybound[1:2])/2
 			if(is.null(VCnam$text))																			# do not overwrite user-specified text
-            	VCnam$text <- nest
-            VCnam$las <- 1
-            VCnam$adj <- 1
-            do.call("mtext", args=VCnam)
-        }
-    }
-    
-    if(type %in% c(2,3))                                                                        			# add a 2nd plot
-    {
-        plot(1, axes=FALSE, xlab="", ylab="", ylim=SDYLim, xlim=c(0, length(lst)), type="n")
-        
-        if(SDrange[1] == 0)
-            abline(h=0, lty=2, col="gray")
-        
+				VCnam$text <- nest
+			VCnam$las <- 1
+			VCnam$adj <- 1
+			do.call("mtext", args=VCnam)
+		}
+	}
+	
+	if(type %in% c(2,3))                                                                        			# add a 2nd plot
+	{
+		plot(1, axes=FALSE, xlab="", ylab="", ylim=SDYLim, xlim=c(0, length(lst)), type="n")
+		
+		if(SDrange[1] == 0)
+			abline(h=0, lty=2, col="gray")
+		
 		tmp.at <- pretty(SDrange)
 		if(any(tmp.at < min(SDrange)))
 			tmp.at <- tmp.at[-which(tmp.at < min(SDrange))]
 		axis(2, at=tmp.at[-1]) 
-
-        #axis(2, at=pretty(SDrange)[-1])   
-        
-        do.call("mtext", args=SDYLabel)
-				
+		
+		#axis(2, at=pretty(SDrange)[-1])   
+		
+		do.call("mtext", args=SDYLabel)
+		
 		if(!is.null(Title))
 			do.call("title", args=Title[[2]])
-     
-        StatsList <- list(SDvec=numeric(), Nobs=integer())
-        #SDvec <- numeric()
-        StatsList <- processList(lst=lst, xlim=range(Xbound), yval=SDYbound, Xdiff=Xdiff, type=2, StatsList=StatsList, 
-								VARtype=VARtype, VarLab=VarLab, MeanLine=MeanLine, Intercept=Intercept, VLine=VLine,
-								JoinLevels=JoinLevels)   
-   
+		
+		StatsList <- list(SDvec=numeric(), Nobs=integer())
+		#SDvec <- numeric()
+		StatsList <- processList(lst=lst, xlim=range(Xbound), yval=SDYbound, Xdiff=Xdiff, type=2, StatsList=StatsList, 
+				VARtype=VARtype, VarLab=VarLab, MeanLine=MeanLine, Intercept=Intercept, VLine=VLine,
+				JoinLevels=JoinLevels)   
+		
 		if(length(rec.env$VLineCollection) > 0)
 		{
 			for(i in 1:length(rec.env$VLineCollection))								# now actually draw vertical lines, avoiding BG-coloring to partially cover them
@@ -1198,42 +1232,42 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		}
 		
 		box()
-						
-        if(!is.null(SDline))
-        {
-            SDline$x <- as.numeric(names(StatsList$SDvec))
-            SDline$y <- StatsList$SDvec
-            do.call("lines", args=SDline)
-        }
-                
-        if(!is.null(VCnam))
-        {
-            VCnam$side=2
-            VCnam$at <- SDYbound[-length(SDYbound)]+diff(SDYbound[1:2])/2
+		
+		if(!is.null(SDline))
+		{
+			SDline$x <- as.numeric(names(StatsList$SDvec))
+			SDline$y <- StatsList$SDvec
+			do.call("lines", args=SDline)
+		}
+		
+		if(!is.null(VCnam))
+		{
+			VCnam$side=2
+			VCnam$at <- SDYbound[-length(SDYbound)]+diff(SDYbound[1:2])/2
 			if(is.null(VCnam$text))																			# do not overwrite user-specified text
 				VCnam$text <- nest
-            VCnam$las <- 1
-            VCnam$adj <- 1
-            do.call("mtext", args=VCnam)
-        }
-    }  
-
-    #if(type == 3)                                          # adds number of observation per bin to the plot (between variability chart and SD/CV-plot)
-    #{
-    #    tmp <- StatsList$Nobs
-    #    len <- length(tmp)
-    #    rxb <- range(Xbound)
-    #    dx <- diff(rxb)/(len+1)
-    #    mtext(side=3, line=1.25, at=0-diff(rxb)*.1, text="Obs:", cex=.75)
-    #    mtext(side=3, at=seq(rxb[1]+dx/2, rxb[2]-dx/2, length.out=len), text=tmp, cex=.75, line=1.25)
-    #}
-
+			VCnam$las <- 1
+			VCnam$adj <- 1
+			do.call("mtext", args=VCnam)
+		}
+	}  
+	
+	#if(type == 3)                                          # adds number of observation per bin to the plot (between variability chart and SD/CV-plot)
+	#{
+	#    tmp <- StatsList$Nobs
+	#    len <- length(tmp)
+	#    rxb <- range(Xbound)
+	#    dx <- diff(rxb)/(len+1)
+	#    mtext(side=3, line=1.25, at=0-diff(rxb)*.1, text="Obs:", cex=.75)
+	#    mtext(side=3, at=seq(rxb[1]+dx/2, rxb[2]-dx/2, length.out=len), text=tmp, cex=.75, line=1.25)
+	#}
+	
 	old.par$yaxs <- old.par$xaxs <- "i"						# unfortunatly need to be maintained in order to further add elements to the plot
 	old.par$mar <- par("mar")
 	#par(old.par)
-
+	
 	Data$Xcoord <- rec.env$dat$x
-
+	
 	invisible(Data)
 }
 
@@ -1292,26 +1326,26 @@ varPlot <- function(form, Data, keep.order=TRUE,
 
 buildList <- function(Data, Nesting, Current, resp, keep.order=TRUE, useVarNam=TRUE, sep="", na.rm=TRUE, Points=list(pch=16, cex=.5, col="black"))
 {
-    lev <- unique(as.character(Data[,Current]))
-    
-    if( is.list(Points))                                            # initial call
-    {
+	lev <- unique(as.character(Data[,Current]))
+	
+	if( is.list(Points))                                            # initial call
+	{
 		# check whether point-colors have to be used for indicating class-levels
 		
-        if( (is.list(Points$col)) && ("var" %in% names(Points$col)) && (Points$col$var %in% colnames(Data)) )
-        {
-            if(length(unique(Data[,Points$col$var])) > length(unique(Points$col$col)))          # not enough colors, need to be recycled
-            {
-                Points$col$col <- rep(Points$col$col, ceiling(length(unique(Data[,Points$col$var])) / length(unique(Points$col$col))))
-            }
-            tmp <- 1:length(unique(Data[,Points$col$var]))
-            names(tmp) <- unique(Data[,Points$col$var])
-            Data$PointsColor <- Points$col$col[tmp[as.character(Data[,Points$col$var])]]                         # assign colors to class-levels of Points$col$var variable
-        }
-        else
-        {
-            Data$PointsColor <- rep(Points$col, nrow(Data))
-        }
+		if( (is.list(Points$col)) && ("var" %in% names(Points$col)) && (Points$col$var %in% colnames(Data)) )
+		{
+			if(length(unique(Data[,Points$col$var])) > length(unique(Points$col$col)))          # not enough colors, need to be recycled
+			{
+				Points$col$col <- rep(Points$col$col, ceiling(length(unique(Data[,Points$col$var])) / length(unique(Points$col$col))))
+			}
+			tmp <- 1:length(unique(Data[,Points$col$var]))
+			names(tmp) <- unique(Data[,Points$col$var])
+			Data$PointsColor <- Points$col$col[tmp[as.character(Data[,Points$col$var])]]                         # assign colors to class-levels of Points$col$var variable
+		}
+		else
+		{
+			Data$PointsColor <- rep(Points$col, nrow(Data))
+		}
 		
 		# check whether plotting-symbols have to be used for indicating class-levels
 		
@@ -1330,101 +1364,101 @@ buildList <- function(Data, Nesting, Current, resp, keep.order=TRUE, useVarNam=T
 			Data$PointsPCH <- rep(Points$pch, nrow(Data))
 		}
 		
-        Points <- NULL
-    }
+		Points <- NULL
+	}
 	
-    if(!keep.order)
-    {
-        suppressWarnings(levInt <- as.integer(lev))
-        if(!any(is.na(levInt)))
-            lev <- lev[sort(levInt, index.return=TRUE)$ix]
-        else
-            lev <- sort(lev)
-    }
-    
-    lst <- vector("list", length=length(lev))
-    attr(lst, "factor") <- Current
-    
-    Mean <- Median <- SD <- CV <- Nelem <- Nlevel <- numeric(length(lev))
-    Nbin <- 0
-    SDrange <- c(Inf, -Inf)
-    CVrange <- c(Inf, -Inf)
-    
-    if(useVarNam)
-    {
-        names(lst) <- paste(Current, lev, sep=sep)
-    }
-    else
-        names(lst) <- lev
-    
-    for(i in 1:length(lev))
-    {
-        tmpData <- Data[which(Data[,Current] == lev[i]),]
-        
-        Mean[i] <- mean(tmpData[,resp], na.rm=TRUE)
-        Median[i] <- median(tmpData[,resp], na.rm=TRUE)
-        SD[i] <- sd(tmpData[,resp], na.rm=TRUE)        
-        CV[i] <- SD[i]*100/Mean[i]
-        
-        if(Current == Nesting[length(Nesting)])                     # last level above residual error
-        {
-            lst[[i]] <- tmpData[, resp]
-            attr(lst[[i]], "Color")  <- tmpData$PointsColor
+	if(!keep.order)
+	{
+		suppressWarnings(levInt <- as.integer(lev))
+		if(!any(is.na(levInt)))
+			lev <- lev[sort(levInt, index.return=TRUE)$ix]
+		else
+			lev <- sort(lev)
+	}
+	
+	lst <- vector("list", length=length(lev))
+	attr(lst, "factor") <- Current
+	
+	Mean <- Median <- SD <- CV <- Nelem <- Nlevel <- numeric(length(lev))
+	Nbin <- 0
+	SDrange <- c(Inf, -Inf)
+	CVrange <- c(Inf, -Inf)
+	
+	if(useVarNam)
+	{
+		names(lst) <- paste(Current, lev, sep=sep)
+	}
+	else
+		names(lst) <- lev
+	
+	for(i in 1:length(lev))
+	{
+		tmpData <- Data[which(Data[,Current] == lev[i]),]
+		
+		Mean[i] <- mean(tmpData[,resp], na.rm=TRUE)
+		Median[i] <- median(tmpData[,resp], na.rm=TRUE)
+		SD[i] <- sd(tmpData[,resp], na.rm=TRUE)        
+		CV[i] <- SD[i]*100/Mean[i]
+		
+		if(Current == Nesting[length(Nesting)])                     # last level above residual error
+		{
+			lst[[i]] <- tmpData[, resp]
+			attr(lst[[i]], "Color")  <- tmpData$PointsColor
 			attr(lst[[i]], "Symbol") <- tmpData$PointsPCH 
-            
-            if(na.rm)                                                # na.rm=TRUE?
-                lst[[i]] <- na.omit(lst[[i]])
-            
-            Nelem[i] <- length(unique(tmpData[,Current]))            # number of bottom-level classes
-            Nbin <- Nbin + 1
-            
+			
+			if(na.rm)                                                # na.rm=TRUE?
+				lst[[i]] <- na.omit(lst[[i]])
+			
+			Nelem[i] <- length(unique(tmpData[,Current]))            # number of bottom-level classes
+			Nbin <- Nbin + 1
+			
 #            Mean[i] <- mean(lst[[i]])
 #            Median[i] <- median(lst[[i]])
 #            SD[i] <- sd(lst[[i]])            
 #            CV[i] <- SD[i]*100/Mean[i]
-            
-            if(!is.na(SD[i]) && SD[i] < SDrange[1])                                   # range of all SD-values   
-                SDrange[1] <- SD[i] 
-            if(!is.na(SD[i]) && SD[i] > SDrange[2])
-                SDrange[2] <- SD[i]
-            
-            if(!is.na(CV[i]) && CV[i] < CVrange[1])                                   # range of all CV-values   
-                CVrange[1] <- CV[i] 
-            if(!is.na(CV[i]) && CV[i] > CVrange[2])
-                CVrange[2] <- CV[i]
-        }   
-        else
-        {   
-            lst[[i]] <- buildList(Data=tmpData, Nesting=Nesting, Current=Nesting[which(Nesting == Current)+1], 
-                    resp=resp, keep.order=keep.order, useVarNam, Points=Points)
-            Nelem[i] <- sum(attr(lst[[i]], "Nelem"))
-            Nbin <- Nbin + attr(lst[[i]], "Nbin")
-            
-            tmpSD <- attr(lst[[i]], "SDrange")
-            
-            if(tmpSD[1] < SDrange[1])                               # refresh SD-range values
-                SDrange[1] <- tmpSD[1]
-            if(tmpSD[2] > SDrange[2])
-                SDrange[2] <- tmpSD[2]
-            
-            tmpCV <- attr(lst[[i]], "CVrange")
-            
-            if(tmpCV[1] < CVrange[1])                                  # range of all CV-values   
-                CVrange[1] <- tmpCV[1] 
-            if(tmpCV[2] > CVrange[2])
-                CVrange[2] <- tmpCV[2]
-        } 
+			
+			if(!is.na(SD[i]) && SD[i] < SDrange[1])                                   # range of all SD-values   
+				SDrange[1] <- SD[i] 
+			if(!is.na(SD[i]) && SD[i] > SDrange[2])
+				SDrange[2] <- SD[i]
+			
+			if(!is.na(CV[i]) && CV[i] < CVrange[1])                                   # range of all CV-values   
+				CVrange[1] <- CV[i] 
+			if(!is.na(CV[i]) && CV[i] > CVrange[2])
+				CVrange[2] <- CV[i]
+		}   
+		else
+		{   
+			lst[[i]] <- buildList(Data=tmpData, Nesting=Nesting, Current=Nesting[which(Nesting == Current)+1], 
+					resp=resp, keep.order=keep.order, useVarNam, Points=Points)
+			Nelem[i] <- sum(attr(lst[[i]], "Nelem"))
+			Nbin <- Nbin + attr(lst[[i]], "Nbin")
+			
+			tmpSD <- attr(lst[[i]], "SDrange")
+			
+			if(tmpSD[1] < SDrange[1])                               # refresh SD-range values
+				SDrange[1] <- tmpSD[1]
+			if(tmpSD[2] > SDrange[2])
+				SDrange[2] <- tmpSD[2]
+			
+			tmpCV <- attr(lst[[i]], "CVrange")
+			
+			if(tmpCV[1] < CVrange[1])                                  # range of all CV-values   
+				CVrange[1] <- tmpCV[1] 
+			if(tmpCV[2] > CVrange[2])
+				CVrange[2] <- tmpCV[2]
+		} 
 		Nlevel[i] <- length(lst[[i]])
-    }
-    attr(lst, "Nelem")   <- Nelem
+	}
+	attr(lst, "Nelem")   <- Nelem
 	attr(lst, "Nlevel")  <- Nlevel
-    attr(lst, "Nbin")    <- Nbin
-    attr(lst, "SDrange") <- SDrange
-    attr(lst, "CVrange") <- CVrange
-    
-    attr(lst, "Stats") <- list(Mean=Mean, Median=Median, SD=SD, CV=CV)
-    
-    return(lst)
+	attr(lst, "Nbin")    <- Nbin
+	attr(lst, "SDrange") <- SDrange
+	attr(lst, "CVrange") <- CVrange
+	
+	attr(lst, "Stats") <- list(Mean=Mean, Median=Median, SD=SD, CV=CV)
+	
+	return(lst)
 }
 
 

@@ -21,7 +21,9 @@ vector of observations, \eqn{X} and \eqn{Z} are design matrices assigning fixed 
 respectively, random (\eqn{g}) effects to observations, and \eqn{e} is the column vector of
 residual errors.
 The variance-covariance matrix of \eqn{y} is equal to \eqn{Var(y) = ZGZ^{-T} + R}{Var(y) = ZGZ' + R}, where \eqn{R}
-is the variance-covariance matrix of \eqn{e}.
+is the variance-covariance matrix of \eqn{e} and \eqn{G} is the variance-covariance matrix of \eqn{g}.
+Here, \eqn{G} is assumed to be a diagonal matrix, i.e. all random effects \eqn{g} are mutually independent
+(uncorrelated).
 }
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}

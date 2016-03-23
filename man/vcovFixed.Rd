@@ -4,11 +4,13 @@
 \alias{vcovFixed}
 \title{Calculate Variance-Covariance Matrix and Standard Errors of Fixed Effects for an 'VCA' Object.}
 \usage{
-vcovFixed(obj)
+vcovFixed(obj, quiet = FALSE)
 }
 \arguments{
-\item{obj}{... (VCA) object for which the variance-covariance matrix of
-                         fixed effects shall be calculated}
+\item{obj}{(VCA) object for which the variance-covariance matrix of
+fixed effects shall be calculated}
+
+\item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
 }
 \value{
 (matrix) corresponding to the variance-covariance matrix of fixed effects

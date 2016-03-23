@@ -20,21 +20,21 @@ cat("\n***********************************************************************\n
 
 TF001.CovarianceMatrix <- function()
 {
-    data(VCAdata1)
-    sample1 <- VCAdata1[which(VCAdata1$sample==1),]
-    sample1$device <- gl(3,28,252)                                      # add device variable
-    set.seed(505)
-    sample1$y <- sample1$y + rep(rep(rnorm(3,,.25), c(28,28,28)),3)     # add error component according to 
-    
-    res1 <- anovaVCA(y~(lot+device)/day/run, sample1)      	# request A-matrices required for convariance matrix of VCs
-    
-    inf1 <- VCAinference(res1, VarVC=TRUE, constrainCI=FALSE)
-    
-    checkEquals(round(inf1$VCAobj$aov.tab[2, "Var(VC)"],  6), 0.000301)         # Var(VC_lot)
-    checkEquals(round(inf1$VCAobj$aov.tab[3, "Var(VC)"],  6), 0.004091)         # Var(VC_device)
-    checkEquals(round(inf1$VCAobj$aov.tab[4, "Var(VC)"],  6), 0.000071)         # Var(VC_day) 
-    checkEquals(round(inf1$VCAobj$aov.tab[5, "Var(VC)"],  6), 0.000084)         # Var(VC_run)
-    checkEquals(round(inf1$VCAobj$aov.tab[6, "Var(VC)"], 11), 2.108e-8)         # Var(VC_error)
+	data(VCAdata1)
+	sample1 <- VCAdata1[which(VCAdata1$sample==1),]
+	sample1$device <- gl(3,28,252)                                      # add device variable
+	set.seed(505)
+	sample1$y <- sample1$y + rep(rep(rnorm(3,,.25), c(28,28,28)),3)     # add error component according to 
+	
+	res1 <- anovaVCA(y~(lot+device)/day/run, sample1)      	# request A-matrices required for convariance matrix of VCs
+	
+	inf1 <- VCAinference(res1, VarVC=TRUE, constrainCI=FALSE)
+	
+	checkEquals(round(inf1$VCAobj$aov.tab[2, "Var(VC)"],  6), 0.000301)         # Var(VC_lot)
+	checkEquals(round(inf1$VCAobj$aov.tab[3, "Var(VC)"],  6), 0.004091)         # Var(VC_device)
+	checkEquals(round(inf1$VCAobj$aov.tab[4, "Var(VC)"],  6), 0.000071)         # Var(VC_day) 
+	checkEquals(round(inf1$VCAobj$aov.tab[5, "Var(VC)"],  6), 0.000084)         # Var(VC_run)
+	checkEquals(round(inf1$VCAobj$aov.tab[6, "Var(VC)"], 11), 2.108e-8)         # Var(VC_error)
 }
 
 
@@ -58,7 +58,7 @@ TF002.marginal_residuals <- function()
 	data(Orthodont)
 	Ortho <- Orthodont
 	Ortho$age2 <- Ortho$age - 11
-
+	
 	fit.R <- anovaMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho)
 	sas.raw  <- c(3.384375,0.815625,3.246875,3.678125,-1.115625,-1.684375,-2.753125,-0.821875,0.384375,-1.684375,-1.753125,0.178125,2.884375,3.315625,0.746875,-0.321875,-2.615625,-0.684375,-3.253125,-1.321875,1.884375,1.315625,1.246875,1.178125,-0.615625,-2.184375,-1.253125,-0.821875,1.384375,-2.684375,-1.253125,-1.821875,0.384375,-3.684375,5.246875,-1.321875,4.884375,3.815625,5.246875,4.178125,0.384375,-1.184375,-2.253125,-2.321875,-1.115625,-0.684375,-1.753125,0.678125,-5.615625,0.315625,0.246875,2.178125,-0.115625,1.315625,-0.253125,-1.321875,0.384375,0.315625,0.246875,2.678125,-0.615625,-2.684375,-2.253125,-2.321875,-0.209090909,-2.168181818,-1.627272727,-1.086363636,-0.209090909,-0.668181818,0.8727272727,1.4136363636,-0.709090909,1.8318181818,1.3727272727,1.9136363636,2.2909090909,2.3318181818,1.8727272727,2.4136363636,0.2909090909,0.8318181818,-0.627272727,-0.586363636,-1.209090909,-1.168181818,-2.127272727,-1.586363636,0.2909090909,0.3318181818,-0.127272727,0.9136363636,1.7909090909,0.8318181818,0.3727272727,-0.086363636,-1.209090909,-1.168181818,-1.127272727,-2.586363636,-4.709090909,-3.168181818,-4.127272727,-4.586363636,3.2909090909,2.8318181818,4.8727272727,3.9136363636)
 	sas.stu <- c(1.5050944191,0.37015662,1.473535357,1.6357304998,-0.496139158,-0.764423058,-1.249455871,-0.365503077,0.1709387013,-0.764423058,-0.795623999,0.0792154957,1.2827351328,1.5047362981,0.3389556788,-0.143143791,-1.163217016,-0.310591187,-1.476371806,-0.587862363,0.8380165602,0.5970725556,0.5658716145,0.5239340683,-0.273779871,-0.991338994,-0.568708064,-0.365503077,0.6156572739,-1.218254929,-0.568708064,-0.810221649,0.1709387013,-1.672086801,2.3811990995,-0.587862363,2.1721722779,1.7316522338,2.3811990995,1.858089786,0.1709387013,-0.537507123,-1.022539935,-1.032580936,-0.496139158,-0.310591187,-0.795623999,0.301574782,-2.497372734,0.1432406844,0.1120397432,0.9686526409,-0.051420585,0.5970725556,-0.114876192,-0.587862363,0.1709387013,0.1432406844,0.1120397432,1.1910119272,-0.273779871,-1.218254929,-1.022539935,-1.032580936,-0.094278468,-0.99540562,-0.747075916,-0.489838127,-0.094278468,-0.306760222,0.400666413,0.6374044247,-0.319726978,0.8409821065,0.6302148788,0.8628529351,1.0329640838,1.0705305723,0.8597633446,1.0883014454,0.1311700424,0.3818851749,-0.287978984,-0.264389617,-0.545175489,-0.536308688,-0.976624382,-0.715286637,0.1311700424,0.1523367091,-0.058430519,0.4119559144,0.8075155734,0.3818851749,0.1711179472,-0.038941106,-0.545175489,-0.536308688,-0.51752745,-1.166183658,-2.123315061,-1.454502551,-1.894818245,-2.067977699,1.4838611045,1.3000790381,2.2370541394,1.7646469765)
@@ -132,7 +132,7 @@ TF005.ddfm.LMM.unbalanced <- function()
 	data(VCAdata1)
 	datS2 <- VCAdata1[VCAdata1$sample == 2, ]
 	datS2ub <- datS2[-c(15, 32, 33, 60, 62, 63, 64, 65, 74),]
-
+	
 	fitS2ub <- anovaMM(y~(lot+device)/(day)/(run), datS2ub)
 	
 	L <- getL(fitS2ub, c("lot1-lot2", "device1-device2"), "fixef")
@@ -154,7 +154,7 @@ TF005.ddfm.LMM.unbalanced <- function()
 
 
 
-	
+
 
 # Test function 'stepwiseVCA' against hand-calculated values to verify the algorithm.
 
@@ -169,7 +169,7 @@ TF006.stepwiseVCA.fully_nested <- function()
 	sw.res <- stepwiseVCA(fit0, VarVC=TRUE)
 	
 	nr <- nrow(fit0$aov.tab)
-
+	
 	for(i in 1:length(sw.res))
 	{
 		checkEquals(sum(fit0$aov.tab[(nr-i):nr, "VC"]), sw.res[[i]]$aov.tab[1,"VC"])			# total variance correct?
@@ -545,7 +545,7 @@ TF024.ddfm_lsmeans.all_methods.Orthodont.unbalanced <- function()
 	fit$VarCov <- matrix(c(1.4381, 0.002238, -0.05008, 0.002238, 0.001532, -0.00800, -0.05008, -0.00800, 0.1572), 3, 3)
 	tst.satt <- test.lsmeans(fit, L=L, ddfm="satt")	
 	checkEquals(round(as.numeric(tst.satt[,"DF"]),2), 23.35, tolerance=0.1)					# allow larger numeric tolerance due to systematic difference between R and SAS implementation 
-																							# of the Satterthwaite approximation of the denominator degrees of freedom
+	# of the Satterthwaite approximation of the denominator degrees of freedom
 }
 
 
@@ -672,6 +672,279 @@ TF031.test.lsmeans <- function()
 {
 	data(dataEP05A2_1)
 	fit <- anovaMM(y~day/(run), dataEP05A2_1)
+	lc.mat <- getL(fit, "day19-day20", "lsm")		# day20 is contrained to 0
+	res    <- test.lsmeans(fit, lc.mat)
+	checkEquals(as.numeric(res), c(  -1.220903154324, 20.000000000000, -0.801356496568, 0.432343418432))
+}
+
+
+# check equality of residuals for balanced models fitted once by ANOVA and once by REML
+
+TF032.ANOVA_vs_REML.residuals.raw <- function()
+{
+	data(dataEP05A2_1)
+	fit1.aov  <- anovaVCA(y~day/run, dataEP05A2_1)
+	fit1.reml <- remlVCA(y~day/run, dataEP05A2_1)
+	checkEquals(round(resid(fit1.aov), 4), round(resid(fit1.reml), 4))
+	
+	data(dataEP05A2_2)
+	fit2.aov  <- anovaVCA(y~day/run, dataEP05A2_2)
+	fit2.reml <- remlVCA(y~day/run, dataEP05A2_2)
+	checkEquals(round(resid(fit2.aov), 6), round(resid(fit2.reml), 6))
+	
+	data(dataEP05A2_3)
+	fit3.aov  <- anovaVCA(y~day/run, dataEP05A2_3)
+	fit3.reml <- remlVCA(y~day/run, dataEP05A2_3)
+	checkEquals(round(resid(fit3.aov), 4), round(resid(fit3.reml), 4))
+	
+	data(Orthodont)
+	Ortho <- Orthodont
+	Ortho$age2 <- Ortho$age - 11
+	Ortho$Subject <- factor(as.character(Ortho$Subject))
+	fit.anovaMM <- anovaMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho)
+	fit.remlMM  <- remlMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho, cov=FALSE)
+	checkEquals(round(resid(fit.anovaMM), 4), round(resid(fit.remlMM), 4))
+}
+
+TF033.ANOVA_vs_REML.residuals.studentized <- function()
+{
+	data(dataEP05A2_1)
+	fit1.aov  <- anovaVCA(y~day/run, dataEP05A2_1)
+	fit1.reml <- remlVCA(y~day/run, dataEP05A2_1)
+	checkEquals(round(resid(fit1.aov, mode="student"), 4), round(resid(fit1.reml, mode="student"), 4))
+	
+	data(dataEP05A2_2)
+	fit2.aov  <- anovaVCA(y~day/run, dataEP05A2_2)
+	fit2.reml <- remlVCA(y~day/run, dataEP05A2_2)
+	checkEquals(round(resid(fit2.aov, mode="student"), 5), round(resid(fit2.reml, mode="student"), 5))
+	
+	data(dataEP05A2_3)
+	fit3.aov  <- anovaVCA(y~day/run, dataEP05A2_3)
+	fit3.reml <- remlVCA(y~day/run, dataEP05A2_3)
+	checkEquals(round(resid(fit3.aov, mode="student"), 4), round(resid(fit3.reml, mode="student"), 4))
+	
+	data(Orthodont)
+	Ortho <- Orthodont
+	Ortho$age2 <- Ortho$age - 11
+	Ortho$Subject <- factor(as.character(Ortho$Subject))
+	fit.anovaMM <- anovaMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho)
+	fit.remlMM  <- remlMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho, cov=FALSE)
+	checkEquals(round(resid(fit.anovaMM, mode="student"), 4), round(resid(fit.remlMM, mode="student"), 4))
+}
+
+TF034.ANOVA_vs_REML.residuals.pearson <- function()
+{
+	data(dataEP05A2_1)
+	fit1.aov  <- anovaVCA(y~day/run, dataEP05A2_1)
+	fit1.reml <- remlVCA(y~day/run, dataEP05A2_1)
+	checkEquals(round(resid(fit1.aov, mode="pearson"), 4), round(resid(fit1.reml, mode="pearson"), 4))
+	
+	data(dataEP05A2_2)
+	fit2.aov  <- anovaVCA(y~day/run, dataEP05A2_2)
+	fit2.reml <- remlVCA(y~day/run, dataEP05A2_2)
+	checkEquals(round(resid(fit2.aov, mode="pearson"), 6), round(resid(fit2.reml, mode="pearson"), 6))
+	
+	data(dataEP05A2_3)
+	fit3.aov  <- anovaVCA(y~day/run, dataEP05A2_3)
+	fit3.reml <- remlVCA(y~day/run, dataEP05A2_3)
+	checkEquals(round(resid(fit3.aov, mode="pearson"), 4), round(resid(fit3.reml, mode="pearson"), 4))
+	
+	data(Orthodont)
+	Ortho <- Orthodont
+	Ortho$age2 <- Ortho$age - 11
+	Ortho$Subject <- factor(as.character(Ortho$Subject))
+	fit.anovaMM <- anovaMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho)
+	fit.remlMM  <- remlMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho, cov=FALSE)
+	checkEquals(round(resid(fit.anovaMM, mode="pearson"), 4), round(resid(fit.remlMM, mode="pearson"), 4))
+}
+
+TF034.ANOVA_vs_REML.residuals.standardized <- function()
+{
+	data(dataEP05A2_1)
+	fit1.aov  <- anovaVCA(y~day/run, dataEP05A2_1)
+	fit1.reml <- remlVCA(y~day/run, dataEP05A2_1)
+	checkEquals(round(resid(fit1.aov, mode="standard"), 4), round(resid(fit1.reml, mode="standard"), 4))
+	
+	data(dataEP05A2_2)
+	fit2.aov  <- anovaVCA(y~day/run, dataEP05A2_2)
+	fit2.reml <- remlVCA(y~day/run, dataEP05A2_2)
+	checkEquals(round(resid(fit2.aov, mode="standard"), 6), round(resid(fit2.reml, mode="standard"), 6))
+	
+	data(dataEP05A2_3)
+	fit3.aov  <- anovaVCA(y~day/run, dataEP05A2_3)
+	fit3.reml <- remlVCA(y~day/run, dataEP05A2_3)
+	checkEquals(round(resid(fit3.aov, mode="standard"), 4), round(resid(fit3.reml, mode="standard"), 4))
+	
+	data(Orthodont)
+	Ortho <- Orthodont
+	Ortho$age2 <- Ortho$age - 11
+	Ortho$Subject <- factor(as.character(Ortho$Subject))
+	fit.anovaMM <- anovaMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho)
+	fit.remlMM  <- remlMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho, cov=FALSE)
+	checkEquals(round(resid(fit.anovaMM, mode="standard"), 4), round(resid(fit.remlMM, mode="standard"), 4))
+}
+
+# check equality of random effects for balanced models fitted once by ANOVA and once by REML
+
+TF036.ANOVA_vs_REML.ranef.raw <- function()
+{
+	data(dataEP05A2_1)
+	fit1.aov  <- anovaVCA(y~day/run, dataEP05A2_1)
+	fit1.reml <- remlVCA(y~day/run, dataEP05A2_1)
+	re.aov  <- ranef(fit1.aov, mode="raw")
+	re.reml <- ranef(fit1.reml, mode="raw")
+	re.reml <- re.reml[rownames(re.aov),,drop=FALSE]
+	checkEquals(round(re.aov[,1], 4), round(re.reml[,1], 4))
+	
+	data(dataEP05A2_2)
+	fit2.aov  <- anovaVCA(y~day/run, dataEP05A2_2)
+	fit2.reml <- remlVCA(y~day/run, dataEP05A2_2)
+	re.aov  <- ranef(fit2.aov, mode="raw")
+	re.reml <- ranef(fit2.reml, mode="raw")
+	re.reml <- re.reml[rownames(re.aov),,drop=FALSE]
+	checkEquals(round(re.aov[,1], 4), round(re.reml[,1], 4))
+	
+	data(dataEP05A2_3)
+	fit3.aov  <- anovaVCA(y~day/run, dataEP05A2_3)
+	fit3.reml <- remlVCA(y~day/run, dataEP05A2_3)
+	re.aov  <- ranef(fit3.aov, mode="raw")
+	re.reml <- ranef(fit3.reml, mode="raw")
+	re.reml <- re.reml[rownames(re.aov),,drop=FALSE]
+	checkEquals(round(re.aov[,1], 4), round(re.reml[,1], 4))
+	
+	data(Orthodont)
+	Ortho <- Orthodont
+	Ortho$age2 <- Ortho$age - 11
+	Ortho$Subject <- factor(as.character(Ortho$Subject))
+	fit.anovaMM <- anovaMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho)
+	fit.remlMM  <- remlMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho, cov=FALSE)
+	re.aov  <- ranef(fit.anovaMM, mode="raw")
+	re.reml <- ranef(fit.remlMM, mode="raw")
+	re.reml <- re.reml[rownames(re.aov),,drop=FALSE]
+	checkEquals(round(re.aov[,1], 4), round(re.reml[,1], 4))
+}
+
+TF037.ANOVA_vs_REML.ranef.studentized <- function()
+{
+	data(dataEP05A2_1)
+	fit1.aov  <- anovaVCA(y~day/run, dataEP05A2_1)
+	fit1.reml <- remlVCA(y~day/run, dataEP05A2_1)
+	re.aov  <- ranef(fit1.aov, mode="student")
+	re.reml <- ranef(fit1.reml, mode="student")
+	re.reml <- re.reml[rownames(re.aov),,drop=FALSE]
+	checkEquals(round(re.aov[,1], 4), round(re.reml[,1], 4))
+	
+	data(dataEP05A2_2)
+	fit2.aov  <- anovaVCA(y~day/run, dataEP05A2_2)
+	fit2.reml <- remlVCA(y~day/run, dataEP05A2_2)
+	re.aov  <- ranef(fit2.aov, mode="student")
+	re.reml <- ranef(fit2.reml, mode="student")
+	re.reml <- re.reml[rownames(re.aov),,drop=FALSE]
+	checkEquals(round(re.aov[,1], 4), round(re.reml[,1], 4))
+	
+	data(dataEP05A2_3)
+	fit3.aov  <- anovaVCA(y~day/run, dataEP05A2_3)
+	fit3.reml <- remlVCA(y~day/run, dataEP05A2_3)
+	re.aov  <- ranef(fit3.aov, mode="student")
+	re.reml <- ranef(fit3.reml, mode="student")
+	re.reml <- re.reml[rownames(re.aov),,drop=FALSE]
+	checkEquals(round(re.aov[,1], 4), round(re.reml[,1], 4))
+	
+	data(Orthodont)
+	Ortho <- Orthodont
+	Ortho$age2 <- Ortho$age - 11
+	Ortho$Subject <- factor(as.character(Ortho$Subject))
+	fit.anovaMM <- anovaMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho)
+	fit.remlMM  <- remlMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho, cov=FALSE)
+	re.aov  <- ranef(fit.anovaMM, mode="student")
+	re.reml <- ranef(fit.remlMM, mode="student")
+	re.reml <- re.reml[rownames(re.aov),,drop=FALSE]
+	checkEquals(round(re.aov[,1], 4), round(re.reml[,1], 4))
+}
+
+TF038.ANOVA_vs_REML.ranef.standardized <- function()
+{
+	data(dataEP05A2_1)
+	fit1.aov  <- anovaVCA(y~day/run, dataEP05A2_1)
+	fit1.reml <- remlVCA(y~day/run, dataEP05A2_1)
+	re.aov  <- ranef(fit1.aov, mode="standard")
+	re.reml <- ranef(fit1.reml, mode="standard")
+	re.reml <- re.reml[rownames(re.aov),,drop=FALSE]
+	checkEquals(round(re.aov[,1], 4), round(re.reml[,1], 4))
+	
+	data(dataEP05A2_2)
+	fit2.aov  <- anovaVCA(y~day/run, dataEP05A2_2)
+	fit2.reml <- remlVCA(y~day/run, dataEP05A2_2)
+	re.aov  <- ranef(fit2.aov, mode="standard")
+	re.reml <- ranef(fit2.reml, mode="standard")
+	re.reml <- re.reml[rownames(re.aov),,drop=FALSE]
+	checkEquals(round(re.aov[,1], 4), round(re.reml[,1], 4))
+	
+	data(dataEP05A2_3)
+	fit3.aov  <- anovaVCA(y~day/run, dataEP05A2_3)
+	fit3.reml <- remlVCA(y~day/run, dataEP05A2_3)
+	re.aov  <- ranef(fit3.aov, mode="standard")
+	re.reml <- ranef(fit3.reml, mode="standard")
+	re.reml <- re.reml[rownames(re.aov),,drop=FALSE]
+	checkEquals(round(re.aov[,1], 4), round(re.reml[,1], 4))
+	
+	data(Orthodont)
+	Ortho <- Orthodont
+	Ortho$age2 <- Ortho$age - 11
+	Ortho$Subject <- factor(as.character(Ortho$Subject))
+	fit.anovaMM <- anovaMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho)
+	fit.remlMM  <- remlMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho, cov=FALSE)
+	re.aov  <- ranef(fit.anovaMM, mode="standard")
+	re.reml <- ranef(fit.remlMM, mode="standard")
+	re.reml <- re.reml[rownames(re.aov),,drop=FALSE]
+	checkEquals(round(re.aov[,1], 4), round(re.reml[,1], 4))
+}
+
+TF039.remlVCA.by_processing <- function()
+{
+	data(CA19_9)
+	fit.lst <- remlVCA(result~site/day, CA19_9, by="sample")
+	samples <- gsub("sample\\.", "",names(fit.lst))
+	
+	total.specs <- c(1, 3, 5, 30, 80, 200)
+	error.specs <- c(.5, 2, 2, 5, 50, 75)
+	
+	inf.lst <- VCAinference(fit.lst, total.claim=total.specs, error.claim=error.specs)	
+	
+	for(i in 1:length(fit.lst))
+	{
+		tmp.fit <- remlVCA(result~site/day, CA19_9[CA19_9$sample == samples[i],])
+		tmp.inf <- VCAinference(tmp.fit, total.claim=total.specs[i], error.claim=error.specs[i])
+		print(checkEquals(inf.lst[[i]]$aov.tab, tmp.inf$aov.tab))
+	}
+}
+
+TF040.remlMM.by_processing <- function()
+{
+	data(CA19_9)
+	fit.lst <- remlMM(result~(site)/day, CA19_9, by="sample")
+	samples <- gsub("sample\\.", "",names(fit.lst))
+	
+	total.specs <- c(1, 3, 5, 30, 80, 200)
+	error.specs <- c(.5, 2, 2, 5, 50, 75)
+	
+	inf.lst <- VCAinference(fit.lst, total.claim=total.specs, error.claim=error.specs)	
+	
+	for(i in 1:length(fit.lst))
+	{
+		tmp.fit <- remlMM(result~(site)/day, CA19_9[CA19_9$sample == samples[i],])
+		tmp.inf <- VCAinference(tmp.fit, total.claim=total.specs[i], error.claim=error.specs[i])
+		print(checkEquals(inf.lst[[i]]$aov.tab, tmp.inf$aov.tab))
+	}
+}
+
+# check whether linear hypothesis of LSMeans including constrained fixed effects does return 
+# a value and does not give a warning any more.
+
+TF041.REML.test.lsmeans <- function()
+{
+	data(dataEP05A2_1)
+	fit <- remlMM(y~day/(run), dataEP05A2_1)
 	lc.mat <- getL(fit, "day19-day20", "lsm")		# day20 is contrained to 0
 	res    <- test.lsmeans(fit, lc.mat)
 	checkEquals(as.numeric(res), c(  -1.220903154324, 20.000000000000, -0.801356496568, 0.432343418432))

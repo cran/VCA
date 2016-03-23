@@ -6,7 +6,7 @@
 \title{Extract Residuals of a 'VCA' Object.}
 \usage{
 \method{residuals}{VCA}(object, type = c("conditional", "marginal"),
-  mode = c("raw", "student", "standard", "pearson"), ...)
+  mode = c("raw", "student", "standard", "pearson"), quiet = FALSE, ...)
 }
 \arguments{
 \item{object}{(VCA) object}
@@ -17,6 +17,8 @@ valid options are "marginal" and "conditional" or abbreviations}
 \item{mode}{(character) string or abbreviation specifying the specific transformation
 applied to a certain type of residuals. There are "raw" (untransformed),
 "standardized", "studentized" and "pearson" (see details) residuals.}
+
+\item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
 
 \item{...}{additional parameters}
 }

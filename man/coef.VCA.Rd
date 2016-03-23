@@ -4,10 +4,12 @@
 \alias{coef.VCA}
 \title{Extract Fixed Effects from 'VCA' Object.}
 \usage{
-\method{coef}{VCA}(object, ...)
+\method{coef}{VCA}(object, quiet = FALSE, ...)
 }
 \arguments{
 \item{object}{(VCA) object where fixed effects shall be extracted}
+
+\item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
 
 \item{...}{additional parameters}
 }

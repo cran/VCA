@@ -4,10 +4,12 @@
 \alias{Trace}
 \title{Compute the Trace of a Matrix.}
 \usage{
-Trace(x)
+Trace(x, quiet = FALSE)
 }
 \arguments{
 \item{x}{(matrix, Matrix) object}
+
+\item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
 }
 \value{
 (numeric) value, the trace of the matrix

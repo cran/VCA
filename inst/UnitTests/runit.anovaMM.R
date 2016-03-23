@@ -34,7 +34,7 @@ datS2 <- VCAdata1[VCAdata1$sample==2, ]
 
 TF001.anovaMM.balanced1 <- function()
 {
-
+	
 	fit   <- anovaMM(y~(lot+device)/(day)/(run), datS2)
 	
 	checkEquals(as.numeric(round(fit$aov.tab[-1, "VC"], c(4,5,5))), c(0.3147, 0.05382, 0.04409))	# VCs

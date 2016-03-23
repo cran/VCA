@@ -21,6 +21,8 @@ export(
 	"print.VCAinference",
 	"ranef",
 	"ranef.VCA",
+	"remlMM",
+	"remlVCA",
 	"residuals.VCA",
 	"solveMME",
 	"stepwiseVCA",
@@ -38,10 +40,12 @@ import(
 	"graphics",
 	"grDevices",
 	"stats",
-	"numDeriv", 
 	"methods",
 	"Matrix"
 )
+
+importFrom("lme4", ranef, lmer, VarCorr)
+importFrom("numDeriv", grad)
 
 ### exported classes
 

@@ -1,3 +1,26 @@
+Version 1.3
+------------
+
+- REML-estimation of linear mixed models (LMM) was added to the package, functions 'remlVCA' for variance component analyses and
+  'remlMM' for general LMM were added making use of the 'lme4' package which was added as package to import from
+- for both REML-estimation functions the Giesbrecht & Burns approximation of the variance-covariance function of variance components
+  is available as well as a Satterthwaite approximation of the degrees of freedom, both are required for confidence interval estimation
+  for variance components (covariance parameters)
+- the package now checks whether the high performance Math Kernel Library (MKL) is installed which comes with e.g. Microsoft R Open,
+  the package tries to optimize objects for better performance according to the computational environment 
+- in function 'varPlot', it is now possible to plot MeanLines on top of all other graphic elements, which is useful for large
+  data sets, where these lines will be covered by points otherwise
+- in function 'VCAinference' in case 'method.ci="satterthwaite"' was chosen, whenever the CI does not contain the point-estimate,
+  the bounds of the CI are set to NA; this could happen in case a variance component contributes very little to the total variance
+  and the Satterthwaite-approximation yields a very small number for the degrees of freedom; for one-sided CI the lower and the
+  upper confidence limit (LCL, UCL) will be tested separately; unit-test TF017 added to "runit.VCAinference.R"
+- Giesbrecht & Burns approximation of the variance-covariance matrix of variance components optimized
+- added functionality for handling lists of VCA-objects for functions 'fixef.VCA', 'lsmeans', 'ranef.VCA', 'residuals.VCA'
+- added implicit object-updating for VCA-objects in functions 'fixef.VCA', 'lsmeans', 'ranef.VCA', 'residuals.VCA', i.e.
+  results of required intermediate computations are added to VCA-objects silently 
+
+
+
 Version 1.2.1
 -------------
 

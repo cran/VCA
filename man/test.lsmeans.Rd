@@ -4,7 +4,8 @@
 \alias{test.lsmeans}
 \title{Perform t-Tests for Linear Contrasts on LS Means.}
 \usage{
-test.lsmeans(obj, L, ddfm = c("contain", "residual", "satterthwaite"))
+test.lsmeans(obj, L, ddfm = c("contain", "residual", "satterthwaite"),
+  quiet = FALSE)
 }
 \arguments{
 \item{obj}{(VCA) object}
@@ -14,8 +15,10 @@ Which LS Means have to be used is inferred from the column names of matrix \eqn{
 be in line with the naming of LS Means in function \code{\link{lsmeans}}.}
 
 \item{ddfm}{(character) string specifying the method used for computing the denominator
-                     degrees of freedom of t-tests of LS Means. Available methods are "contain",
-                        "residual", and "satterthwaite".}
+degrees of freedom of t-tests of LS Means. Available methods are "contain",
+   "residual", and "satterthwaite".}
+
+\item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
 }
 \description{
 Perform custom hypothesis tests on Least Squares Means (LS Means) of fixed effect.
@@ -28,14 +31,19 @@ linear contrasts of LS Means.
 \dontrun{
 data(dataEP05A2_2)
 ub.dat <- dataEP05A2_2[-c(11,12,23,32,40,41,42),]
-fit <- anovaMM(y~day/(run), ub.dat)
-lsm <- lsmeans(fit)
-lsm
-lc.mat <- getL(fit, c("day1-day2", "day3-day6"), "lsm")
+fit1 <- anovaMM(y~day/(run), ub.dat)
+fit2 <- remlMM(y~day/(run), ub.dat)
+lsm1 <- lsmeans(fit1)
+lsm2 <- lsmeans(fit2)
+lsm1
+lsm2
+
+lc.mat <- getL(fit1, c("day1-day2", "day3-day6"), "lsm")
 lc.mat[1,c(1,2)] <- c(1,-1)
 lc.mat[2,c(3,6)] <- c(1,-1)
 lc.mat
-test.lsmeans(fit, lc.mat)
+test.lsmeans(fit1, lc.mat)
+test.lsmeans(fit2, lc.mat)
 
 # fit mixed model from the 'nlme' package
 
@@ -50,11 +58,20 @@ Ortho$Subject <- factor(as.character(Ortho$Subject))
 
 # model without intercept
 fit.anovaMM <- anovaMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2-1, Ortho)
-lsm <- lsmeans(fit.anovaMM)
-lsm
+fit.remlMM1 <- remlMM( distance~Sex+Sex:age2+(Subject)+(Subject):age2-1, Ortho)
+fit.remlMM2 <- remlMM( distance~Sex+Sex:age2+(Subject)+(Subject):age2-1, Ortho, cov=FALSE)
+lsm0 <- lsmeans(fit.anovaMM)
+lsm1 <- lsmeans(fit.remlMM1)
+lsm2 <- lsmeans(fit.remlMM2)
+lsm0
+lsm1
+lsm2
+
 lc.mat <- matrix(c(1,-1), nrow=1, dimnames=list("int.Male-int.Female", c("SexMale", "SexFemale")))
 lc.mat
 test.lsmeans(fit.anovaMM, lc.mat)
+test.lsmeans(fit.remlMM1, lc.mat)
+test.lsmeans(fit.remlMM2, lc.mat)
 }
 }
 \author{

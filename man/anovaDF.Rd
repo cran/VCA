@@ -48,17 +48,41 @@ system.time(anovaMM.Tab1  <- anovaMM(y~lot/calibration/day/run, datP1))
 anova.lm.Tab1
 anovaMM.Tab1
 
+# use SSQ.method="qf" (based on quadratic forms)
+system.time(anovaMM.Tab1.qf  <- anovaMM(y~lot/calibration/day/run, datP1, SSQ.method="qf"))
+
+# compute degrees of freedom
+VCA:::anovaDF( y~lot/calibration/day/run, datP1,
+				  Zmat=anovaMM.Tab1.qf$Matrices$Z,
+				  Amat=anovaMM.Tab1.qf$Matrices$A)
+
 # design with only main-factors
 system.time(anova.lm.Tab2 <- anova(lm(y~lot+calibration+day+run, datP1)))
 system.time(anovaMM.Tab2  <- anovaMM(y~lot+calibration+day+run, datP1))
 anova.lm.Tab2
 anovaMM.Tab2
 
+# use SSQ.method="qf" (based on quadratic forms)
+system.time(anovaMM.Tab2.qf  <- anovaMM(y~lot+calibration+day+run, datP1, SSQ.method="qf"))
+
+# compute degrees of freedom
+VCA:::anovaDF( y~lot+calibration+day+run, datP1,
+				  Zmat=anovaMM.Tab2.qf$Matrices$Z,
+				  Amat=anovaMM.Tab2.qf$Matrices$A)
+
 # design with main-factors and interactions
 system.time(anova.lm.Tab3 <- anova(lm(y~(lot+calibration)/day/run, datP1)))
 system.time(anovaMM.Tab3  <- anovaMM( y~(lot+calibration)/day/run, datP1))
 anova.lm.Tab3
 anovaMM.Tab3
+
+# use SSQ.method="qf" (based on quadratic forms)
+system.time(anovaMM.Tab3.qf  <- anovaMM(y~(lot+calibration)/day/run, datP1, SSQ.method="qf"))
+
+# compute degrees of freedom
+VCA:::anovaDF( y~(lot+calibration)/day/run, datP1,
+				  Zmat=anovaMM.Tab3.qf$Matrices$Z,
+				  Amat=anovaMM.Tab3.qf$Matrices$A)
 }
 }
 \author{

@@ -5,7 +5,7 @@
 \title{Extract Random Effects from 'VCA' Object.}
 \usage{
 \method{ranef}{VCA}(object, term = NULL, mode = c("raw", "student",
-  "standard"), ...)
+  "standard"), quiet = FALSE, ...)
 }
 \arguments{
 \item{object}{(VCA) object where random effects shall be extracted}
@@ -16,6 +16,8 @@ as i-th element of 'obj$res.assign$terms'}
 
 \item{mode}{(character) string or abbreviation specifying whether "raw" residuals
 should be returned or a transformed version c("student" or "standard")}
+
+\item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
 
 \item{...}{additional parameters}
 }
