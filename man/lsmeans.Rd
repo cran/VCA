@@ -5,7 +5,8 @@
 \title{Least Squares Means of Fixed Effects.}
 \usage{
 lsmeans(obj, var = NULL, type = c("simple", "complex"),
-  ddfm = c("contain", "residual", "satterthwaite"), quiet = FALSE)
+  ddfm = c("contain", "residual", "satterthwaite"), at = NULL,
+  contr.mat = FALSE, quiet = FALSE)
 }
 \arguments{
 \item{obj}{(VCA) object having at least one fixed effect}
@@ -19,6 +20,14 @@ LS Means should be computed, defaults to all fixed effects, i.e. for
 \item{ddfm}{(character) string specifying the method used for computing the
 degrees of freedom of the t-statistic. Only used when type="complex".
    Available methods are "contain", "residual", and "satterthwaite".}
+
+\item{at}{(list) where each element corresponds either to a (numeric) covariable or
+to a factor-variable for which the weighting scheme should be adjusted.
+See details section for a thorough description of how argument 'at' works
+and also see the examples.}
+
+\item{contr.mat}{(logical) TRUE = the LS Means generating contrast-matrix will be added to the
+result as attribute \code{contrasts}}
 
 \item{quiet}{(logical) TRUE = suppress warning messages, e.g. for non-estimable contrasts}
 }
@@ -45,6 +54,22 @@ consuming part, results can be obtained in less amount of time.
 Standard Errors of LS Means are computed as \eqn{TPT^{T}}{T * P * T'}, where \eqn{T} is the
 LS Means generating contrast matrix and \eqn{P} is the variance-covariance matrix of
 fixed effects.
+
+Argument \code{at} can be used to modify the values of covariables when computing LS Means and/or
+to apply different weighting schemes for (fixed) factor varialbes in the model, e.g. when the prevelance
+of factor-levels differs from a uniform distribution. Usually, if the weighting scheme is not modified,
+each factor-level will contribute \eqn{1/N} to the LS Mean, where \eqn{N} corresponds to the number of factor-levels.
+
+Covariables have to be specified as 'name=value', where value can be a vector of length > 1.
+Each value will be evaluated for each row of the original LS Means contrast matrix.
+If multiple covariables are specified, the i-th element of covariable 1 will be matched with
+the i-th element of covariable(s) 2...M, where \eqn{M} is the number of covariables in the model.
+
+To apply a different weighting scheme for factor-variables one has to specify 'factor-name=c(level-name_1=value_1,
+level-name_2=value_2, ..., level-name_N=value_N)'. The sum of all 'value_i' elements must be equal to 1, otherwise,
+this factor-variable will be skipped issuing a warning. If any levels 'level-name_i' cannot be found for
+factor-variable 'factor-name', this variable will also be skipped and a warning will be issued.
+See the examples section to get an impression of how this works.
 }
 \examples{
 #
@@ -66,6 +91,43 @@ fit2$VarCov <- vcovVC(fit2)
 system.time(lsm2 <- lsmeans(fit2, "device", "complex"))
 lsm1
 lsm2
+
+# simulate some random data
+set.seed(212)
+id <- rep(1:10,10)
+x <- rnorm(200)
+time <- sample(1:5,200,replace=T)
+y <- rnorm(200)+time
+snp <- sample(0:1,200,replace=T)
+dat <- data.frame(id=id,x=x,y=y,time=time,snp=snp)
+dat$snp <- as.factor(dat$snp)
+dat$id <- as.factor(dat$id)
+dat$time <- as.numeric(dat$time)
+dat$sex <- gl(2, 100, labels=c("Male", "Female"))
+dat$y <- dat$y + rep(rnorm(2, 5, 1), c(100, 100))
+
+fit3 <- remlMM(y~snp+time+snp:time+sex+(id)+(id):time, dat)
+
+# comute standard LS Means for variable "snp"
+lsmeans(fit3, var="snp")
+lsmeans(fit3, var="snp", type="c")    # comprehensive output
+
+# compute LS Means at timepoints 1, 2, 3, 4
+# Note: original LS Means are always part of the output
+lsmeans(fit3, var="snp", at=list(time=1:4))
+
+# compute LS Means with different weighting scheme
+# for factor-variable 'sex'
+lsmeans(fit3, var="snp", at=list(sex=c(Male=.3, Female=.7)))
+
+# combine covariables at some value and altering the
+# weighting scheme
+lsmeans(fit3, var="snp", at=list(time=1:4, sex=c(Male=.3, Female=.7)))
+
+# now with comprehensive output and requesting the
+# LS Means generating contrast matrix
+lsmeans(fit3, var="snp", type="complex", contr.mat=TRUE,
+        at=list(time=1:4, sex=c(Male=.3, Female=.7)))
 }
 }
 \author{

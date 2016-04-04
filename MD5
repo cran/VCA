@@ -1,7 +1,7 @@
-1a2ab060341e92023d480c2cf711c42a *DESCRIPTION
+0899e5bf88743084e6b241fcc40b7f11 *DESCRIPTION
 001ad244329574e2e3cf9df8bbcdfdad *NAMESPACE
 ec1a12d5b57af9d23cd4f957cf6aecc7 *R/plot.R
-ae0b147a16f128fd8b0722cdf400e82a *R/vca.R
+616f8b2d4bb14df57287a8775cd6858e *R/vca.R
 5dad30822795145f8a1f67b464788a73 *data/CA19_9.RData
 2edb99722bb114ba9f68c1628ee1ecbb *data/Glucose.RData
 7881f5f59e064ea2cb13f87e5fb5d9bb *data/HugeData.RData
@@ -23,15 +23,14 @@ d7d833be64e7b21229a4c20d9b63aa30 *data/dataRS0005_1.RData
 3d07387e18ee92c60c8630391aaa748c *data/dataRS0005_3.RData
 7038467e7829ab5088c56a96c29bd27c *data/realData.RData
 7d98dab966518cf30f4b4abc4e560b99 *data/sleepstudy.RData
-f9523e7242f5885948180b01c25ffaf7 *inst/ChangeLog.txt
+bad88377920359cadc72c4331f5291ca *inst/ChangeLog.txt
 057b46d31090f2c53531c3b33bb0f856 *inst/UnitTests/RunAllTests.R
 5b48da793aabad31830239f975811caa *inst/UnitTests/SASresultsRealData_Model1_by_PID_Lot.txt
 c0808d5f0dbb385c152c6d33656a6877 *inst/UnitTests/SASresultsRealData_Model2_by_PID.txt
-70b287d669518d06e5186a82ae8d0250 *inst/UnitTests/VCA_UnitTest_Protocol.html
 3ddd420755e64b135004610fd29ca73d *inst/UnitTests/runit.VCAinference.R
 3e0497d1b2b581430728898cbb91b0cd *inst/UnitTests/runit.anovaMM.R
 bdca14bfbbe8065bfa1c77a5e491410a *inst/UnitTests/runit.anovaVCA.R
-3f05d413aaa8a820363a8dd49529c586 *inst/UnitTests/runit.misc.R
+065fc908ab5c41c32694bc9efaf5cf71 *inst/UnitTests/runit.misc.R
 c823727826d9622bf8741055be8c2831 *inst/UnitTests/runit.remlMM.R
 6f946a639d0a714020caa9628c03b5f2 *inst/UnitTests/runit.remlVCA.R
 9067e493f749ad1be13d85cad9fc739b *man/CA19_9.Rd
@@ -46,7 +45,7 @@ c8d34a296606847b3e59ec28b4920f1f *man/SattDF.Rd
 d216dde4eefeebd1946c70e8278ed72d *man/Sinv.Rd
 85d67f71d9d8a9b8628785f2d0526609 *man/Solve.Rd
 22e359e05c931643495b40c977cb1920 *man/Trace.Rd
-f640641a863b12f24ae92a02c116a946 *man/VCA-Package.Rd
+7568c361d4b5b4e3e8780241ddd2ac0b *man/VCA-Package.Rd
 87ee2d56eb707305d37ab247f5894fd0 *man/VCAdata1.Rd
 e3051384d283785afd6f8378e1330e19 *man/VCAinference.Rd
 29021d480c148615e94fefe4537cfe0d *man/anovaDF.Rd
@@ -89,7 +88,7 @@ a8447cca5c118037278da61c72436ea1 *man/lmerG.Rd
 1d6390b714784655b40adb2c105b9235 *man/lmerSummary.Rd
 9d6d4f6c3588b6aca4721f0002790fcd *man/load_if_installed.Rd
 70629e0dcd7bec882791cfbdebcf23b7 *man/lsmMat.Rd
-72e28f89eedfb59604e71784fba0d58e *man/lsmeans.Rd
+5c822fdb88be7360e34ec71d5103d8b9 *man/lsmeans.Rd
 36072ff58c6b9cbf1d9588bfc7012539 *man/plotRandVar.Rd
 4d09451fd400c71dce346a15fa4e4101 *man/print.VCA.Rd
 445782b54111bd7babbbb24017c42a4f *man/print.VCAinference.Rd

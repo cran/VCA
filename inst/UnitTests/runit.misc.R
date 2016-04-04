@@ -638,7 +638,8 @@ TF029.anovaVCA.by_processing <- function()
 	{
 		tmp.fit <- anovaVCA(result~site/day, CA19_9[CA19_9$sample == samples[i],])
 		tmp.inf <- VCAinference(tmp.fit)
-		checkEquals(inf.lst[[i]]$aov.tab, tmp.inf$aov.tab)
+		checkEquals(inf.lst[[i]]$VCAobj$aov.tab, tmp.inf$VCAobj$aov.tab)
+		checkEquals(inf.lst[[i]]$ConfInt, tmp.inf$ConfInt)
 	}
 }
 
@@ -661,7 +662,7 @@ TF030.anovaVCA.by_processing <- function()
 	{
 		tmp.fit <- anovaVCA(result~site/day, CA19_9[CA19_9$sample == samples[i],])
 		tmp.inf <- VCAinference(tmp.fit, total.claim=total.specs[i], error.claim=error.specs[i])
-		print(checkEquals(inf.lst[[i]]$aov.tab, tmp.inf$aov.tab))
+		checkEquals(inf.lst[[i]]$VCAobj$aov.tab, tmp.inf$VCAobj$aov.tab)
 	}
 }
 
@@ -674,7 +675,7 @@ TF031.test.lsmeans <- function()
 	fit <- anovaMM(y~day/(run), dataEP05A2_1)
 	lc.mat <- getL(fit, "day19-day20", "lsm")		# day20 is contrained to 0
 	res    <- test.lsmeans(fit, lc.mat)
-	checkEquals(as.numeric(res), c(  -1.220903154324, 20.000000000000, -0.801356496568, 0.432343418432))
+	checkEquals(as.numeric(round(res, 6)), c(-1.220903, 20,  1.523546, -0.801356,  0.432343))
 }
 
 
@@ -915,7 +916,8 @@ TF039.remlVCA.by_processing <- function()
 	{
 		tmp.fit <- remlVCA(result~site/day, CA19_9[CA19_9$sample == samples[i],])
 		tmp.inf <- VCAinference(tmp.fit, total.claim=total.specs[i], error.claim=error.specs[i])
-		print(checkEquals(inf.lst[[i]]$aov.tab, tmp.inf$aov.tab))
+		checkEquals(inf.lst[[i]]$VCAobj$aov.tab, tmp.inf$VCAobj$aov.tab)
+		checkEquals(inf.lst[[i]]$ConfInt, tmp.inf$ConfInt)
 	}
 }
 
@@ -934,7 +936,8 @@ TF040.remlMM.by_processing <- function()
 	{
 		tmp.fit <- remlMM(result~(site)/day, CA19_9[CA19_9$sample == samples[i],])
 		tmp.inf <- VCAinference(tmp.fit, total.claim=total.specs[i], error.claim=error.specs[i])
-		print(checkEquals(inf.lst[[i]]$aov.tab, tmp.inf$aov.tab))
+		print(checkEquals(inf.lst[[i]]$VCAobj$aov.tab, tmp.inf$VCAobj$aov.tab))
+		checkEquals(inf.lst[[i]]$ConfInt, tmp.inf$ConfInt)
 	}
 }
 
@@ -947,5 +950,74 @@ TF041.REML.test.lsmeans <- function()
 	fit <- remlMM(y~day/(run), dataEP05A2_1)
 	lc.mat <- getL(fit, "day19-day20", "lsm")		# day20 is contrained to 0
 	res    <- test.lsmeans(fit, lc.mat)
-	checkEquals(as.numeric(res), c(  -1.220903154324, 20.000000000000, -0.801356496568, 0.432343418432))
+	checkEquals(round(as.numeric(res),7), c(  -1.2209032, 20, 1.5235456, -0.8013565, 0.4323434))
 }
+
+
+# check whether unordered data lead to equal results as ordered data regarding balancedness or not 
+
+TF042.balancedness.ordered_vs_unordered <- function()
+{
+	data(dataEP05A2_1)
+	dat  <- dataEP05A2_1
+	dat  <- dat[sample(1:nrow(dat)),]		# no fixed seed required, has to work with any permutation
+	fit1 <- anovaVCA(y~day/run, dat)
+	fit2 <- remlVCA(y~day/run, dat)
+	fit3 <- anovaMM(y~day/(run), dat)
+	fit4 <- remlMM(y~day/(run), dat)
+	
+	checkEquals(fit1$balanced, "balanced")
+	checkEquals(fit2$balanced, "balanced")
+	checkEquals(fit3$balanced, "balanced")
+	checkEquals(fit4$balanced, "balanced")
+}
+
+
+# check LS Means evaluation at specific values of covariates and/or for different weighting of factor-variables
+
+set.seed(212)
+id <- rep(1:10,10)
+x <- rnorm(200)
+time <- sample(1:5,200,replace=T)
+y <- rnorm(200)+time
+snp <- sample(0:1,200,replace=T)
+dat <- data.frame(id=id,x=x,y=y,time=time,snp=snp)
+dat$snp <- as.factor(dat$snp)
+dat$id <- as.factor(dat$id)
+dat$time <- as.numeric(dat$time)
+dat$sex <- gl(2, 100, labels=c("Male", "Female"))
+dat$y <- dat$y + rep(rnorm(2, 5, 1), c(100, 100))
+dat <- dat[order(dat$sex, dat$id, dat$time),]
+
+fit.vca <- remlMM(y~snp+time+snp:time+sex+(id)+(id):time, dat,VarVC=F)
+
+# results differ form SAS PROC MIXED results after 2nd decimal place because covariance parameters
+# are slightly different as well
+TF043.LSMeans.atCovarLevel <- function()
+{
+	lsm <- lsmeans(fit.vca, var="snp", at=list(time=1:4))
+	checkEquals(as.numeric(round(lsm[-c(1,2),"Estimate"],2)), c(4.89, 5.01, 5.80, 5.92, 6.71, 6.83, 7.62, 7.75))
+}
+
+
+# test whether specifying a non-existing covariable leads to result with only two (original)
+# LS Means. 
+
+TF044.LSMeans.atCovarLevel <- function()
+{
+	lsm <- lsmeans(fit.vca, var="snp", at=list(tim=1:4))
+	checkEquals(nrow(lsm), 2)
+}
+
+# test whether specifying a weighting scheme where elements add to something !=1 leads to result
+# with only two (original) LS Means. 
+
+TF045.LSMeans.atCovarLevel <- function()
+{
+	lsm1 <- lsmeans(fit.vca, var="snp", at=list(sex=c(Male=.3, Female=.6)))
+	checkEquals(nrow(lsm1), 2)
+	lsm2 <- lsmeans(fit.vca, var="snp", at=list(sex=c(Male=.5, Female=.6)))
+	checkEquals(nrow(lsm2), 2)
+}
+
+

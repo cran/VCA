@@ -1,3 +1,21 @@
+Version 1.3.1
+-------------
+
+- fixed incompatibility with MacOS due to the automatical check whether Math Kernel Library (MKL) is installed
+  or not, it is now set, resulting in slightly worse performance than applying 'assign("MKL", FALSE, envir=msgEnv)' in
+  case MKL is not available (only the case for REML!)
+- fixed bug in function 'lsmMat' causing an error for multiple numeric covariables
+- fixed warning message that LS Means can only be computed for numeric variables, which is not the case, 
+  it is only possible for non-numeric variables
+- add argument 'at' to function 'lsmeans' allowing to compute LS Means at certain values of covariables and/or
+  applying different weighting scheme for factor-variables
+- added standard error column in function 'test.fixef'
+- terms appearing in the model formula of function 'remlMM' are now kept in the order as specified by the user
+- refactored SAS-type constraining of fixed effects
+- data is now automatically ordered fixing a bug, that unordered data is sometimes reported as "unbalanced" 
+  although it is balanced
+- message environment now created if not existing (e.g. when deleted after loading the package)
+
 Version 1.3
 ------------
 

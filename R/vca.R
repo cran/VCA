@@ -59,26 +59,27 @@ load_if_installed <- function(package)
 
 check4MKL <- function()
 {
-	if(Sys.info()["sysname"] == "Darwin")				# Mac OSx
+	if("msgEnv" %in% ls(.GlobalEnv) && !is.null(msgEnv$MKL))
+		return(msgEnv$MKL)
+	else
 	{
-		local(
-				{
-					options(download.file.method = "libcurl")
-					hw.ncpu <- try(system('sysctl hw.physicalcpu', intern = TRUE))
-					if (!inherits(hw.ncpu, "try-error"))
-						assign("MKL", TRUE, envir=msgEnv)
-					else
-						assign("MKL", FALSE, envir=msgEnv)
-				})
-	} 
-	else 												# other operating systems
-	{		
-		MRO <- FALSE
-		try(MRO <- load_if_installed("RevoUtilsMath"), silent=TRUE)			# function only exists in MRO environment
-		if(!inherits(MRO, "try-error") && MRO)
-			assign("MKL", TRUE, envir=msgEnv)
-		else 
-			assign("MKL", FALSE, envir=msgEnv)
+		msgEnv <<- new.env(parent=emptyenv())				
+		
+		if(Sys.info()["sysname"] == "Darwin")				# Mac OSx
+		{		
+			assign("MKL", TRUE, envir=msgEnv)				# set MKL to TRUE, although, it may not be installed --> no good method known to check for MKL under MacOS
+		} 
+		else 												# other operating systems
+		{		
+			MRO <- FALSE
+			try(MRO <- load_if_installed("RevoUtilsMath"), silent=TRUE)			# function only exists in MRO environment
+			if(!inherits(MRO, "try-error") && MRO)
+				assign("MKL", TRUE, envir=msgEnv)
+			else 
+				assign("MKL", FALSE, envir=msgEnv)
+		}
+		
+		return(msgEnv$MKL)
 	}
 }
 
@@ -333,7 +334,7 @@ lmerMatrices <- function(obj, tab=NULL, terms=NULL, cov=FALSE, X=NULL)
 	Nvc	  <- nrow(tab)-1							# minus total and error								
 	Zt 	  <- obj@pp$Zt
 	
-	if(msgEnv$MKL)
+	if(check4MKL())
 		Zt <- as.matrix(Zt)
 	
 	if(is.null(X) || class(X) != "matrix")
@@ -344,12 +345,13 @@ lmerMatrices <- function(obj, tab=NULL, terms=NULL, cov=FALSE, X=NULL)
 	colnames(Z) <- REnamZ
 	G  <- lmerG(obj, cov=cov)						# construct G-matrix
 	
-	if(msgEnv$MKL)
+	if(check4MKL())
 		R	<- diag(nrow(obj@frame))* tab[nrow(tab),"VC"]
 	else
 		R	<- Diagonal(nrow(obj@frame))* tab[nrow(tab),"VC"]
 	
 	V	 <- Z %*% G %*% Zt + R						# variance-covariance matrix of observations
+
 	Vi	 <- solve(V)
 	ViX  <- Vi %*% X
 	XtVi <- Xt %*% Vi
@@ -417,7 +419,7 @@ lmerMatrices <- function(obj, tab=NULL, terms=NULL, cov=FALSE, X=NULL)
 lmerSummary <- function(obj, VarVC=TRUE, terms=NULL, Mean=NULL, cov=FALSE, X=NULL)
 {
 	stopifnot(inherits(obj, "lmerMod"))	
-#check4MKL() # remove it before building the package
+
 	Sum  <- as.data.frame(summary(obj)$varcor)
 	Sum[which(Sum[,"var1"] %in% c(NA, "(Intercept)")), "var1"] <- ""
 	
@@ -469,7 +471,7 @@ lmerSummary <- function(obj, VarVC=TRUE, terms=NULL, Mean=NULL, cov=FALSE, X=NUL
 		obj$aov.tab <- Sum
 	}
 	
-	if(msgEnv$MKL)			# remaining part of the package computes with Matrix-package
+	if(check4MKL())			# remaining part of the package computes with Matrix-package
 	{
 		obj$Matrices$Zre 	<- Matrix(obj$Matrices$Zre)
 		obj$Matrices$G   	<- Matrix(obj$Matrices$G)
@@ -630,7 +632,7 @@ remlVCA <- function(form, Data, by=NULL, VarVC=TRUE, quiet=FALSE)
 	stopifnot(is.logical(quiet))
 	stopifnot(is.data.frame(Data))
 	stopifnot(nrow(Data) > 2)                                               # at least 2 observations for estimating a variance
-	
+
 	trms <- terms(form)														# convert VCA-formula to valid lmer-formula
 	stopifnot(attr(trms, "response") == 1)
 	lab  <- attr(trms, "term.labels")
@@ -640,12 +642,60 @@ remlVCA <- function(form, Data, by=NULL, VarVC=TRUE, quiet=FALSE)
 			warning("No random effects specified! Call function 'anovaVCA' instead!")
 		return(anovaVCA(form, Data))
 	}
+
 	lab  <- paste("(1|", lab, ")", sep="")
 	resp <- rownames(attr(trms, "factors"))[1]
+	vars <- rownames(attr(trms, "factors"))[-1]
+		
 	form <- as.formula(paste(resp, "~", paste(lab, collapse="+"), sep=""))
 	
 	stopifnot(resp %in% colnames(Data))
 	stopifnot(is.numeric(Data[,resp]))
+	
+	rmInd 	<- integer()	
+	resp.NA <- is.na(Data[,resp])
+	
+	if(any(resp.NA))
+	{    
+		rmInd <- c(rmInd, which(resp.NA))
+		if(!quiet)
+			warning("There are ", length(which(resp.NA))," missing values for the response variable (obs: ", paste(which(resp.NA), collapse=", "), ")!")
+	}    
+	
+	if(!is.null(vars))
+	{
+		for(i in vars)                                                  # convert all nested factors as factor-objects
+		{
+			if( any(is.na(Data[,i])))
+			{
+				NAind <- which(is.na(Data[,i]))
+				rmInd <- c(rmInd, NAind)
+				if(!quiet)
+					warning("Variable '", i,"' has ",length(NAind)," missing values (obs: ", paste(NAind, collapse=", "), ")!" )
+			}
+			
+			if(length(levels(Data[,i])) >= 0.75*nrow(Data) && !quiet)
+				warning("Variable >>> ", i," <<< has at least 0.75 * nrow(Data) levels!")
+		}
+		rmInd <- unique(rmInd)
+	}	
+	
+	for(i in rev(vars))													# order data
+	{
+		tmp <- Data[,i]
+		tmp.num <- suppressWarnings(as.numeric(as.character(tmp)))		# warnings are very likely here
+		
+		if(!any(is.na(tmp.num)))										# all levels are numbers
+		{
+			Width <- max(nchar(as.character(unique(Data[,i])))) + 1
+			tmp   <- suppressWarnings(formatC(Data[,i], width=Width))
+			uLvl  <- unique(Data[,i])
+			Data  <- Data[order(tmp),]
+			Data[,i] <- factor(as.character(Data[,i]), levels=uLvl[order(unique(tmp))])
+		}		
+		else
+			Data[,i] <- factor(Data[,i])								# automatically orders
+	}
 	
 	vcol <- rownames(attr(trms, "factors"))
 	if(is.null(vcol))
@@ -834,7 +884,7 @@ remlMM <- function(form, Data, by=NULL, VarVC=TRUE, cov=TRUE, quiet=FALSE)
 	stopifnot(is.data.frame(Data))
 	stopifnot(nrow(Data) > 2)                                               # at least 2 observations for estimating a variance
 	
-	trms <- terms(form)														# convert VCA-formula to valid lmer-formula
+	trms <- terms(form, simplify=TRUE, keep.order=TRUE)						# convert VCA-formula to valid lmer-formula
 	stopifnot(attr(trms, "response") == 1)
 	resp <- rownames(attr(trms, "factors"))[1]
 	org.form <- form
@@ -889,8 +939,9 @@ remlMM <- function(form, Data, by=NULL, VarVC=TRUE, cov=TRUE, quiet=FALSE)
 	}
 	vars    <- rownames(attr(trms, "factors"))[-1]	                        # remove response
 	Nvc     <- length(fac) + 1 
+	Order   <- NULL
 	
-	for(i in vars)															# check Data for consistency
+	for(i in rev(vars))														# check Data for consistency
 	{
 		if( any(is.na(Data[,i])))
 		{
@@ -911,12 +962,18 @@ remlMM <- function(form, Data, by=NULL, VarVC=TRUE, cov=TRUE, quiet=FALSE)
 			tmp.num <- suppressWarnings(as.numeric(as.character(tmp)))		# warnings are very likely here
 			
 			if(!any(is.na(tmp.num)))										# all levels are numbers
-				Data[,i] <- factor(Data[,i], ordered=TRUE)					# do not order			
+			{
+				Width <- max(nchar(as.character(unique(Data[,i])))) + 1
+				tmp   <- suppressWarnings(formatC(Data[,i], width=Width))
+				uLvl  <- unique(Data[,i])
+				Data  <- Data[order(tmp),]
+				Data[,i] <- factor(as.character(Data[,i]), levels=uLvl[order(unique(tmp))])
+			}		
 			else
 				Data[,i] <- factor(Data[,i])								# automatically orders
 		}
 	}
-	
+
 	if(length(rf.ind) > 0)													# at least one random term in 'form'
 	{
 		res$random <- fac[rf.ind]
@@ -924,10 +981,12 @@ remlMM <- function(form, Data, by=NULL, VarVC=TRUE, cov=TRUE, quiet=FALSE)
 	}
 	else
 	{
-		res$random <- character(0)											# only fixed effects
-		res$fixed  <- fac
+		if(!quiet)
+			warning("No random terms in the model! Call 'anovaMM' insead!")
+		
+		return(anovaMM(form, Data))
 	}
-	
+
 	res$terms.classes <- sapply(Data[,rownames(attr(trms, "factors"))[-1]], class)
 	
 	res$Type <- if(length(res$fixed) == 0)
@@ -940,6 +999,7 @@ remlMM <- function(form, Data, by=NULL, VarVC=TRUE, cov=TRUE, quiet=FALSE)
 	var.num   <- names(res$terms.classes[which(res$terms.classes == "numeric")])
 	fac 	  <- attr(trms, "factors")[var.num,res$fixed,drop=FALSE]		# restrict to columns of fixed effects variables and rows with numeric variables
 	fe.num 	  <- character()
+
 	fac 	  <- fac[which(apply(fac, 1, any)),,drop=FALSE]
 	fac 	  <- fac[,which(apply(fac, 2, any)),drop=FALSE]
 	fe.num 	  <- colnames(fac)
@@ -949,7 +1009,7 @@ remlMM <- function(form, Data, by=NULL, VarVC=TRUE, cov=TRUE, quiet=FALSE)
 	num.fixed <- sapply(var.num, function(x) grepl(x, res$fixed))
 	random 	  <- ""
 	trmMat    <- matrix(nrow=length(res$random), ncol=2, dimnames=list(NULL, c("form", "subject")))
-	
+
 	for(i in 1:length(res$random))			# process each random term
 	{
 		if(nchar(random) == 0)
@@ -1010,32 +1070,50 @@ remlMM <- function(form, Data, by=NULL, VarVC=TRUE, cov=TRUE, quiet=FALSE)
 		X <- matrix(1, ncol=0, nrow=nrow(Data))	
 	}
 	
-	if(length(res$fixed) > 0)									# construct design matrix of fixed effects according to usual structure used in VCA-package
-	{		
-		for(i in 1:length(res$fixed))							# complete design matrix of fixed effects
+	fixed.form <- as.formula(paste(	resp, "~", 
+									paste(	ifelse(int, "1", "-1"), 
+											fixed, sep=ifelse(fixed=="", "", "+")),
+									sep=""))
+		
+	old.opt <- options(contrasts=c("contr.SAS", "contr.poly"))
+
+	suppressWarnings({
+		X1 	<- model.matrix(fixed.form, data=Data)						# with SAS contrasts but without the columns where restrictions apply
+		X10	<- apply(X1, 2, function(x) all(x==0))
+		X2 <- model.matrix(	fixed.form, data=Data,						# full model matrix with re-setted contrasts
+							contrasts.arg=lapply(Data[,sapply(Data, is.factor), drop=FALSE],
+							contrasts, contrasts=FALSE))
+		X20	<- apply(X2, 2, function(x) all(x==0))
+		
+		X2.asgn 	<- attr(X2, "assign")									# keep info		
+		
+		if(any(X10))
+			X1 <- X1[,-which(X10),drop=FALSE]
+		
+		if(any(X20))
 		{
-			tmp <- model.matrix(as.formula(paste(resp, "~", res$fixed[i], "-1", sep="")), Data)
-			
-			all0 <- apply(tmp, 2, function(x) all(x==0))
-			if(any(all0))
-				tmp <- tmp[,-which(all0)]
-			
-			if(int && !res$fixed[i] %in% fe.num)	
-				tmp[,ncol(tmp)] <- 0							# use same restriction as in SAS PROC MIXED set last fe=0
-			
-			X <- cbind(X, tmp)								
-			fe.assign <- c(fe.assign, rep(i, ncol(tmp)))
-		}		
+			X2 <- X2[,-which(X20),drop=FALSE]
+			X2.asgn 	<- X2.asgn[-which(X20)]
+		}				
+	})
+	
+	options(old.opt)													# reset contrasts option
+	
+	fixed.terms <- terms(fixed.form)
+	fe.terms 	<- attr(fixed.terms, "term.labels")
+	
+	X2[,!colnames(X2) %in% colnames(X1)] <- 0							# transfer restriction from X1 to X2
+	if(int)
+	{
+		colnames(X2)[1] <- "int"
+		fe.terms <- c("int", fe.terms)
 	}
 	
-	if(!is.null(fe.assign))
-	{
-		attr(fe.assign, "terms") <- if(int)
-					c("int", res$fixed)
-				else
-					res$fixed
-	}
-	res$fe.assign <- fe.assign											# mapping columns of X to fixed terms in the model formula
+	fe.assign <- X2.asgn
+	attr(fe.assign, "terms") <- fe.terms
+
+	res$fe.assign 	<- fe.assign										# mapping columns of X to fixed terms in the model formula
+	res$fixed.terms <- fixed.terms
 	res$balanced <- if(isBalanced(as.formula(trms), Data)) 
 				"balanced"  
 			else 
@@ -1047,9 +1125,10 @@ remlMM <- function(form, Data, by=NULL, VarVC=TRUE, cov=TRUE, quiet=FALSE)
 	res$Nobs <- Nobs
 	
 	tmp <- lmerSummary(	obj=fit, VarVC=VarVC, 			# construct table similar to aov-table and approximate vcovVC
-			terms=res$random,
-			Mean=res$Mean,
-			cov=cov, X=X)					
+						terms=res$random,
+						Mean=res$Mean,
+						cov=cov, X=X2)				
+	
 	tmp$Matrices$y <- Matrix(Data[,resp], ncol=1)
 	res <- c(res, tmp)
 	class(res) <- "VCA"
@@ -1728,6 +1807,7 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 	}    
 	
 	fac  	<- attr(tobj, "term.labels")
+
 	if(length(fac) > 1)
 	{
 		rf.ind  <- which(apply(sapply(rf, function(x) regexpr(x, fac)), 1, function(x) any(x>0)))		
@@ -1763,7 +1843,7 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 			else
 				"Mixed Model"	
 	
-	for(i in vars)															# check Data for consitency
+	for(i in rev(vars))														# check Data for consistency
 	{
 		if( any(is.na(Data[,i])))
 		{
@@ -1781,10 +1861,16 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 				warning("Convert variable ", i," from \"charater\" to \"factor\"!")
 			
 			tmp <- Data[,i]
-			tmp.num <- suppressWarnings(as.numeric(as.character(tmp)))
+			tmp.num <- suppressWarnings(as.numeric(as.character(tmp)))		# warnings are very likely here
 			
 			if(!any(is.na(tmp.num)))										# all levels are numbers
-				Data[,i] <- factor(Data[,i], ordered=TRUE)					# do not order			
+			{
+				Width <- max(nchar(as.character(unique(Data[,i])))) + 1
+				tmp   <- suppressWarnings(formatC(Data[,i], width=Width))
+				uLvl  <- unique(Data[,i])
+				Data  <- Data[order(tmp),]
+				Data[,i] <- factor(as.character(Data[,i]), levels=uLvl[order(unique(tmp))])
+			}		
 			else
 				Data[,i] <- factor(Data[,i])								# automatically orders
 		}
@@ -1877,44 +1963,55 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 		fe.assign <- NULL
 	
 	fe <- fac[-rf.ind]
+
+	INT <- ifelse(int, "1", "-1")
+	if(length(fe) > 0)
+		INT <- paste(INT, "+", sep="")
+
+	fixed.form <- paste(resp, "~", INT, paste(fe, collapse="+"), sep="")
+	fixed.form <- as.formula(fixed.form)
+
+	old.opt <- options(contrasts=c("contr.SAS", "contr.poly"))
 	
-	if(length(fe) > 0)													# construct design matrix of fixed effects according to usual structure used in VCA-package
-	{
-		var.cls <- sapply(Data, class)									# determine mode of each fixed variable
+	suppressWarnings({
+		X1 	<- model.matrix(fixed.form, data=Data)						# with SAS contrasts but without the columns where restrictions apply
+		X10	<- apply(X1, 2, function(x) all(x==0))
+		X2 <- model.matrix(	fixed.form, data=Data,						# full model matrix with re-setted contrasts
+				contrasts.arg=lapply(Data[,sapply(Data, is.factor), drop=FALSE],
+						contrasts, contrasts=FALSE))
+		X20	<- apply(X2, 2, function(x) all(x==0))
 		
-		var.num <- var.cls[which(var.cls == "numeric")]
-		fac <- attr(tobj, "factors")[names(var.num),fe,drop=FALSE]		# restrict to columns of fixed effects variables and rows with numeric variables
-		fe.num <- character()
-		fac <- fac[which(apply(fac, 1, any)),,drop=FALSE]
-		fac <- fac[,which(apply(fac, 2, any)),drop=FALSE]
-		fe.num <- colnames(fac)
+		X2.asgn 	<- attr(X2, "assign")									# keep info		
 		
-		for(i in 1:length(fe))											# complete design matrix of fixed effects
+		if(any(X10))
+			X1 <- X1[,-which(X10),drop=FALSE]
+		
+		if(any(X20))
 		{
-			tmp <- model.matrix(as.formula(paste(resp, "~", fe[i], "-1", sep="")), Data)
-			
-			all0 <- apply(tmp, 2, function(x) all(x==0))
-			if(any(all0))
-				tmp <- tmp[,-which(all0)]
-			
-			if(int && !fe[i] %in% fe.num)	
-				tmp[,ncol(tmp)] <- 0							# use same restriction as in SAS PROC MIXED set last fe=0
-			
-			Lmat$X    <- cbind(Lmat$X, tmp)								
-			fe.assign <- c(fe.assign, rep(i, ncol(tmp)))
-		}		
-	}
-	else
-		Lmat$X <- Matrix(0, nrow=nrow(Data), ncol=1)
+			X2 <- X2[,-which(X20),drop=FALSE]
+			X2.asgn 	<- X2.asgn[-which(X20)]
+		}				
+	})
 	
-	if(!is.null(fe.assign))
+	options(old.opt)													# reset contrasts option
+	
+	fixed.terms <- terms(fixed.form)
+	fe.terms 	<- attr(fixed.terms, "term.labels")
+		
+	X2[,!colnames(X2) %in% colnames(X1)] <- 0							# transfer restriction from X1 to X2
+	if(int)
 	{
-		attr(fe.assign, "terms") <- if(int)
-					c("int", fe)
-				else
-					fe
+		colnames(X2)[1] <- "int"
+		fe.terms <- c("int", fe.terms)
 	}
-	res$fe.assign <- fe.assign											# mapping columns of X to fixed terms in the model formula
+	
+	fe.assign <- X2.asgn
+	attr(fe.assign, "terms") <- fe.terms
+	
+	Lmat$X <- X2
+
+	res$fe.assign 	<- fe.assign										# mapping columns of X to fixed terms in the model formula
+	res$fixed.terms <- fixed.terms
 	
 	Lmat$rf.ind <- rf.ind												# indices of random effects
 	Lmat$VCall  <- VCorg												# VC-estimates as if all factors were random
@@ -2235,6 +2332,9 @@ ranef.VCA <- function(object, term=NULL, mode=c("raw", "student", "standard"), q
 		
 		obj.len <- length(obj)
 		
+		if(!"msgEnv" %in% ls(.GlobalEnv))
+			msgEnv <<- new.env(parent=emptyenv())
+		
 		assign("VCAinference.obj.is.list", TRUE, envir=msgEnv)			# indicate that a list-type object was passed intially
 		
 		if(is.null(term))
@@ -2416,6 +2516,9 @@ fixef.VCA <- function(object, type=c("simple", "complex"), ddfm=c("contain", "re
 		
 		obj.len <- length(obj)
 		
+		if(!"msgEnv" %in% ls(.GlobalEnv))
+			msgEnv <<- new.env(parent=emptyenv())
+		
 		assign("VCAinference.obj.is.list", TRUE, envir=msgEnv)			# indicate that a list-type object was passed intially
 		
 		res <- mapply(	FUN=fixef.VCA, obj=obj, type=type[1],
@@ -2519,6 +2622,22 @@ fixef.VCA <- function(object, type=c("simple", "complex"), ddfm=c("contain", "re
 #' LS Means generating contrast matrix and \eqn{P} is the variance-covariance matrix of
 #' fixed effects.
 #' 
+#' Argument \code{at} can be used to modify the values of covariables when computing LS Means and/or
+#' to apply different weighting schemes for (fixed) factor varialbes in the model, e.g. when the prevelance
+#' of factor-levels differs from a uniform distribution. Usually, if the weighting scheme is not modified,
+#' each factor-level will contribute \eqn{1/N} to the LS Mean, where \eqn{N} corresponds to the number of factor-levels. 
+#' 
+#' Covariables have to be specified as 'name=value', where value can be a vector of length > 1. 
+#' Each value will be evaluated for each row of the original LS Means contrast matrix. 
+#' If multiple covariables are specified, the i-th element of covariable 1 will be matched with
+#' the i-th element of covariable(s) 2...M, where \eqn{M} is the number of covariables in the model.
+#' 
+#' To apply a different weighting scheme for factor-variables one has to specify 'factor-name=c(level-name_1=value_1,
+#' level-name_2=value_2, ..., level-name_N=value_N)'. The sum of all 'value_i' elements must be equal to 1, otherwise,
+#' this factor-variable will be skipped issuing a warning. If any levels 'level-name_i' cannot be found for 
+#' factor-variable 'factor-name', this variable will also be skipped and a warning will be issued.
+#' See the examples section to get an impression of how this works.
+#' 
 #' @param obj			(VCA) object having at least one fixed effect
 #' @param var			(character) string specifying a fixed effects variable for which
 #'                      LS Means should be computed, defaults to all fixed effects, i.e. for
@@ -2527,6 +2646,12 @@ fixef.VCA <- function(object, type=c("simple", "complex"), ddfm=c("contain", "re
 #' @param ddfm			(character) string specifying the method used for computing the 
 #'                      degrees of freedom of the t-statistic. Only used when type="complex".
 #' 						Available methods are "contain", "residual", and "satterthwaite".
+#' @param at			(list) where each element corresponds either to a (numeric) covariable or
+#' 						to a factor-variable for which the weighting scheme should be adjusted.
+#' 						See details section for a thorough description of how argument 'at' works
+#' 						and also see the examples.
+#' @param contr.mat		(logical) TRUE = the LS Means generating contrast-matrix will be added to the
+#' 						result as attribute \code{contrasts}
 #' @param quiet			(logical) TRUE = suppress warning messages, e.g. for non-estimable contrasts
 #' 
 #' @return (matrix) with LS Means of fixed effects and respective standard errors,
@@ -2553,10 +2678,47 @@ fixef.VCA <- function(object, type=c("simple", "complex"), ddfm=c("contain", "re
 #' system.time(lsm2 <- lsmeans(fit2, "device", "complex"))
 #' lsm1
 #' lsm2 
+#' 
+#' # simulate some random data 
+#' set.seed(212)
+#' id <- rep(1:10,10)
+#' x <- rnorm(200)
+#' time <- sample(1:5,200,replace=T)
+#' y <- rnorm(200)+time
+#' snp <- sample(0:1,200,replace=T)
+#' dat <- data.frame(id=id,x=x,y=y,time=time,snp=snp)
+#' dat$snp <- as.factor(dat$snp)
+#' dat$id <- as.factor(dat$id)
+#' dat$time <- as.numeric(dat$time)
+#' dat$sex <- gl(2, 100, labels=c("Male", "Female"))
+#' dat$y <- dat$y + rep(rnorm(2, 5, 1), c(100, 100))
+#' 
+#' fit3 <- remlMM(y~snp+time+snp:time+sex+(id)+(id):time, dat)
+#' 
+#' # comute standard LS Means for variable "snp"
+#' lsmeans(fit3, var="snp")
+#' lsmeans(fit3, var="snp", type="c")    # comprehensive output
+#' 
+#' # compute LS Means at timepoints 1, 2, 3, 4
+#' # Note: original LS Means are always part of the output
+#' lsmeans(fit3, var="snp", at=list(time=1:4))
+#' 
+#' # compute LS Means with different weighting scheme
+#' # for factor-variable 'sex'
+#' lsmeans(fit3, var="snp", at=list(sex=c(Male=.3, Female=.7)))
+#' 
+#' # combine covariables at some value and altering the
+#' # weighting scheme
+#' lsmeans(fit3, var="snp", at=list(time=1:4, sex=c(Male=.3, Female=.7)))
+#' 
+#' # now with comprehensive output and requesting the
+#' # LS Means generating contrast matrix
+#' lsmeans(fit3, var="snp", type="complex", contr.mat=TRUE,
+#'         at=list(time=1:4, sex=c(Male=.3, Female=.7)))
 #' }
 
 lsmeans <- function(obj, var=NULL, type=c("simple", "complex"), ddfm=c("contain", "residual", "satterthwaite"), 
-		quiet=FALSE)
+					at=NULL, contr.mat=FALSE, quiet=FALSE)
 {
 	Call <- match.call()
 	
@@ -2597,15 +2759,14 @@ lsmeans <- function(obj, var=NULL, type=c("simple", "complex"), ddfm=c("contain"
 		stopifnot(var %in% obj$fixed)
 	
 	if(length(ddfm) > 1 && type == "complex")
-	{
-		
+	{		
 		ddfm <- "satterthwaite"
 		if(!quiet)
 			warning("Note: 'ddfm' not specified, option \"satterthwaite\" was used!")
 	}
 	ddfm <- match.arg(ddfm)
 	
-	if(obj$EstMethod == "REML" && ddfm == "contain")
+	if(obj$EstMethod == "REML" && ddfm == "contain" && type=="complex")
 	{
 		ddfm <- "satterthwaite"
 		if(!quiet)
@@ -2620,29 +2781,221 @@ lsmeans <- function(obj, var=NULL, type=c("simple", "complex"), ddfm=c("contain"
 	}
 	
 	T <- lsmMat(obj, var=var, quiet=quiet)					# LS Means generating contrast matrix
+
+	id.mat <- NULL											# being non-NULL means that something was done via 'at'
+	
+	if(!is.null(at))										# LS Means at some fixed values of covariates and/or with different weighting scheme for fixed factor-variables
+	{
+		Means <- attr(T, "means")
+
+		dat.class <- attr(T, "var.class")
+
+		nam <- names(at)
+		
+		T2  <- T
+		cnT <- colnames(T)
+		fe.terms <- attr(obj$fe.assign, "terms")
+		
+		num.at <- nam[dat.class[nam] == "numeric"]
+		fac.at <- nam[dat.class[nam] == "factor"]
+
+		if(all(is.na(c(num.at, fac.at))) && !quiet)
+			warning("Argument 'at' was not correctly specified! Neither covariables nor factor variables could be matched!")
+			
+		if(length(num.at) == 1 && is.na(num.at))								
+			num.at <- character()							# ensure feasibility tests below
+		if(length(fac.at) == 1 && is.na(fac.at))
+			fac.at <- character()
+		
+		if(length(num.at) > 0)								# if there are any covariables
+		{
+			at.mat <- matrix(nrow=max(sapply(at[num.at], length)), ncol=length(num.at))
+			colnames(at.mat) <- num.at
+			
+			for(i in 1:length(num.at))						# fill matrix, could also be user-defined
+			{
+				if(!num.at[i] %in% cnT)
+				{
+					if(!quiet)
+						warning("There is no fixed term ", paste0("'", nam[i],"'!"),"Possible terms are:", paste(cnT, collapse=", "))
+					next
+				}
+				
+				if(length(at[[num.at[i]]]) < nrow(at.mat))
+				{
+					if(!quiet)
+						warning("at[[",num.at[i],"]] does not match the max-length element of 'at', it will be replicated as necessary!")
+					
+					at.mat[,i] <- rep(at[[num.at[i]]], ceiling(nrow(at.mat)/length(at[[num.at[i]]])))[1:nrow(at.mat)]	# replicate
+				}
+				else
+					at.mat[,i] <- at[[num.at[i]]]
+			}
+		}
+		else
+			at.mat <- matrix(nrow=length(fac.at), ncol=0)					# empty matrix
+
+		if(length(fac.at) > 0)										# treat factor-variables, i.e. different weighting scheme
+		{
+			fac.lst <- vector("list", length(fac.at))
+			names(fac.lst) <- fac.at
+			
+			for(i in 1:length(fac.at))								# over all specified factor variables
+			{	
+				if(sum(at[[fac.at[i]]]) != 1)
+				{
+					if(!quiet)
+						warning("Sum of all coefficients of factor-variable ", paste0("'", fac.at[i],"'"), " is not equal to 1! It will be skipped!")
+					next
+				}
+				
+				skip <- FALSE
+				
+				tmp.mat <- matrix(nrow=nrow(at.mat), ncol=0)
+				
+				for(j in 1:length(at[[fac.at[i]]]))					# over all levels of the i-th factor variable
+				{
+					tmp <- matrix(at[[fac.at[i]]][j], ncol=1, nrow=nrow(at.mat))
+					colnames(tmp) <- paste0(fac.at[i], names(at[[fac.at[i]]])[j])
+					
+					if(!colnames(tmp) %in% colnames(T))
+					{
+						if(!quiet)
+							warning("Factor-level ", paste0("'",colnames(tmp), "'"),
+									" of variable ",paste0("'", fac.at[i], "'"),
+									" does not correspond to a fixed effect!\n  This element of 'at' will be skipped!")
+						skip <- TRUE
+					}
+					tmp.mat <- cbind(tmp.mat, tmp)
+				}
+				
+				if(skip)
+					next
+				else
+				{
+					at.mat <- cbind(at.mat, tmp.mat)
+					fac.lst[[i]] <- tmp.mat
+				}
+			}
+		}
+		at.mat <- na.omit(at.mat)
+
+		id.mat <- matrix(nrow=nrow(T), ncol=ncol(at.mat))
+		cn.id  <- colnames(at.mat)
+		colnames(id.mat) <- cn.id
+
+		if(length(num.at) > 0)
+		{
+			for(i in 1:length(num.at))								# identifies combination of covar-levels
+				id.mat[,num.at[i]] <- Means[[num.at[i]]]["mean"]
+
+			tmp.ind <- cn.id[!cn.id %in% num.at]					# those columns not corresponding to covariables
+		}
+		else
+			tmp.ind <- cn.id										# only columns corresponding to factor variable weights
+	
+		if(length(fac.at) > 0)
+			id.mat[,tmp.ind] <- T[,tmp.ind]
+
+		if(ncol(at.mat) > 0)								# only if there is anything to evaluate
+		{
+			for(i in 1:nrow(at.mat))						# for each combination specified
+			{
+				T3  <- T
+				
+				if(length(num.at) > 0)						# if there any covariables
+				{
+					for(j in 1:length(num.at))				# over covariables
+					{
+						cnTi <- cnT[grepl(num.at[j], cnT)]					# all relevant columns in matrix T					
+						
+						for(k in 1:length(cnTi))							# over all columns in which the current covariable appears (main-effect or interaction)
+						{
+							if(grepl(":", cnTi[k]))							# interaction
+							{
+								splt <- unlist(strsplit(cnTi[k], ":"))		# split interaction into atomic terms
+								
+								tmp.val <- 1
+								
+								for(l in 1:length(splt))							# over all terms in the interaction
+								{
+									if(splt[l] == num.at[j])						# user-specified level	
+										tmp.val <- tmp.val * at.mat[i,num.at[j]]
+									else
+									{
+										if(splt[l] %in% names(Means))						# another numeric covariable -> use mean of this value
+											tmp.val <- tmp.val * Means[[splt[l]]]["mean"]
+										else												# check with rowname
+										{
+											if(splt[l] %in% rownames(T3))
+											{
+												tmp.fac <- rep(0, nrow(T3))
+												tmp.fac[grepl(splt[l], rownames(T3))] <- 1		# only that LS Mean affected, which is part of the interaction in column cnTi[k]
+												tmp.val <- tmp.val * tmp.fac
+											}
+											else										# not part of the current interaction
+												tmp.val <- tmp.val * rep(0, nrow(T3))
+										}
+									}
+								}
+								T3[,cnTi[k]] <- tmp.val
+							}
+							else
+								T3[,cnTi[k]] <- at.mat[i,num.at[j]]					# main effects		
+						}					
+					}
+				}
+				
+				if(length(fac.at) > 0)
+				{
+					for(j in 1:length(fac.at))									# over factor variables
+					{
+						tmp.row <- fac.lst[[fac.at[j]]][i,]
+						T3[, tmp.ind] <- rep(tmp.row, rep(nrow(T3), length(tmp.row)))  
+					}
+				}
+				
+				T2 <- rbind(T2, T3)
+				
+				tmp.id.mat <- matrix(rep(at.mat[i,], nrow(T)), ncol=ncol(at.mat), byrow=TRUE)
+				colnames(tmp.id.mat) <- colnames(at.mat)
+				
+				id.mat <- rbind(id.mat, tmp.id.mat)
+			}
+		}		
+		T <- T2										# T2 might be identical to T
+	}
+
+	attr(T, "var.class") <- NULL
+	attr(T, "means") 	 <- NULL
+
 	x   <- obj
 	if(x$intercept)
 	{
 		x$intercept <- FALSE		
 	}
-	vc <- vcov(obj)	
-	vc <- T %*% vc %*% t(T)
-	se <- sqrt(diag(vc))
-	
+		
 	if(type == "complex")						# complex output --> slower
 	{	
 		if(is.null(obj$VarCov))
 			obj$VarCov <- vcovVC(obj)			# determine vcov of VCs if missing
 		lsm <- test.fixef(obj, T, ddfm=ddfm, quiet=TRUE, lsmeans=TRUE)
-		lsm <- cbind(lsm, SE=se)
-		lsm <- lsm[,c(1,5,2,3,4)]
-		rownames(lsm) <- names(se)
+		rownames(lsm) <- rownames(T)
 	}
 	else										# simple output --> faster
 	{
+		vc  <- vcov(obj)	
+		vc  <- T %*% vc %*% t(T)
+		se  <- sqrt(diag(vc))
 		lsm <- T %*% obj$FixedEffects
 		lsm <- cbind(as.matrix(lsm), SE=se)
 	}
+	
+	if(!is.null(id.mat) && ncol(id.mat) > 0)
+		lsm <- cbind(id.mat, lsm)
+	
+	if(contr.mat)
+		attr(lsm, "contrasts") <- T
 	
 	return(lsm)
 }
@@ -2693,14 +3046,14 @@ lsmMat <- function(obj, var=NULL, quiet=FALSE)
 	
 	if(is.null(var))
 		var <- obj$fixed
-	
 	terms 	  <- attr(obj$terms, "factors")
 	dat.cls   <- sapply(obj$data[,rownames(terms)[-1]], class)	
 	variables <- names(dat.cls)
 	fe.assign <- obj$fe.assign						# assignment by integers
 	fe.terms  <- attr(fe.assign, "terms")	
+
 	fe.class  <- list()
-	
+
 	for(i in 1:length(fe.terms))
 	{
 		if(fe.assign[i] == 0)
@@ -2711,7 +3064,7 @@ lsmMat <- function(obj, var=NULL, quiet=FALSE)
 		fe.class[[i]] <- dat.cls[tmp]
 	}
 	names(fe.class) <- fe.terms
-	
+
 	if(!all(var %in% fe.terms))
 		stop("At least one element of 'var' is not a fixed term!")
 	
@@ -2722,8 +3075,8 @@ lsmMat <- function(obj, var=NULL, quiet=FALSE)
 	fe.tab    <- table(fe.tvec)
 	
 	lsmm <- matrix(nrow=0, ncol=ncol(X))				
-	cn <- colnames(lsmm) <- colnames(X)
-	rn <- NULL
+	cn  <- colnames(lsmm) <- colnames(X)
+	rn  <- Means <- NULL 
 	
 	if(any(dat.cls == "numeric"))					# find non-dummy variable columns in X
 	{
@@ -2736,41 +3089,46 @@ lsmMat <- function(obj, var=NULL, quiet=FALSE)
 			}
 		}		
 	}
-	fe.cls <- terms.cls[fe.assign+ifelse(obj$intercept, 1, 0)]
 	
-	num.terms <- terms.cls == "numeric"
-	if(any(num.terms))
+	fe.cls 		<- terms.cls[fe.assign+ifelse(obj$intercept, 1, 0)]
+	num.terms 	<- terms.cls == "numeric"
+
+	if(any(num.terms))														# are there any numeric terms
 	{
 		ind <- which(num.terms)
 		Means <- list()
+
 		for(i in 1:length(ind))
 		{
 			tmp		 <- numeric()
-			tmp      <- c(tmp, Nlev=as.numeric(fe.tab[fe.terms[ind[i]]]))	# number of levels of the current numeric term
+			tmp      <- c(tmp, Nlev=as.numeric(fe.tab[fe.terms[ind[i]]]))	# number of columns in X for the current numeric term
 			splt     <- unlist(strsplit(fe.terms[ind[i]], ":"))
 			tmp.cls  <- dat.cls[splt]
 			num.var  <- which(tmp.cls == "numeric")
 			fac.var  <- which(tmp.cls == "factor")
-			tmp.mean <- apply(obj$data[,names(num.var), drop=FALSE], 1, function(x) eval(parse(text=paste(x, collapse="*"))))
-			
+			tmp.mean <- apply(obj$data[,names(num.var), drop=FALSE], 1, function(x) eval(parse(text=paste(x, collapse="*"))))	# multiply each value of multiple numeric variables for each row		
 			tmp 	 <- c(tmp, mean=mean(tmp.mean))							# mean of current combination of numeric variables
 			
-			for(j in 1:length(fac.var))										# determine number of levels for each factor variable
+			if(length(fac.var) > 0)											# at least one factor variable
 			{
-				tmp  <- eval(parse(text=paste("c(tmp,",names(fac.var[j]),"=length(unique(obj$data[,\"",names(fac.var[j]),"\"])))", sep="")))
+				for(j in 1:length(fac.var))									# determine number of levels for each factor variable
+				{
+					exprs <- paste("c(tmp,",names(fac.var[j]),"=length(unique(obj$data[,\"",names(fac.var[j]),"\"])))", sep="") 
+					tmp   <- eval(parse(text=exprs))
+				}
 			}
-			
 			eval(parse(text=paste("Means[[\"", fe.terms[ind[i]], "\"]] <- tmp", sep="")))	# add to list 'Means' and use name of the numeric variable as name of the list element
 		}
 	}
-	
-	for(i in 1:length(var))							# over all fixed terms for which LS Means shall be computed
+
+	for(i in 1:length(var))									# over all fixed terms for which LS Means shall be computed
 	{
-		tsplt <- unlist(strsplit(var[i], ":"))
+		tsplt <- unlist(strsplit(var[i], ":"))				# LS Means can only be generated for pure factor variables or combinations of such, no numeric variable may interact
+		
 		if(any(dat.cls[tsplt] == "numeric"))
 		{
 			if(!quiet)
-				warning("'",var[i],"' is non-\"numeric\", LS Means cannot be estimated,'",var[i],"' will be skipped!")
+				warning("'",var[i],"' is \"numeric\", LS Means cannot be estimated,'",var[i],"' will be skipped!")
 			next
 		}
 		lvl.ind  <- which(fe.tvec == var[i])				# indices of all columns representing levels of var[i]
@@ -2781,8 +3139,8 @@ lsmMat <- function(obj, var=NULL, quiet=FALSE)
 		rem.ind.init  <- which(fe.tvec != var[i])			# (init)ial (rem)aining columns which need to be treated differently
 		rem.nam.init  <- cn[rem.ind.init]
 		rem.asgn.init <- fe.assign[rem.ind.init] 
-		
-		for(j in 1:length(lvl.ind))							# over levels of the current factor
+	
+		for(j in 1:length(lvl.ind))							# over levels (columns) of the current factor
 		{
 			rem.ind  <- rem.ind.init						# re-set for each level of the current (i-th) term
 			rem.nam  <- rem.nam.init
@@ -2800,26 +3158,23 @@ lsmMat <- function(obj, var=NULL, quiet=FALSE)
 				rem.asgn <- rem.asgn[-which(cn == "int")]
 			}
 			covar <- fe.cls[rem.ind] == "numeric"			# covariates involved?
-			
+
 			if(any(covar))									# [rule 1] (SAS PROC GLM documentation contrast matrix for LS Means)
 			{
-				cov.ind   <- rem.ind[ which(covar)]
+				cov.ind   <- rem.ind[ which(covar)]			# column-index of current covariate in contrast matrix
 				rem.ind   <- rem.ind[-which(covar)]
 				rem.nam   <- rem.nam[-which(covar)]
 				rem.asgn  <- rem.asgn[-which(covar)]
-				cov.asgn  <- fe.assign[cov.ind]
-				ucov.asgn <- unique(cov.asgn)
-				
+				cov.asgn  <- fe.assign[cov.ind]				# covariate-indices
+				ucov.asgn <- unique(cov.asgn)				
+
 				for(k in 1:length(ucov.asgn))				# over all terms representing covariates
 				{
 					tmp.term <- fe.terms[ucov.asgn[k] + ifelse(obj$intercept, 1, 0)]
-					
 					tmp.info <- Means[[tmp.term]]
-					
 					tmp.ind  <- cov.ind[which(cov.asgn == ucov.asgn[k])]
-					
-					cn.splt <- t(sapply(cn[tmp.ind], function(x) unlist(strsplit(x, ":"))))
-					
+					cn.splt  <- t(sapply(cn[tmp.ind], function(x) unlist(strsplit(x, ":"))))
+	
 					if(nrow(cn.splt) == 1)													# atomic covariate use mean value
 					{
 						con.mat[,which(fe.assign == ucov.asgn[k])] <- tmp.info["mean"]
@@ -2890,6 +3245,12 @@ lsmMat <- function(obj, var=NULL, quiet=FALSE)
 		rownames(tmp.lsm) <- lvl.nam
 		lsmm <- rbind(lsmm, tmp.lsm)
 	}
+	
+	attr(lsmm, "var.class") <- dat.cls
+	
+	if(!is.null(Means))
+		attr(lsmm, "means")	<- Means
+
 	return(lsmm)
 }
 
@@ -3367,8 +3728,8 @@ test.fixef <- function(	obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 	
 	if(nrow(L) > 1)
 	{
-		res <- matrix(ncol=4, nrow=nrow(L))
-		colnames(res) <- c("Estimate", "DF", "t Value", "Pr > |t|")
+		res <- matrix(ncol=5, nrow=nrow(L))
+		colnames(res) <- c("Estimate", "DF", "SE", "t Value", "Pr > |t|")
 		for(i in 1:nrow(L))
 			res[i,] <- test.fixef(obj=obj, L=L[i,,drop=F], ddfm=ddfm, method.grad=method.grad, quiet=quiet, opt=opt, onlyDF=onlyDF, lsmeans=lsmeans)
 		rownames(res) <- rownames(L)
@@ -3397,7 +3758,11 @@ test.fixef <- function(	obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 		lPli 	<- solve(lPl)
 		r       <- as.numeric(rankMatrix(lPli))
 		SVD 	<- eigen(lPl)		
-		items   <- list(SVD=SVD, r=r, b=b)		
+		items   <- list(SVD=SVD, r=r, b=b)	
+				
+		se <- L %*% P %*% t(L)						# compute standard error of linear contrast
+		se <- sqrt(diag(se))
+
 		DF		<- getDDFM(obj, L, ddfm, tol=tol, method.grad=method.grad, opt=opt, items=items)
 		if(onlyDF)
 		{
@@ -3405,8 +3770,8 @@ test.fixef <- function(	obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 		}
 		t.stat 	<- as.numeric(sqrt((t(L %*% b) %*% lPli %*% (L %*% b))/r))
 		
-		res <- matrix(c(est, DF, sgn*t.stat, 2*pt(abs(t.stat), df=DF, lower.tail=FALSE)), nrow=1,
-				dimnames=list(NULL, c("Estimate", "DF", "t Value", "Pr > |t|"))) 
+		res <- matrix(c(est, DF, se, sgn*t.stat, 2*pt(abs(t.stat), df=DF, lower.tail=FALSE)), nrow=1,
+				dimnames=list(NULL, c("Estimate", "DF", "SE", "t Value", "Pr > |t|"))) 
 		
 		attr(res, "ddfm") <- ddfm
 		
@@ -3899,7 +4264,6 @@ getV <- function(obj)
 	
 	return(obj)
 }
-
 
 
 
@@ -4706,6 +5070,9 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 		
 		obj.len <- length(obj)
 		
+		if(!"msgEnv" %in% ls(.GlobalEnv))
+			msgEnv <<- new.env(parent=emptyenv())
+		
 		assign("VCAinference.obj.is.list", TRUE, envir=msgEnv)			# indicate that a list-type object was passed intially
 		
 		res <- mapply(	FUN=VCAinference, obj=obj, alpha=alpha, 
@@ -5472,6 +5839,8 @@ isBalanced <- function(form, Data, na.rm=TRUE)
 	if(length(attr(form, "factors")) == 0)
 		return(TRUE)
 	
+
+	
 	rn   <- rownames(attr(form, "factors"))
 	
 	for(i in 2:length(rn))
@@ -5856,8 +6225,6 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 				if(!quiet)
 					warning("Variable '", i,"' has ",length(NAind)," missing values (obs: ", paste(NAind, collapse=", "), ")!" )
 			}
-			Data[,i] <- factor(Data[,i])
-			
 			if(length(levels(Data[,i])) >= 0.75*nrow(Data) && !quiet)
 				warning("Variable >>> ", i," <<< has at least 0.75 * nrow(Data) levels!")
 		}
@@ -5867,6 +6234,23 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 	if(length(rmInd) > 0)
 		Data <- Data[-rmInd,]
 	
+	for(i in rev(vars))														# order data 														
+	{
+		tmp <- Data[,i]
+		tmp.num <- suppressWarnings(as.numeric(as.character(tmp)))			# warnings are very likely here
+		
+		if(!any(is.na(tmp.num)))											# all levels are numbers
+		{
+			Width 	 <- max(nchar(as.character(unique(Data[,i])))) + 1
+			tmp   	 <- suppressWarnings(formatC(Data[,i], width=Width))
+			uLvl  	 <- unique(Data[,i])
+			Data  	 <- Data[order(tmp),]
+			Data[,i] <- factor(as.character(Data[,i]), levels=uLvl[order(unique(tmp))])
+		}		
+		else
+			Data[,i] <- factor(Data[,i])									# automatically orders
+	}
+
 	Mean <- mean(Data[,resp], na.rm=TRUE)                                   # mean computed after removing incomplete observations
 	vcol <- rownames(attr(tobj, "factors"))
 	if(is.null(vcol))
@@ -6049,9 +6433,11 @@ residuals.VCA <- function(object, type=c("conditional", "marginal"), mode=c("raw
 		
 		obj.len <- length(obj)
 		
+		if(!"msgEnv" %in% ls(.GlobalEnv))
+			msgEnv <<- new.env(parent=emptyenv())
+		
 		assign("VCAinference.obj.is.list", TRUE, envir=msgEnv)			# indicate that a list-type object was passed intially
-		
-		
+				
 		res <- mapply(	FUN=residuals.VCA, object=obj,
 				type=type[1], mode=mode[1], SIMPLIFY=FALSE)
 		
