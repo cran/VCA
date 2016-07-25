@@ -759,7 +759,7 @@ TF034.ANOVA_vs_REML.residuals.pearson <- function()
 	checkEquals(round(resid(fit.anovaMM, mode="pearson"), 4), round(resid(fit.remlMM, mode="pearson"), 4))
 }
 
-TF034.ANOVA_vs_REML.residuals.standardized <- function()
+TF035.ANOVA_vs_REML.residuals.standardized <- function()
 {
 	data(dataEP05A2_1)
 	fit1.aov  <- anovaVCA(y~day/run, dataEP05A2_1)
@@ -991,7 +991,7 @@ dat <- dat[order(dat$sex, dat$id, dat$time),]
 
 fit.vca <- remlMM(y~snp+time+snp:time+sex+(id)+(id):time, dat,VarVC=F)
 
-# results differ form SAS PROC MIXED results after 2nd decimal place because covariance parameters
+# results differ from SAS PROC MIXED results after 2nd decimal place because covariance parameters
 # are slightly different as well
 TF043.LSMeans.atCovarLevel <- function()
 {
@@ -1020,4 +1020,152 @@ TF045.LSMeans.atCovarLevel <- function()
 	checkEquals(nrow(lsm2), 2)
 }
 
+# test whether anovaMM and remlMM only accept correctly specified terms in the model formula
 
+TF046.model.terms <- function()
+{
+	data(dataEP05A2_1)
+	checkException(anovaMM(y~(a)+.b:y, dataEP05A2_1))
+	checkException(remlMM(y~(a)+.b:y, dataEP05A2_1))
+	fit0 <- anovaVCA(y~day/run, dataEP05A2_1)
+	dat <- dataEP05A2_1
+	dat$day.var <- dat$day
+	checkEquals(as.numeric(anovaVCA(y~day.var/run,  dat)$aov.tab[,"VC"]),   as.numeric(fit0$aov.tab[,"VC"]), tolerance=1e-8)
+	checkEquals(as.numeric(anovaMM(y~(day.var)/(run), dat)$aov.tab[,"VC"]), as.numeric(fit0$aov.tab[,"VC"]), tolerance=1e-8)
+	checkEquals(as.numeric(remlMM(y~(day.var)/(run),  dat)$aov.tab[,"VC"]), as.numeric(fit0$aov.tab[,"VC"]), tolerance=1e-7)
+	checkEquals(as.numeric(remlVCA(y~day.var/run, dat)$aov.tab[,"VC"]),     as.numeric(fit0$aov.tab[,"VC"]), tolerance=1e-7)
+}
+
+# test whether function as.matrix.VCA correctly works for models fitted via REML
+
+TF047.as.matrix.VCA.REML <- function()
+{
+	data(dataEP05A2_1)
+	fit1 <- remlVCA(y~day/run, dataEP05A2_1)
+	mat1 <- as.matrix(fit1)
+	checkEquals( fit1$aov.tab[,"DF"], as.numeric(mat1[,"DF"]))
+	checkEquals( fit1$aov.tab[,"VC"], as.numeric(mat1[,"VC"]))
+	checkEquals( fit1$aov.tab[,"%Total"], as.numeric(mat1[,"%Total"]))
+	checkEquals( fit1$aov.tab[,"SD"], as.numeric(mat1[,"SD"]))
+	checkEquals( fit1$aov.tab[,"CV[%]"], as.numeric(mat1[,"CV[%]"]))
+	checkEquals( fit1$aov.tab[,"Var(VC)"], as.numeric(mat1[,"Var(VC)"]))
+	
+	fit2 <- remlMM(y~day/(run), dataEP05A2_1)
+	mat2 <- as.matrix(fit2)
+	checkEquals( fit2$aov.tab[,"DF"], as.numeric(mat2[,"DF"]))
+	checkEquals( fit2$aov.tab[,"VC"], as.numeric(mat2[,"VC"]))
+	checkEquals( fit2$aov.tab[,"%Total"], as.numeric(mat2[,"%Total"]))
+	checkEquals( fit2$aov.tab[,"SD"], as.numeric(mat2[,"SD"]))
+	checkEquals( fit2$aov.tab[,"CV[%]"], as.numeric(mat2[,"CV[%]"]))
+	checkEquals( fit2$aov.tab[,"Var(VC)"], as.numeric(mat2[,"Var(VC)"]))
+}
+
+# test whether function as.matrix.VCAinference correctly works
+
+TF048.as.matrix.VCAinference.REML <- function()
+{
+	data(dataEP05A2_2)
+	fit.reml <- remlVCA(y~day/run, dataEP05A2_2)
+	inf.reml <- VCAinference(fit.reml)
+	VC.mat <- as.matrix(inf.reml, what="VC", digits=12)
+	SD.mat <- as.matrix(inf.reml, what="SD", digits=12)
+	CV.mat <- as.matrix(inf.reml, what="CV", digits=12)
+	
+	# check individual matrices
+	
+	checkEquals(as.numeric(fit.reml$aov.tab[,"VC"]), as.numeric(VC.mat[,"Estimate"]))
+	checkEquals(as.numeric(inf.reml$ConfInt$VC$OneSided[,"LCL"]), as.numeric(VC.mat[,"One-Sided LCL"]))
+	checkEquals(as.numeric(inf.reml$ConfInt$VC$OneSided[,"UCL"]), as.numeric(VC.mat[,"One-Sided UCL"]))
+	checkEquals(as.numeric(inf.reml$ConfInt$VC$TwoSided[,"LCL"]), as.numeric(VC.mat[,"CI LCL"]))
+	checkEquals(as.numeric(inf.reml$ConfInt$VC$TwoSided[,"LCL"]), as.numeric(VC.mat[,"CI LCL"]))
+	
+	checkEquals(as.numeric(fit.reml$aov.tab[,"SD"]), as.numeric(SD.mat[,"Estimate"]))
+	checkEquals(as.numeric(inf.reml$ConfInt$SD$OneSided[,"LCL"]), as.numeric(SD.mat[,"One-Sided LCL"]))
+	checkEquals(as.numeric(inf.reml$ConfInt$SD$OneSided[,"UCL"]), as.numeric(SD.mat[,"One-Sided UCL"]))
+	checkEquals(as.numeric(inf.reml$ConfInt$SD$TwoSided[,"LCL"]), as.numeric(SD.mat[,"CI LCL"]))
+	checkEquals(as.numeric(inf.reml$ConfInt$SD$TwoSided[,"LCL"]), as.numeric(SD.mat[,"CI LCL"]))
+	
+	checkEquals(as.numeric(fit.reml$aov.tab[,"CV[%]"]), as.numeric(CV.mat[,"Estimate"]))
+	checkEquals(as.numeric(inf.reml$ConfInt$CV$OneSided[,"LCL"]), as.numeric(CV.mat[,"One-Sided LCL"]))
+	checkEquals(as.numeric(inf.reml$ConfInt$CV$OneSided[,"UCL"]), as.numeric(CV.mat[,"One-Sided UCL"]))
+	checkEquals(as.numeric(inf.reml$ConfInt$CV$TwoSided[,"LCL"]), as.numeric(CV.mat[,"CI LCL"]))
+	checkEquals(as.numeric(inf.reml$ConfInt$CV$TwoSided[,"LCL"]), as.numeric(CV.mat[,"CI LCL"]))
+	
+	# check list of matrices
+	
+	mat.list <- as.matrix(inf.reml, digits=12)
+	checkEquals(VC.mat, mat.list[[1]])
+	checkEquals(SD.mat, mat.list[[2]])
+	checkEquals(CV.mat, mat.list[[3]])
+}
+
+TF049.as.matrix.VCAinference.ANOVA <- function()
+{
+	data(dataEP05A2_3)
+	fit.anova <- anovaVCA(y~day/run, dataEP05A2_3)
+	inf.anova <- VCAinference(fit.anova, VarVC=FALSE)			# there should be many NAs indicating missing values
+	VC.mat <- as.matrix(inf.anova, what="VC", digits=12)
+	SD.mat <- as.matrix(inf.anova, what="SD", digits=12)
+	CV.mat <- as.matrix(inf.anova, what="CV", digits=12)	
+	
+	# check individual matrices for missing values for indermediate variance components
+	
+	checkEquals(as.numeric(fit.anova$aov.tab[,"VC"]), as.numeric(VC.mat[,"Estimate"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$VC$OneSided[,"LCL"]), as.numeric(VC.mat[,"One-Sided LCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$VC$OneSided[,"UCL"]), as.numeric(VC.mat[,"One-Sided UCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$VC$TwoSided[,"LCL"]), as.numeric(VC.mat[,"CI LCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$VC$TwoSided[,"LCL"]), as.numeric(VC.mat[,"CI LCL"]))
+	
+	checkEquals(as.numeric(fit.anova$aov.tab[,"SD"]), as.numeric(SD.mat[,"Estimate"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$SD$OneSided[,"LCL"]), as.numeric(SD.mat[,"One-Sided LCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$SD$OneSided[,"UCL"]), as.numeric(SD.mat[,"One-Sided UCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$SD$TwoSided[,"LCL"]), as.numeric(SD.mat[,"CI LCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$SD$TwoSided[,"LCL"]), as.numeric(SD.mat[,"CI LCL"]))
+	
+	checkEquals(as.numeric(fit.anova$aov.tab[,"CV[%]"]), as.numeric(CV.mat[,"Estimate"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$CV$OneSided[,"LCL"]), as.numeric(CV.mat[,"One-Sided LCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$CV$OneSided[,"UCL"]), as.numeric(CV.mat[,"One-Sided UCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$CV$TwoSided[,"LCL"]), as.numeric(CV.mat[,"CI LCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$CV$TwoSided[,"LCL"]), as.numeric(CV.mat[,"CI LCL"]))
+	
+	# check for VarVC=TRUE
+
+	inf.anova <- VCAinference(fit.anova, VarVC=TRUE)			# there should be many NAs indicating missing values
+	VC.mat <- as.matrix(inf.anova, what="VC", digits=12)
+	SD.mat <- as.matrix(inf.anova, what="SD", digits=12)
+	CV.mat <- as.matrix(inf.anova, what="CV", digits=12)	
+	
+	# check individual matrices for missing values for indermediate variance components
+	
+	checkEquals(as.numeric(fit.anova$aov.tab[,"VC"]), as.numeric(VC.mat[,"Estimate"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$VC$OneSided[,"LCL"]), as.numeric(VC.mat[,"One-Sided LCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$VC$OneSided[,"UCL"]), as.numeric(VC.mat[,"One-Sided UCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$VC$TwoSided[,"LCL"]), as.numeric(VC.mat[,"CI LCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$VC$TwoSided[,"LCL"]), as.numeric(VC.mat[,"CI LCL"]))
+	
+	checkEquals(as.numeric(fit.anova$aov.tab[,"SD"]), as.numeric(SD.mat[,"Estimate"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$SD$OneSided[,"LCL"]), as.numeric(SD.mat[,"One-Sided LCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$SD$OneSided[,"UCL"]), as.numeric(SD.mat[,"One-Sided UCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$SD$TwoSided[,"LCL"]), as.numeric(SD.mat[,"CI LCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$SD$TwoSided[,"LCL"]), as.numeric(SD.mat[,"CI LCL"]))
+	
+	checkEquals(as.numeric(fit.anova$aov.tab[,"CV[%]"]), as.numeric(CV.mat[,"Estimate"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$CV$OneSided[,"LCL"]), as.numeric(CV.mat[,"One-Sided LCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$CV$OneSided[,"UCL"]), as.numeric(CV.mat[,"One-Sided UCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$CV$TwoSided[,"LCL"]), as.numeric(CV.mat[,"CI LCL"]))
+	checkEquals(as.numeric(inf.anova$ConfInt$CV$TwoSided[,"LCL"]), as.numeric(CV.mat[,"CI LCL"]))
+}
+
+TF050.lmerSummary <- function()
+{
+	data(VCAdata1)
+	fit0 <- remlVCA(y~(device+lot)/day/run, subset(VCAdata1, sample==5))
+	fit1 <- lme4:::lmer(y~(1|device)+(1|lot)+(1|device:lot:day)+(1|device:lot:day:run),
+	             		subset(VCAdata1, sample==5))
+	sum1 <- lmerSummary(fit1, tab.only=TRUE)
+	sum1 <- sum1[rownames(fit0$aov.tab),]
+	checkEquals(as.numeric(fit0$aov.tab[,"VC"]), as.numeric(sum1[,"VC"]), tolerance=1e-5)
+	checkEquals(as.numeric(fit0$aov.tab[,"%Total"]), as.numeric(sum1[,"%Total"]), tolerance=1e-5)
+	checkEquals(as.numeric(fit0$aov.tab[,"SD"]), as.numeric(sum1[,"SD"]), tolerance=1e-6)
+	checkEquals(as.numeric(fit0$aov.tab[,"CV[%]"]), as.numeric(sum1[,"CV[%]"]), tolerance=1e-6)
+}

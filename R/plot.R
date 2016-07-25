@@ -226,10 +226,10 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' @param YLabel        (list) specifying all parameters applicable to function 'mtext', used for labelling the Y-axis.
 #' @param SDYLabel      (list) specifying all parameters applicable to function 'mtext', used for labelling the Y-axis.
 #' @param Points        (list) specifying all parameters applicable to function 'points', used to specify scatterplots per lower-end factor-level
-#'                      (e.g. 'run' in formula run/day). If list-elements "col" and "pch" are lists themselves with elements "var" and "col"/"pch", 
-#' 						where the former specifies a variable used for assigning colors/plotting-symbols ("col"/"pch") according to the class-level of
-#' 						variable "var", point-colors/plotting-symbols can be used for indicating specific sub-classes not addressed by the model/design
-#' 						(see examples).
+#'                      (e.g. 'run' in formula run/day). If list-elements "col", "pch", "bg" and "cex" are lists themselves with elements "var" and "col"/"pch"/"bg"/"cex", 
+#' 						where the former specifies a variable used for assigning colors/symbols/backgrounds/sizes according to the class-level of
+#' 						variable "var", point-colors/plotting-symbols/plotting-symbol backgrounds/plotting-symbol sizes can be used for indicating
+#' 						specific sub-classes not addressed by the model/design or indicate any sort of information (see examples).
 #' 						Note the i-th element of 'col'/'pch' refers of the i-th element of unique(Data$var), even if 'var' is an integer variable.
 #' @param SDs           (list) specifying all parameters applicable to function 'points', used to specify the appearance of SD-plots.
 #' @param SDline        (list) specifying all parameters applicable to function 'lines', used to specify the (optional) line joining individual SDs,
@@ -237,8 +237,10 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' @param BG            (list) specifying the background for factor-levels of a nested factor. This list is passed on to function 'rect' after element
 #'                      'var', which identifies the factor to be used for coloring, has been removed. If not set to NULL and no factor has been specified by the
 #'                      user, the top-level factor is selected by default. If this list contains element 'col.table=TRUE', the same coloring schema is used
-#' 						in the table below at the corresponding row/factor (see examples). When specifying as many colors as there are factor-levels, the same
-#' 						color will be applied to a factor-level automatically. This is relevant for factors, which are not top-level (bottom in the table).
+#' 						in the table below at the corresponding row/factor (see examples). Addionally, list-elment 'col.bg=FALSE' can be used to turn off
+#' 						BG-coloring, e.g. if only the the respective row in the table below should be color-coded (defaults to 'col.bg=TRUE').
+#' 						When specifying as many colors as there are factor-levels, the same color will be applied to a factor-level automatically. 
+#' 						This is relevant for factors, which are not top-level (bottom in the table).
 #'                      Example: BG=list(var="run", col=c("white", "lightgray"), border=NA) draws the background for alternating levels of factor "run" 
 #'                      white and gray for better visual differentiation. Set to NULL to omit. Use list( ..., col="white", border="gray") for using gray 
 #'                      vertical lines for separation. See argument 'VLine' for additional highlighting options of factor-levels.
@@ -277,6 +279,7 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' # load data (CLSI EP05-A2 Within-Lab Precision Experiment)
 #' data(dataEP05A2_3)
 #' 
+#' # two additional classification variables (without real interpretation)
 #' dataEP05A2_3$user <- sample(rep(c(1,2), 40))
 #' dataEP05A2_3$cls2 <- sample(rep(c(1,2), 40))
 #' 
@@ -297,6 +300,9 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' # notation of the nesting structure
 #' varPlot(y~day+day:run, dataEP05A2_3, useVarNam=TRUE)
 #' 
+#' # rotate names of 2nd VC
+#' varPlot(y~day+day:run, dataEP05A2_3, useVarNam=TRUE, VarLab=list(list(font=2), list(srt=60)))
+#' 
 #' # use alternating backgrounds for each level of factor "day" 
 #' # (top-level factor is default) 
 #' # use a simplified model formula (NOTE: only valid for function 'varPlot')
@@ -316,11 +322,23 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' varPlot( y~day+day:run, dataEP05A2_3, 
 #'          Points=list(pch=list(var="user", pch=c(2, 8))) )
 #' 
+#' # assign custom plotting symbols by combining 'pch' and 'bg'
+#' varPlot( y~day+day:run, dataEP05A2_3, 
+#'          Points=list(pch=list(var="user", pch=c(21, 24)),
+#'                      bg=list( var="user", bg=c("lightblue", "yellow"))) )
+#' 
+#' # assign custom plotting symbols by combining 'pch', 'bg', and 'cex'      
+#' varPlot( y~day+day:run, dataEP05A2_3,                                    
+#'          Points=list(pch=list(var="user", pch=c(21, 24)),                
+#'                      bg =list(var="user", bg=c("lightblue", "yellow")),
+#'                      cex=list(var="user",  cex=c(2,1))) )
+#' 
 #' # now combine point-coloring and plotting symbols
 #' # to indicate two additional classification variables
 #' varPlot( y~day+day:run, dataEP05A2_3,
-#'          Points=list(col=list(var="user", col=c("red", "green")), 
-#' 					   	pch=list(var="cls2", pch=c(2, 8))) )
+#'          Points=list(col=list(var="user", col=c("red", "darkgreen")), 
+#' 					   	pch=list(var="cls2", pch=c(21, 22)),
+#' 						bg =list(var="user", bg =c("orange", "green"))) )
 #' 
 #' # use magenta lines between each level of factor "run" 
 #' varPlot(y~day/run, dataEP05A2_3, BG=list(var="run", border="magenta"))
@@ -376,7 +394,8 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' 						 lwd=c(2,2,2,2)))
 #' 
 #' # now also highlight bounds between factor levels of "lot" and "day" 
-#' # as vertical lines and extend them into the table
+#' # as vertical lines and extend them into the table (note that each 
+#' # variable needs its specific value for 'col.table')
 #' varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
 #'   	   BG=list(var="calibration", 
 #' 				   col=c("aquamarine","antiquewhite2","antiquewhite4",
@@ -387,7 +406,7 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' 						 col=c("orange", "blue", "darkgreen", "yellow"), 
 #' 						 lwd=c(2,2,2,2)),
 #' 		   VLine=list(var=c("lot", "day"), col=c("black", "skyblue1"),
-#'				      lwd=c(2, 1), col.table=TRUE))
+#'				      lwd=c(2, 1), col.table=c(TRUE, TRUE)))
 #' 
 #' # one can use argument 'JoinLevels' to join factor-levels or a variable
 #' # nested within a higher-level factor, 'VLine' is used to separate levels
@@ -402,6 +421,23 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #'  		JoinLevels=list(var="lot", col=c("#ffffb2","orangered","#feb24c"), 
 #'  				        lwd=c(2,2,2)), 
 #'  		MeanLine=list(var="lot", col="blue", lwd=2))
+#' 
+#' # same plot demonstrating additional features applicable via 'Points' 
+#'  varPlot(y~calibration/lot/day/run, Data, 
+#' 		BG=list(var="calibration", 
+#' 				col=c("#f7fcfd","#e5f5f9","#ccece6","#99d8c9",
+#' 				"#66c2a4","#41ae76","#238b45","#006d2c","#00441b"), 
+#' 				col.table=TRUE), 
+#'			VLine=list(var=c("calibration", "lot"), 
+#'                     col=c("black", "mediumseagreen"), lwd=c(2,1), 
+#'                     col.table=c(TRUE,TRUE)), 
+#' 		JoinLevels=list(var="lot", col=c("lightblue", "cyan", "yellow"), 
+#' 				        lwd=c(2,2,2)), 
+#' 		MeanLine=list(var="lot", col="blue", lwd=2),
+#'		Points=list(pch=list(var="lot", pch=c(21, 22, 24)), 
+#'                  bg =list(var="lot", bg=c("lightblue", "cyan", "yellow")), 
+#'                  cex=1.25))
+#'
 #' }
 
 varPlot <- function(form, Data, keep.order=TRUE, 
@@ -519,6 +555,40 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		{
 			attr(lst, "Symbol") <- rep(Points$pch, nrow(Data))
 		}
+		
+		# plotting symbol backgrounds used to indicated class levels?
+		
+		if( (is.list(Points$bg)) && ("var" %in% names(Points$bg)) && (Points$bg$var %in% colnames(Data)) )
+		{
+			if(length(unique(Data[,Points$bg$var])) > length(unique(Points$bg$bg)))          # not enough colors, need to be recycled
+			{
+				Points$bg$bg <- rep(Points$bg$bg, ceiling(length(unique(Data[,Points$bg$var])) / length(unique(Points$bg$bg))))
+			}
+			tmp <- 1:length(unique(Data[,Points$bg$var]))
+			names(tmp) <- unique(Data[,Points$bg$var])
+			attr(lst, "BG") <- Points$bg$bg[tmp[Data[,Points$bg$var]]]                   # assign colors to class-levels of Points$col$var variable
+		}
+		else
+		{
+			attr(lst, "BG") <- rep(Points$bg, nrow(Data))
+		}
+		
+		# plotting symbol size used to indicated class levels?
+		
+		if( (is.list(Points$cex)) && ("var" %in% names(Points$cex)) && (Points$cex$var %in% colnames(Data)) )
+		{
+			if(length(unique(Data[,Points$cex$var])) > length(unique(Points$cex$cex)))          # not enough colors, need to be recycled
+			{
+				Points$cex$cex <- rep(Points$cex$cex, ceiling(length(unique(Data[,Points$cex$var])) / length(unique(Points$cex$cex))))
+			}
+			tmp <- 1:length(unique(Data[,Points$cex$var]))
+			names(tmp) <- unique(Data[,Points$cex$var])
+			attr(lst, "CEX") <- Points$cex$cex[tmp[Data[,Points$cex$var]]]                   # assign colors to class-levels of Points$col$var variable
+		}
+		else
+		{
+			attr(lst, "CEX") <- rep(Points$cex, nrow(Data))
+		}
 	}
 	
 	Nelem <- attr(lst, "Nelem")                                             # number of bottom-level sub-classes per top-level factor-level  
@@ -553,8 +623,8 @@ varPlot <- function(form, Data, keep.order=TRUE,
 	
 	if(type == 3L)
 		MFROW <- c(2,1)
-	else
-		MFROW <- c(1,1)
+	#else
+	#	MFROW <- c(1,1)
 	
 	if(is.null(Title))
 		mar <- c(1,4.1,1,1) 
@@ -567,11 +637,16 @@ varPlot <- function(form, Data, keep.order=TRUE,
 			args[["mar"]] <- mar
 		args[["xaxs"]]  <- "i"
 		args[["yaxs"]]  <- "i"
-		args[["mfrow"]] <- MFROW
+		
+		if(type == 3L)						# only if two plots are requested at once, otherwise it may interfer with 'layout'
+			args[["mfrow"]] <- MFROW
 	}
 	else
 	{
-		args <- list(mar=mar, xaxs="i", yaxs="i", mfrow=MFROW)
+		if(type == 3L)
+			args <- list(mar=mar, xaxs="i", yaxs="i", mfrow=MFROW)
+		else
+			args <- list(mar=mar, xaxs="i", yaxs="i")	
 	}
 	
 	old.par <- do.call("par", args)											# set graphical parameters
@@ -628,7 +703,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 	
 	if(!is.null(BG))
 	{
-		BG.default <- list(border="lightgray", col.table=FALSE)
+		BG.default <- list(border=NA, col.table=FALSE, col.bg=TRUE)
 		BG.default[names(BG)] <- BG
 		BG <- BG.default
 		
@@ -641,9 +716,6 @@ varPlot <- function(form, Data, keep.order=TRUE,
 				names(BG$col) <- Lvls						# same color will be used for same level
 			}
 		}
-		
-		if(!is.null(VLine) && VLine$var %in% nest)
-			BG$border <- NA
 	}
 	
 	if(!is.null(SDline))
@@ -738,8 +810,9 @@ varPlot <- function(form, Data, keep.order=TRUE,
 				tmpBG <- BG
 				ColNames <- names(BG$col)											# might be NULL
 				
-				col.table <- tmpBG$col.table
-				tmpBG$col.table <- NULL
+				col.table <- tmpBG$col.table										# color respective row in table below?
+				col.bg    <- tmpBG$col.bg											# color the background?
+				tmpBG$col.table <- tmpBG$col.bg <- NULL
 			}               
 			else
 				tmpBG <- NULL
@@ -789,15 +862,22 @@ varPlot <- function(form, Data, keep.order=TRUE,
 				}
 				
 				tmpBG$var <- NULL													# "var" is no graphical parameter
-				
-				do.call("rect", tmpBG)                                              # draw the rectangle as background for the specified group
+				if(col.bg)
+					do.call("rect", tmpBG)                                          # draw the rectangle as background for the specified group
 				
 				if(col.table)														# color levels for the factor determining BG-colors
 				{
 					tmpBG$ybottom <- yval[1]
 					tmpBG$ytop    <- yval[2]
 					
-					do.call("rect", tmpBG)
+					if(is.na(tmpBG$border))											# ensure that border is always drawn in the tabular part
+					{						
+						tmpBG$border <- "black"
+						do.call("rect", tmpBG)
+						tmpBG$border <- NA
+					}
+					else
+						do.call("rect", tmpBG)
 				}
 				
 				if( length(BG$col) > 1 )
@@ -829,10 +909,10 @@ varPlot <- function(form, Data, keep.order=TRUE,
 							paste("N=", Nlevel[i], sep=""), cex=.75)
 				}
 				
-				StatsList <- processList(lst=tmp, xlim=c(Xlower, Xupper), yval=yval[-1], Xdiff=Xdiff, type=type, 
-						VARtype=VARtype, StatsList=StatsList, index=index, VarLab=VarLab[-1],
-						MeanLine=MeanLine, VLine=VLine, Intercept=Intercept, JoinLevels=JoinLevels,
-						draw.vertical=tmp.draw.vertical)
+				StatsList <- processList(	lst=tmp, xlim=c(Xlower, Xupper), yval=yval[-1], Xdiff=Xdiff, type=type, 
+											VARtype=VARtype, StatsList=StatsList, index=index, VarLab=VarLab[-1],
+											MeanLine=MeanLine, VLine=VLine, Intercept=Intercept, JoinLevels=JoinLevels,
+											draw.vertical=tmp.draw.vertical)
 				index <- attr(StatsList, "index")
 			}
 			else                                                                    # leaf-node reached (numeric vector)
@@ -912,6 +992,8 @@ varPlot <- function(form, Data, keep.order=TRUE,
 				
 				Points$col <- attr(tmp, "Color")
 				Points$pch <- attr(tmp, "Symbol")
+				Points$bg  <- attr(tmp, "BG")
+				Points$cex <- attr(tmp, "CEX")
 				
 				if(type == 1)
 				{
@@ -991,15 +1073,21 @@ varPlot <- function(form, Data, keep.order=TRUE,
 					
 					tmpVLine <- VLineClone
 					tmpVLine$x <- c(Xupper, Xupper)
-					if("col.table" %in% names(tmpVLine))
+					if("col.table" %in% names(tmpVLine) && is.logical(tmpVLine$col.table) && isTRUE(tmpVLine$col.table))
 					{
-						tmpVLine$y <- c(yval[1], Range[2]+abs(diff(Range)))
-						tmpVLine$col.table <- NULL
+						if(type %in% c(1, 3))
+							tmpVLine$y <- c(yval[1], Range[2]+abs(diff(Range)))
+						if(type %in% c(2, 3))
+							tmpVLine$y <- c(yval[1], SDYLim[2]*2)
 					}
 					else
 					{
-						tmpVLine$y <- c(Range[1], Range[2]+abs(diff(Range)))
+						if(type %in% c(1, 3))
+							tmpVLine$y <- c(Range[1], Range[2]+abs(diff(Range)))
+						if(type %in% c(2, 3))
+							tmpVLine$y <- c(SDrange[1], SDYLim[2]*2)
 					}
+					tmpVLine$col.table <- NULL
 					tmpVLine$var <- NULL
 					
 					#do.call("lines", tmpVLine)
@@ -1219,9 +1307,9 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		
 		StatsList <- list(SDvec=numeric(), Nobs=integer())
 		#SDvec <- numeric()
-		StatsList <- processList(lst=lst, xlim=range(Xbound), yval=SDYbound, Xdiff=Xdiff, type=2, StatsList=StatsList, 
-				VARtype=VARtype, VarLab=VarLab, MeanLine=MeanLine, Intercept=Intercept, VLine=VLine,
-				JoinLevels=JoinLevels)   
+		StatsList <- processList(	lst=lst, xlim=range(Xbound), yval=SDYbound, Xdiff=Xdiff, type=2, StatsList=StatsList, 
+									VARtype=VARtype, VarLab=VarLab, MeanLine=MeanLine, Intercept=Intercept, VLine=VLine,
+									JoinLevels=JoinLevels)   
 		
 		if(length(rec.env$VLineCollection) > 0)
 		{
@@ -1264,7 +1352,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 	
 	old.par$yaxs <- old.par$xaxs <- "i"						# unfortunatly need to be maintained in order to further add elements to the plot
 	old.par$mar <- par("mar")
-	#par(old.par)
+	par(old.par)
 	
 	Data$Xcoord <- rec.env$dat$x
 	
@@ -1364,6 +1452,40 @@ buildList <- function(Data, Nesting, Current, resp, keep.order=TRUE, useVarNam=T
 			Data$PointsPCH <- rep(Points$pch, nrow(Data))
 		}
 		
+		# check whether plotting-symbol backgrounds have to be used for indicating some sort of information
+		
+		if( (is.list(Points$bg)) && ("var" %in% names(Points$bg)) && (Points$bg$var %in% colnames(Data)) )
+		{
+			if(length(unique(Data[,Points$bg$var])) > length(unique(Points$bg$bg)))          # not enough background colors, need to be recycled
+			{
+				Points$bg$bg <- rep(Points$bg$bg, ceiling(length(unique(Data[,Points$bg$var])) / length(unique(Points$bg$bg))))
+			}
+			tmp <- 1:length(unique(Data[,Points$bg$var]))
+			names(tmp) <- unique(Data[,Points$bg$var])
+			Data$PointsBG <- Points$bg$bg[tmp[as.character(Data[,Points$bg$var])]]                         # assign colors to class-levels of Points$col$var variable
+		}
+		else
+		{
+			Data$PointsBG <- rep(Points$bg, nrow(Data))
+		}
+		
+		# check whether plotting-symbol sizes have to be used for indicating some sort of information
+		
+		if( (is.list(Points$cex)) && ("var" %in% names(Points$cex)) && (Points$cex$var %in% colnames(Data)) )
+		{
+			if(length(unique(Data[,Points$cex$var])) > length(unique(Points$cex$cex)))          # not enough background colors, need to be recycled
+			{
+				Points$cex$cex <- rep(Points$cex$cex, ceiling(length(unique(Data[,Points$cex$var])) / length(unique(Points$cex$cex))))
+			}
+			tmp <- 1:length(unique(Data[,Points$cex$var]))
+			names(tmp) <- unique(Data[,Points$cex$var])
+			Data$PointsCEX <- Points$cex$cex[tmp[as.character(Data[,Points$cex$var])]]                         # assign colors to class-levels of Points$col$var variable
+		}
+		else
+		{
+			Data$PointsCEX <- rep(Points$cex, nrow(Data))
+		}
+		
 		Points <- NULL
 	}
 	
@@ -1405,6 +1527,8 @@ buildList <- function(Data, Nesting, Current, resp, keep.order=TRUE, useVarNam=T
 			lst[[i]] <- tmpData[, resp]
 			attr(lst[[i]], "Color")  <- tmpData$PointsColor
 			attr(lst[[i]], "Symbol") <- tmpData$PointsPCH 
+			attr(lst[[i]], "BG")	 <- tmpData$PointsBG
+			attr(lst[[i]], "CEX")	 <- tmpData$PointsCEX
 			
 			if(na.rm)                                                # na.rm=TRUE?
 				lst[[i]] <- na.omit(lst[[i]])
@@ -1459,6 +1583,62 @@ buildList <- function(Data, Nesting, Current, resp, keep.order=TRUE, useVarNam=T
 	attr(lst, "Stats") <- list(Mean=Mean, Median=Median, SD=SD, CV=CV)
 	
 	return(lst)
+}
+
+
+#' Standard 'plot' Method for 'VCA' S3-Objects.
+#' 
+#' Create a variability chart from a 'VCA'-object, i.e. from a fitted model.
+#' 
+#' This function extracts the data and the model-formula from a fitted 'VCA'-object and calls function \code{\link{varPlot}}
+#' accepting all its arguments. Please see the documention of function \code{\link{varPlot}} for a detailed description.
+#' 
+#' It will not be differentiated between fixed and random effects when calling this function on a fitted linear mixed model.
+#' 
+#' @param x         (VCA) object 
+#' @param ...       additional arguments to be passed to or from methods.
+#' 
+#' @return 	nothing, instead a plot is generated
+#' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @seealso \code{\link{varPlot}}, \code{\link{anovaVCA}},\code{\link{remlVCA}}, \code{\link{anovaMM}},\code{\link{remlMM}}
+#' 
+#' @method plot VCA
+#' @S3method plot VCA
+#' 
+#' @examples 
+#' \dontrun{
+#' data(dataEP05A2_1)
+#' fit <- anovaVCA(y~day/run, dataEP05A2_1)
+#' 
+#' # standard plot without any extras
+#' plot(fit)
+#' 
+#' # plot with some additional features
+#' plot(fit, MeanLine=list(var=c("int", "day"), col=c("cyan", "blue"), lwd=c(2,2)))
+#' 
+#' # more complex model
+#' data(realData)
+#' Data <- realData[realData$PID == 1,]
+#' fit2 <- anovaVCA(y~(calibration+lot)/day/run, Data)
+#' plot(fit2, 
+#' 		BG=list(var="calibration",
+#' 				col=c("#f7fcfd","#e5f5f9","#ccece6","#99d8c9",
+#' 				      "#66c2a4","#41ae76","#238b45","#006d2c","#00441b"),
+#' 				col.table=TRUE),
+#'		VLine=list(var=c("calibration", "lot"),
+#' 				   col=c("black", "darkgray"), lwd=c(2,1), col.table=TRUE),
+#' 		JoinLevels=list(var="lot", col=c("#ffffb2","orangered","#feb24c"),
+#' 				        lwd=c(2,2,2)),
+#' 		MeanLine=list(var="lot", col="blue", lwd=2))
+#'#' }
+
+plot.VCA <- function(x, ...)
+{
+	Data <- x$data
+	form <- x$formula
+	varPlot(form=form, Data=Data, ...)
 }
 
 

@@ -105,6 +105,14 @@ check4MKL <- function()
 #' 
 #' Giesbrecht, F.G. and Burns, J.C. (1985), Two-Stage Analysis Based on a Mixed Model: Large-Sample
 #' Asymptotic Theory and Small-Sample Simulation Results, Biometrics 41, p. 477-486 
+#' 
+#' @examples 
+#' \dontrun{
+#' data(dataEP05A2_3)
+#' fit <- anovaVCA(y~day/run, dataEP05A2_3)
+#' fit <- solveMME(fit)		# some additional matrices required
+#' getGB(fit)
+#' }
 
 getGB <- function(obj, tol=1e-12)
 {
@@ -126,10 +134,10 @@ getGB <- function(obj, tol=1e-12)
 	for(i in 1:Nvc)
 	{		
 		VCi <- obj$VCoriginal[i]			# for model fitted via ANOVA, decide on basis of orignal (unconstrained) estimates 
-		
+
 		if(is.null(VCi))
 			VCi <- obj$aov.tab[obj$re.assign$terms[i],"VC"]
-		
+
 		if(i < Nvc && abs(VCi) < tol)	
 		{
 			VCvar[i,] <- VCvar[,i] <- 0 
@@ -187,7 +195,7 @@ getGB <- function(obj, tol=1e-12)
 
 #' Construct Variance-Covariance Matrix of Random Effects for Models Fitted by Function 'lmer'.
 #' 
-#' This function either restricts the variance-covariance matrix of random effects G to be either
+#' This function restricts the variance-covariance matrix of random effects \eqn{G} to be either
 #' diagonal ('cov=FALSE') or to take any non-zero covariances into account (default, 'cov=TRUE').
 #' 
 #' This function is not intended to be called directly by users and therefore not exported!
@@ -196,9 +204,22 @@ getGB <- function(obj, tol=1e-12)
 #' @param cov		(logical) TRUE = in case of non-zero covariances a block diagonal matrix will be constructed,
 #'                  FALSE = a diagonal matrix with all off-diagonal element being equal to zero will be contructed
 #' 
-#' @return (Matrix) representing the variance-covariance structure of random effects G
+#' @return (Matrix) representing the variance-covariance structure of random effects \eqn{G}
 #' 
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @examples 
+#' \dontrun{
+#' data(Orthodont)
+#' Ortho <- Orthodont
+#' Ortho$age2 <- Ortho$age - 11
+#' Ortho$Subject <- factor(as.character(Ortho$Subject))
+#' fit <-lmer(distance~Sex+Sex:age2+(age2|Subject), Ortho) 
+#' G1 <- VCA:::lmerG(fit, cov=FALSE)
+#' G2 <- VCA:::lmerG(fit, cov=TRUE)
+#' G1[1:10,1:10]
+#' G2[1:10,1:10]
+#' }
 
 lmerG <- function(obj, cov=FALSE)
 {
@@ -233,7 +254,7 @@ lmerG <- function(obj, cov=FALSE)
 #' Mixed Model Equations (MME) are solved for fixed and random effects applying the same
 #' constraints as in \code{\link{anovaMM}}. 
 #' The most elaborate and therefore time consuming part is to prepare all matrices required for 
-#' approximating the variance-covariance matrix of variance components (\code{\link{getGB}}.
+#' approximating the variance-covariance matrix of variance components (see \code{\link{getGB}}).
 #' To reduce the computational time, this function tries to optimize object-classes depending
 #' on whether Intel's (M)ath (K)ernel (L)ibrary could be loaded or not. MKL appears to be more
 #' performant with ordinary matrix-objects, whereas all other computations are perfomred using
@@ -241,7 +262,7 @@ lmerG <- function(obj, cov=FALSE)
 #' 
 #' This function is not intended to be called directly by users and therefore not exported.
 #' 
-#' @param obj		(object) inheriting form 'lmerMod'
+#' @param obj		(object) inheriting from 'lmerMod'
 #' @param tab		(data.frame) representing the basic VCA-table
 #' @param terms		(character) vector used for ordering variance components
 #' @param cov		(logical) take non-zero covariances among random effects into account (TRUE) or
@@ -384,27 +405,33 @@ lmerMatrices <- function(obj, tab=NULL, terms=NULL, cov=FALSE, X=NULL)
 	res
 }
 
-#' Derive VCA-Summary Table from an object fitted via function \code{\link{lmer}}.
+#' Derive VCA-Summary Table from an Object Fitted via Function \code{\link{lmer}}.
 #'
-#' This function builds a variance components analysis results table
-#' from an object representing a model fitted by \code{\link{lmer}} of the
-#' \code{lme4} R-package. It applies the approximation of the variance-covariance
+#' This function builds a variance components analysis (VCA) table
+#' from an object representing a model fitted by function \code{\link{lmer}}
+#' of the \code{lme4} R-package. 
+#' 
+#' It applies the approximation of the variance-covariance
 #' matrix of variance components according to Giesbrecht & Burns (1985) and uses this
 #' information to approximate the degrees of freedom according to Satterthwaite
 #' (see SAS PROC MIXED documentation option 'CL').
 #' 
-#' This function is not intended to be called directly by users and therefore not exported.
-#'
-#' @param obj		(lmerMod) object as returned by function lmer
+#' This function can be used to create a VCA-results table from almost any fitted 'lmerMod'-object, i.e. one can
+#' apply it to a model fitted via function \code{\link{lmer}} of the \code{lme4}-package. The only 
+#' additional argument that needs to be used is 'tab.only' (see examples).
+#' 
+#' @param obj		(lmerMod) object as returned by function \code{\link{lmer}}
 #' @param VarVC		(logical) TRUE = the variance-covariance matrix of variance components will be approximated
 #' 					following the Giesbrecht & Burns approach, FALSE = it will not be approximated	
 #' @param terms		(character) vector, optionally defining the order of variance terms to be used
 #' @param Mean		(numeric) mean value used for CV-calculation
 #' @param cov		(logical) TRUE = in case of non-zero covariances a block diagonal matrix will be constructed,
-#'                  FALSE = a diagonal matrix with all off-diagonal element being equal to zero will be contructed
+#'                  FALSE = a diagonal matrix with all off-diagonal elements being equal to zero will be contructed
 #' @param X			(matrix) design matrix of fixed effects as constructed to meet VCA-package requirements
+#' @param tab.only	(logical) TRUE = will return only the VCA-results table as 'data.frame', argument 'VarVC' will 
+#' 					automatically set to 'FALSE' (see details)
 #' 
-#' @return (list) still a premature 'VCA' object but close to a
+#' @return (list) still a premature 'VCA'-object but close to a "complete" 'VCA'-object
 #' 
 #' @seealso \code{\link{remlVCA}}, \code{\link{remlMM}}
 #' 
@@ -415,20 +442,45 @@ lmerMatrices <- function(obj, tab=NULL, terms=NULL, cov=FALSE, X=NULL)
 #' 
 #' Giesbrecht, F.G. and Burns, J.C. (1985), Two-Stage Analysis Based on a Mixed Model: Large-Sample
 #' Asymptotic Theory and Small-Sample Simulation Results, Biometrics 41, p. 477-486 
+#' 
+#' @examples 
+#' \dontrun{
+#' # fit a model with a VCA-function first
+#' data(VCAdata1)
+#' fit0 <- remlVCA(y~(device+lot)/day/run, subset(VCAdata1, sample==5))
+#' fit0
+#' 
+#' # fit the same model with function 'lmer' of the 'lme4'-package
+#' library(lme4)
+#' fit1 <- lmer(y~(1|device)+(1|lot)+(1|device:lot:day)+(1|device:lot:day:run),
+#'              subset(VCAdata1, sample==5))
+#' lmerSummary(fit1, tab.only=TRUE)
+#' }
 
-lmerSummary <- function(obj, VarVC=TRUE, terms=NULL, Mean=NULL, cov=FALSE, X=NULL)
+lmerSummary <- function(obj, VarVC=TRUE, terms=NULL, Mean=NULL, cov=FALSE, X=NULL, tab.only=FALSE)
 {
 	stopifnot(inherits(obj, "lmerMod"))	
+	if(tab.only)
+	{
+		VarVC <- FALSE
+		
+		if(is.null(Mean))
+			Mean <- mean(obj@resp$y, na.rm=TRUE)
+	}
 
 	Sum  <- as.data.frame(summary(obj)$varcor)
+
 	Sum[which(Sum[,"var1"] %in% c(NA, "(Intercept)")), "var1"] <- ""
 	
-	Sum[,"grp"] <- apply(Sum[,c("grp", "var1")], 1, function(x){
-				if(x[2] == "")
-					return(x[1])
-				else
-					return(paste(rev(x), collapse=":"))
-			})
+	Sum[,"grp"] <- apply(Sum[,c("grp", "var1")], 1, 
+						 function(x)
+						 {
+							if(x[2] == "")
+								return(x[1])
+							else
+								return(paste(rev(x), collapse=":"))
+						 }
+				 	)
 	re.cor <- NULL
 	
 	if(any(!is.na(Sum[,"var2"])))
@@ -438,6 +490,15 @@ lmerSummary <- function(obj, VarVC=TRUE, terms=NULL, Mean=NULL, cov=FALSE, X=NUL
 		Sum <- Sum[-ind.cor,]
 	}
 	
+	if(tab.only)
+	{
+		if(is.null(terms))
+		{
+			terms <- Sum[,"grp"]
+			terms <- terms[-length(terms)]
+		}
+	}
+
 	Sum  <- Sum[,-c(2,3)]
 	rownames(Sum) <- Sum[,"grp"]
 	Sum <- Sum[c(terms, "Residual"), ]
@@ -448,9 +509,13 @@ lmerSummary <- function(obj, VarVC=TRUE, terms=NULL, Mean=NULL, cov=FALSE, X=NUL
 	Sum$SD <- as.numeric(Sum$SD)
 	Sum$Perc <- 100*Sum$VC/Sum$VC[1]
 	Sum$CV	 <- 100*Sum$SD/Mean
-	obj <- lmerMatrices(obj, tab=Sum, terms=terms, 		# compute some required matrices
-			cov=cov, X=X)	
-	obj$aov.tab <- Sum
+	
+	if(!tab.only)										# complete VCA-object shall be created
+	{
+		obj <- lmerMatrices(obj, tab=Sum, terms=terms,	# compute some required matrices
+							cov=cov, X=X)							
+		obj$aov.tab <- Sum								# required for Giesbrecht & Burns approximation
+	}
 	
 	if(VarVC)
 	{
@@ -468,7 +533,6 @@ lmerSummary <- function(obj, VarVC=TRUE, terms=NULL, Mean=NULL, cov=FALSE, X=NUL
 	{	
 		Sum <- Sum[,c(2,4,3,5)]
 		colnames(Sum)[c(2,4)] <- c("%Total", "CV[%]")
-		obj$aov.tab <- Sum
 	}
 	
 	if(check4MKL())			# remaining part of the package computes with Matrix-package
@@ -484,6 +548,12 @@ lmerSummary <- function(obj, VarVC=TRUE, terms=NULL, Mean=NULL, cov=FALSE, X=NUL
 	}	
 	
 	rownames(Sum)[nrow(Sum)] <- "error"
+	if(tab.only)							# return just the VCA-table
+	{
+		Sum <- as.matrix(Sum)
+		attr(Sum, "Mean") <- Mean
+		return(Sum)
+	}
 	obj$aov.tab <- Sum
 	obj$re.cor <- re.cor					# save correlation among random terms
 	obj
@@ -510,7 +580,7 @@ lmerSummary <- function(obj, VarVC=TRUE, terms=NULL, Mean=NULL, cov=FALSE, X=NUL
 #' and an environment-optimized version will be used, reducing the computational time very much (see examples).
 #' 
 #' @param form          (formula) specifying the model to be fit, a response variable left of the '~' is mandatory
-#' @param Data          (data.frame) storing all variables referenced in 'form'
+#' @param Data          (data.frame) containing all variables referenced in 'form'
 #' @param by			(factor, character) variable specifying groups for which the analysis should be performed individually,
 #' 						i.e. by-processing
 #' @param VarVC			(logical) TRUE = the variance-covariance matrix of variance components will be approximated using 
@@ -633,11 +703,19 @@ remlVCA <- function(form, Data, by=NULL, VarVC=TRUE, quiet=FALSE)
 	stopifnot(is.data.frame(Data))
 	stopifnot(nrow(Data) > 2)                                               # at least 2 observations for estimating a variance
 
+	if(is.null(.GlobalEnv$msgEnv))												# may removed after loading the package
+		msgEnv <<- new.env(parent=emptyenv())
+	
+	org.form <- form
 	trms <- terms(form)														# convert VCA-formula to valid lmer-formula
 	stopifnot(attr(trms, "response") == 1)
 	lab  <- attr(trms, "term.labels")
+	
+	allObsEqual <- FALSE
+	
 	if(length(lab) == 0)
 	{
+		allObsEqual <- TRUE
 		if(!quiet)
 			warning("No random effects specified! Call function 'anovaVCA' instead!")
 		return(anovaVCA(form, Data))
@@ -646,6 +724,16 @@ remlVCA <- function(form, Data, by=NULL, VarVC=TRUE, quiet=FALSE)
 	lab  <- paste("(1|", lab, ")", sep="")
 	resp <- rownames(attr(trms, "factors"))[1]
 	vars <- rownames(attr(trms, "factors"))[-1]
+	
+	allObsEqual <- FALSE
+	
+	if(all(Data[,resp] == Data[1,resp]))										# no variance detectable?
+	{
+		allObsEqual <- TRUE
+		
+		if(!quiet)
+			warning("All values of response variable ", paste0("'", resp, "'"), " are equal!")
+	}
 		
 	form <- as.formula(paste(resp, "~", paste(lab, collapse="+"), sep=""))
 	
@@ -704,12 +792,16 @@ remlVCA <- function(form, Data, by=NULL, VarVC=TRUE, quiet=FALSE)
 	Data  <- na.omit(Data[,vcol, drop=F])
 	Nobs <- nrow(Data)
 	
-	fit <- lmer(form, Data)													# fit via 'lmer'
+	if(quiet || allObsEqual)
+		suppressWarnings(fit <- lmer(form, Data))						# fit via 'lmer'
+	else
+		fit <- lmer(form, Data)
 	
 	res <- list(call=Call, Type="Random Model", EstMethod="REML", data=Data, terms=trms,
 			intercept=as.logical(attr(trms, "intercept")), response=resp)
 	
 	res$Mean 	 	 <- mean(Data[,resp], na.rm=TRUE)
+	res$formula		 <- org.form												# as specified by the user
 	res$form 	 	 <- form
 	res$Nvc  	 	 <- length(lab) + 1											# error is one additional VC
 	res$VCnames  	 <- c(attr(trms, "term.labels", "error"))
@@ -726,10 +818,16 @@ remlVCA <- function(form, Data, by=NULL, VarVC=TRUE, quiet=FALSE)
 	res$Nobs <- Nobs
 	
 	tmp <- lmerSummary(	obj=fit, VarVC=VarVC, 			# construct table similar to aov-table and approximate vcovVC
-			terms=attr(trms, "term.labels"),
-			Mean=res$Mean)	
+						terms=attr(trms, "term.labels"),
+						Mean=res$Mean)	
 	res <- c(res, tmp)
 	class(res) <- "VCA"
+	
+	if(allObsEqual)
+	{
+		res$aov.tab[,"DF"] <- NA
+		res$aov.tab[,"%Total"] <- 0	
+	}
 	res
 }
 
@@ -737,6 +835,11 @@ remlVCA <- function(form, Data, by=NULL, VarVC=TRUE, quiet=FALSE)
 #' Fit Linear Mixed Models via REML.
 #' 
 #' Function fits Linear Mixed Models (LMM) using Restricted Maximum Likelihood (REML).
+#' 
+#' The model is formulated exactly as in function \code{\link{anovaMM}}, i.e. random terms need be enclosed by round brackets.
+#' All terms appearing in the model (fixed or random) need to be compliant with the regular expression "^[^[\\.]]?[[:alnum:]_\\.]*$",
+#' i.e. they may not start with a dot and may then only consist of alpha-numeric characters, 
+#' dot and underscore. Otherwise, an error will be issued.
 #' 
 #' Here, a LMM is fitted by REML using the \code{\link{lmer}} function of the \code{lme4}-package. 
 #' For all models the Giesbrechnt & Burns (1985) approximation of the variance-covariance
@@ -760,8 +863,9 @@ remlVCA <- function(form, Data, by=NULL, VarVC=TRUE, quiet=FALSE)
 #' as Revolution-R, which comes with Intel's Math Kernel Library (MKL), this will be automatically detected
 #' and an environment-optimized version will be used, reducing the computational time considerably (see examples).
 #' 
-#' @param form          (formula) specifying the model to be fit, a response variable left of the '~' is mandatory
-#' @param Data          (data.frame) storing all variables referenced in 'form'
+#' @param form          (formula) specifying the model to be fit, a response variable left of the '~' is mandatory, random terms
+#' 						have to be enclosed in brackets (see details for definition of valid model terms)
+#' @param Data          (data.frame) containing all variables referenced in 'form'
 #' @param by			(factor, character) variable specifying groups for which the analysis should be performed individually,
 #' 						i.e. by-processing
 #' @param VarVC			(logical) TRUE = the variance-covariance matrix of variance components will be approximated using 
@@ -789,22 +893,7 @@ remlVCA <- function(form, Data, by=NULL, VarVC=TRUE, quiet=FALSE)
 #' # calling anovaVCA
 #' remlMM(y~(day)/(run), dataEP05A2_2)
 #' anovaVCA(y~day/run, dataEP05A2_2)
-#' 
-#' # use different approaches to estimating the covariance of 
-#' # variance components (covariance parameters)
-#' dat.ub <- dataEP05A2_2[-c(11,12,23,32,40,41,42),]			# get unbalanced data
-#' m1.ub <- remlMM(y~day/(run), dat.ub, SSQ.method="qf", VarVC.method="scm")
-#' m2.ub <- remlMM(y~day/(run), dat.ub, SSQ.method="qf", VarVC.method="gb")		# is faster
-#' V1.ub <- round(vcovVC(m1.ub), 12)
-#' V2.ub <- round(vcovVC(m2.ub), 12)
-#' all(V1.ub == V2.ub)
-#' 
-#' # make it explicit that "gb" is faster than "scm"
-#' # compute variance-covariance matrix of VCs 10-times
-#' 
-#' system.time(for(i in 1:500) vcovVC(m1.ub))	# "scm"
-#' system.time(for(i in 1:500) vcovVC(m2.ub))	# "gb"
-#' 
+#' remlVCA(y~day/run, dataEP05A2_2)
 #' 
 #' # fit a larger random model
 #' data(VCAdata1)
@@ -884,10 +973,17 @@ remlMM <- function(form, Data, by=NULL, VarVC=TRUE, cov=TRUE, quiet=FALSE)
 	stopifnot(is.data.frame(Data))
 	stopifnot(nrow(Data) > 2)                                               # at least 2 observations for estimating a variance
 	
+	if(is.null(.GlobalEnv$msgEnv))												# may removed after loading the package
+		msgEnv <<- new.env(parent=emptyenv())
+		
+	org.form <- form
 	trms <- terms(form, simplify=TRUE, keep.order=TRUE)						# convert VCA-formula to valid lmer-formula
 	stopifnot(attr(trms, "response") == 1)
 	resp <- rownames(attr(trms, "factors"))[1]
 	org.form <- form
+	
+	if(any(!grepl("^[^[\\.]]?[[:alnum:]_\\.]*$", rownames(attr(trms, "factors")))))
+		stop("There are terms in the model formula where regular expression '^[^[\\.]]?[[:alnum:]_\\.]*$' does not fit!")
 	
 	stopifnot(resp %in% colnames(Data))
 	stopifnot(is.numeric(Data[,resp]))
@@ -895,8 +991,17 @@ remlMM <- function(form, Data, by=NULL, VarVC=TRUE, cov=TRUE, quiet=FALSE)
 	res <- list(call=Call,  EstMethod="REML", data=Data, terms=trms,
 			response=resp)
 	
+	allObsEqual <- FALSE
+	
+	if(all(Data[,resp] == Data[1,resp]))										# no variance detectable?
+	{
+		allObsEqual <- TRUE
+		if(!quiet)
+			warning("All values of response variable ", paste0("'", resp, "'"), " are equal!")
+	}
+	
 	int <- res$intercept <- attr(trms, "intercept") == 1						# has intercept	
-	rf  <- gregexpr("\\([[:alnum:]]*\\)", as.character(org.form)[3])			# check for random effects
+	rf <- gregexpr("\\([[:alnum:]_\\.]*\\)", as.character(org.form)[3])			# check for random effects
 	
 	if(rf[[1]][1] != -1)														# identify random variables
 	{
@@ -1051,10 +1156,15 @@ remlMM <- function(form, Data, by=NULL, VarVC=TRUE, cov=TRUE, quiet=FALSE)
 	Data  <- na.omit(Data[,vcol, drop=F])
 	Nobs  <- nrow(Data)
 	
-	fit <- lmer(form, Data)								# fit via 'lmer'
+	if(quiet || allObsEqual)
+		suppressWarnings(fit <- lmer(form, Data))		# fit via 'lmer'
+	else
+		fit <- lmer(form, Data)
+
 	
 	res$Mean 		 <- mean(Data[,resp], na.rm=TRUE)
-	res$form 	 	 <- form
+	res$formula		 <- org.form						# as.specified by the user
+	res$form 	 	 <- form							# as used in the lmer-call
 	res$NegVCmsg 	 <- ""
 	res$VarVC.method <- "gb"
 	
@@ -1132,11 +1242,20 @@ remlMM <- function(form, Data, by=NULL, VarVC=TRUE, cov=TRUE, quiet=FALSE)
 	tmp$Matrices$y <- Matrix(Data[,resp], ncol=1)
 	res <- c(res, tmp)
 	class(res) <- "VCA"
+
+	if(allObsEqual)
+	{
+		res$aov.tab[,"DF"] <- NA
+		res$aov.tab[,"%Total"] <- 0	
+	}
 	res
 }
 
 
 #' Solve System of Linear Equations using Inverse of Cholesky-Root.
+#' 
+#' Function solves a system of linear equations, respectively, inverts a matrix
+#' by means of the inverse Cholesky-root.
 #' 
 #' This function is intended to reduce the computational time in function
 #' \code{\link{solveMME}} which computes the inverse of the square variance-
@@ -1202,6 +1321,7 @@ Solve <- function(X, quiet=FALSE)
 #' 
 #' Function calls a fast C-implementation of the SWEEP operator using the
 #' transpose of the original augmented matrix \eqn{X'X} (see \code{\link{getSSQsweep}}).
+#' 
 #' Transposing prior to applying the SWEEP-operator speeds up things since the 
 #' complete matrix is stored in memory in consecutive manner. 
 #' 
@@ -1226,6 +1346,31 @@ Solve <- function(X, quiet=FALSE)
 #' 
 #' @references 
 #' Goodnight, J.H. (1979), A Tutorial on the SWEEP Operator, The American Statistician, 33:3, 149-158
+#' 
+#' @examples 
+#' \dontrun{
+#' # use example from 'lm' Rdoc
+#' ctl    <- c(4.17,5.58,5.18,6.11,4.50,4.61,5.17,4.53,5.33,5.14)
+#' trt    <- c(4.81,4.17,4.41,3.59,5.87,3.83,6.03,4.89,4.32,4.69)
+#' group  <- gl(2, 10, 20, labels = c("Ctl","Trt"))
+#' weight <- c(ctl, trt)
+#' lm.D9  <- lm(weight ~ group)
+#' anova(lm.D9)
+#' 
+#' # create augmented matrix
+#' X  <- model.matrix(lm.D9)
+#' Xt <- t(X)
+#' y  <- matrix(weight, ncol=1)
+#' yt <- t(y)
+#' M  <- rbind(	cbind(as.matrix(Xt%*%X), as.matrix(Xt%*%y)), 
+#' 		        cbind(as.matrix(yt%*%X), as.matrix(yt%*%y)))
+#' swept <- VCA:::Csweep(M, asgn=c(0,1))					
+#' LC    <- swept$LC
+#' SS    <- swept$SSQ
+#' SSQ   <- abs(diff(SS))
+#' SSQ   <- c(SSQ, tail(SS,1))
+#' SSQ		# compare to column "Sum Sq" in 'anova(lmD9)' output
+#' }
 
 Csweep <- function(M, asgn, thresh=1e-12, tol=1e-12, Ncpu=1)
 {
@@ -1252,7 +1397,8 @@ Csweep <- function(M, asgn, thresh=1e-12, tol=1e-12, Ncpu=1)
 #' Calling C-implementation of the SWEEP-Operator for Matrix-Inversion
 #' 
 #' Function calls a fast C-implementation of the SWEEP operator using the
-#' transpose of the matrix to be swept.
+#' transpose of the matrix to be swept for generating a generalized inverse of 
+#' a matrix for which no regular matrix invers exists.
 #' 
 #' Transposing prior to applying the SWEEP-operator speeds up things since the 
 #' complete matrix is stored in memory in consecutive manner. 
@@ -1268,6 +1414,18 @@ Csweep <- function(M, asgn, thresh=1e-12, tol=1e-12, Ncpu=1)
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #' 
 #' @return (Matrix) object corresponding to the inverted matrix
+#' 
+#' @examples
+#' \dontrun{
+#' M <- matrix(c(4,-6,6,-9),2)
+#' solve(m)			# regular inverse does not exist
+#' Mi1 <- MPinv(M)			# MASS-implementation 'ginv'
+#' Mi1
+#' M %*% Mi1 %*% M			# should be M
+#' Mi2 <- VCA:::Sinv(M)
+#' Mi2
+#' M %*% Mi2 %*% M			# should be M
+#' }
 
 Sinv <- function(M, tol=.Machine$double.eps)
 {
@@ -1279,7 +1437,7 @@ Sinv <- function(M, tol=.Machine$double.eps)
 #		M[which(ind)] <- 0
 #	
 	swept <- .C("TsweepFull", M=as.double(t(M)), nr=as.integer(nr), 
-			tol=as.double(tol*max(abs(diag(M)))), PACKAGE="VCA")
+				tol=as.double(tol*max(abs(diag(M)))), PACKAGE="VCA")
 	
 	if(class(M) == "matrix")
 		return(matrix(round(swept$M, abs(log10(tol))), nrow=nr, ncol=nr, byrow=TRUE))
@@ -1296,7 +1454,8 @@ Sinv <- function(M, tol=.Machine$double.eps)
 #' This function performs estimation of ANOVA Type-1 sum of squares
 #' using the SWEEP-operator (see reference), operating on the augmented
 #' matrix \eqn{X'X}, where \eqn{X} represents the design matrix not differentiating
-#' between fixed and random factors.
+#' between fixed and random factors. See the numerical example in \code{\link{Csweep}}
+#' exemplifying the type of augmentation of \eqn{X'X} on which sweeping is carried out.
 #' 
 #' This is an utility function not intended to be called directly.
 #' For each term in the formula the design-matrix \eqn{Z} is constructed.
@@ -1316,6 +1475,8 @@ Sinv <- function(M, tol=.Machine$double.eps)
 #' 			\item{Lmat}{(list) with components 'Z' and 'A'}
 #' 
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @seealso \code{\link{Csweep}}
 #' 
 #' @references 
 #' 
@@ -1402,7 +1563,7 @@ getSSQsweep <- function(Data, tobj, random=NULL)
 	yt <- t(y)
 	
 	M <- rbind(	cbind(as.matrix(Xt%*%X), as.matrix(Xt%*%y)), 
-			cbind(as.matrix(yt%*%X), as.matrix(yt%*%y)))	
+				cbind(as.matrix(yt%*%X), as.matrix(yt%*%y)))	
 	
 	uind <- unique(asgn)							# all factors
 	SS <- LC <- NULL
@@ -1588,10 +1749,13 @@ getSSQqf<- function(Data, tobj, random=NULL)
 #' For further details on ANOVA Type-I estimation methods see \code{\link{anovaVCA}}.
 #'
 #' @param form				(formula) specifying the linear mixed model (fixed and random part of the model),
-#' 							all random terms need to be enclosed by brackets. Any variable not being bracketed
+#' 							all random terms need to be enclosed by round brackets. Any variable not being bracketed
 #'                      	will be considered as fixed. Interaction terms containing at least one random factor
-#'                      	will automatically be random (Piepho et al. 2003).
-#' @param Data				(data.frame) storing all variables referenced in 'form', note that variables can only be
+#'                      	will automatically be random (Piepho et al. 2003). All terms appearing in the model 
+#' 							(fixed or random) need to be compliant with the regular expression "^[^[\\.]]?[[:alnum:]_\\.]*$",
+#' 							i.e. they may not start with a dot and may then only consist of alpha-numeric characters, 
+#'							dot and underscore. Otherwise, an error will be issued.
+#' @param Data				(data.frame) containing all variables referenced in 'form', note that variables can only be
 #'                          of type "numeric", "factor" or "character". The latter will be automatically converted to "factor".
 #' @param by				(factor, character) variable specifying groups for which the analysis should be performed individually,
 #' 							i.e. by-processing
@@ -1755,6 +1919,9 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 	stopifnot(is.data.frame(Data))
 	stopifnot(nrow(Data) > 2)                                               	# at least 2 observations for estimating a variance
 	
+	if(is.null(.GlobalEnv$msgEnv))												# may removed after loading the package
+		msgEnv <<- new.env(parent=emptyenv())
+	
 	VarVC.method <- match.arg(VarVC.method)
 	SSQ.method   <- match.arg(SSQ.method)
 	VarVC.method <- ifelse(SSQ.method == "sweep", "gb", VarVC.method)			# always use "gb", since A-matrices will not be computed	
@@ -1772,6 +1939,9 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 	form  <- formula(tobj)
 	res$terms <- tobj
 	
+	if(any(!grepl("^[^[\\.]]?[[:alnum:]_\\.]*$", rownames(attr(tobj, "factors")))))
+		stop("There are terms in the model formula where regular expression '^[^[\\.]]?[[:alnum:]_\\.]*$' does not fit!")
+	
 	if(!attr(tobj, "response"))
 		stop("You need to include a response variable in the fixed effects formula!")
 	resp <- as.character(form)[2]
@@ -1780,7 +1950,7 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 	stopifnot(resp %in% colnames(Data))
 	stopifnot(is.numeric(Data[,resp]))
 	
-	rf <- gregexpr("\\([[:alnum:]]*\\)", as.character(org.form)[3])				# check for random effects
+	rf <- gregexpr("\\([[:alnum:]_\\.]*\\)", as.character(org.form)[3])			# check for random effects
 	
 	if(rf[[1]][1] != -1)														# identify random variables
 	{
@@ -1886,6 +2056,17 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 	Nobs <- N <- nrow(Data)
 	y    <- matrix(Data[,resp], ncol=1)										# vector of observations
 	
+	allObsEqual <- FALSE
+	if(all(Data[,resp] == Data[1,resp]))										# no variance detectable?
+	{
+		allObsEqual <- TRUE
+		Data.org <- Data
+		Data[,resp] <- Data[,resp] + rnorm(nrow(Data))
+		
+		if(!quiet)
+			warning("All values of response variable ", paste0("'", resp, "'"), " are equal!")
+	}
+	
 	if(SSQ.method == "qf")
 		tmp.res <- getSSQqf(Data, tobj, res$random)
 	else
@@ -1895,16 +2076,25 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 	aov.tab <- tmp.res$aov.tab
 	DF		<- aov.tab[,"DF"]
 	SS		<- aov.tab[,"SS"]
+
+	if(allObsEqual)
+	{
+		aov.tab[,c("SS", "MS")] <- 0
+		Data <- Data.org
+		SS[1:length(SS)] <- 0
+	}
 	
 	rownames(aov.tab) <- c(attr(tobj, "term.labels"), "error")
 	
 	res$Mean <- Mean
+	res$formula <- org.form
 	res$Nobs <- Nobs
 	res$aov.org <- aov.tab
 	
 	rf.ind  <- c(rf.ind, nrow(aov.tab))
-	
+
 	C <- getCmatrix(form, Data, aov.tab[,"DF"], "SS", MM=Lmat$Zre)          # compute coefficient matrix C in ss = C * s
+
 	# at this point Zre comprises fixed and random effects
 	Ci  <- solve(C)
 	C2  <- apply(C, 2, function(x) x/DF)                                    # coefficient matrix for mean squares (MS)
@@ -2042,6 +2232,10 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 	}
 	
 	res <- solveMME(res)
+	
+	if(allObsEqual)
+		res$aov.tab[,"%Total"] <- 0	
+	
 	gc(verbose=FALSE)													# trigger garbage collection
 	return(res)
 }
@@ -2049,7 +2243,8 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c("gb", "scm"), SSQ.method
 #' ANOVA Type-I Degrees of Freedom.
 #' 
 #' Depending on the type of model, e.g. fully-nested, crossed-nested, etc. algorithms
-#' are applied which are believed to be reasonably fast for the respective type of model.
+#' are applied which are believed to be reasonably fast for the respective type of model, whenever
+#' ANOVA sums of squares are constructed via quadradic forms in y (SSQ.method="qf").
 #' 
 #' This function is not meant to be called directly. It is invoked by functions \code{\link{anovaVCA}}
 #' and \code{\link{anovaMM}}.
@@ -2189,8 +2384,9 @@ anovaDF <- function(form, Data, Zmat, Amat, tol=1e-8)
 
 #' Solve Mixed Model Equations.
 #' 
-#' Function solves the Mixed Model Equations (MMEs) to estimate fixed and random effects.
-#' It is for internal use only, thus, not exported.
+#' Function solves the Mixed Model Equations (MME) to estimate fixed and random effects.
+#' 
+#' This function is for internal use only, thus, not exported.
 #' 
 #' @param obj			... (VCA) object
 #' 
@@ -2232,7 +2428,8 @@ solveMME <- function(obj)
 	else
 		Vi	<- mats$Vi
 	
-	K 		<- Sinv(t(X) %*% Vi %*% X)		# variance-covariance matrix of fixed effects
+	#K 		<- Sinv(t(X) %*% Vi %*% X)		# variance-covariance matrix of fixed effects
+	K 		<- Solve(t(X) %*% Vi %*% X, quiet=TRUE)		# variance-covariance matrix of fixed effects
 	T	   	<- K %*% t(X) %*% Vi
 	fixed  	<- T %*% y
 	
@@ -2280,7 +2477,7 @@ ranef <- function(object, ...)
 #' where \eqn{G} is the covariance-matrix of random effects, \eqn{Z} is a design matrix assigning 
 #' random effects to observations and matrix \eqn{Q = V^{-1}(I - H)}{Q = V"(I - H)} (see \code{\link{residuals.VCA}} for further details). 
 #' 
-#' @param object		(VCA) object where random effects shall be extracted
+#' @param object		(VCA) object from which random effects shall be extracted
 #' @param term			(character) string specifying a term (factor) for which random effects 
 #'                      should be extracted, one can also specify an integer which is interpreted
 #'                      as i-th element of 'obj$res.assign$terms'
@@ -2468,12 +2665,14 @@ fixef <- function(object, ...)
 
 #' Extract Fixed Effects from 'VCA' Object.
 #' 
-#' Conviniently extracting the 'FixedEffects' element of an 'VCA' object. 
+#' Conveniently extracting the 'FixedEffects' element of an 'VCA' object. 
 #' 
 #' The default is to return the fixed effects estimates together with their standard errors.
 #' If setting 'type="complex"' or to an abbreviation (e.g. "c") additional inferential statistics
 #' on these estimates will be returned, i.e. "t Value", "DF" and respective p-value "Pr > |t|". 
-#' One can choose one of three denominator degrees of freedom ('ddfm')-methods.
+#' One can choose one of three denominator degrees of freedom ('ddfm')-methods. The implementation
+#' of these methods are an attempt to align with the results of SAS PROC MIXED. See the respective
+#' SAS-documentation for details.
 #' 
 #' @param object		(VCA) object where fixed effects shall be extracted
 #' @param type			(character) string or partial string, specifying whether
@@ -3004,9 +3203,9 @@ lsmeans <- function(obj, var=NULL, type=c("simple", "complex"), ddfm=c("contain"
 #' Contrast Matrix for LS Means.
 #' 
 #' Function determines appropriate contrast matrix for computing the LS Means of
-#' each factor level of one or multiple fixed effects variables. This functions implements
-#' the 5 rules given in the documentation of SAS PROC GLM for computing the LS Means.
+#' each factor level of one or multiple fixed effects variables. 
 #' 
+#' This functions implements the 5 rules given in the documentation of SAS PROC GLM for computing the LS Means.#' 
 #' The LS Means correspond to marginal means adjusted for bias introduced by unbalancedness.
 #' 
 #' @param obj			(VCA) object
@@ -3255,13 +3454,11 @@ lsmMat <- function(obj, var=NULL, quiet=FALSE)
 }
 
 
-
-
 #' Extract Fixed Effects from 'VCA' Object.
 #' 
-#' For coneniently using objects of class 'VCA' with other packages expecting this
+#' For conveniently using objects of class 'VCA' with other packages expecting this
 #' function, e.g. the 'multcomp' package for general linear hypotheses for parametric
-#' models.
+#' models (currently not fully implemented).
 #' 
 #' @param object		(VCA) object where fixed effects shall be extracted
 #' @param quiet			(logical) TRUE = will suppress any warning, which will be issued otherwise 
@@ -3452,7 +3649,7 @@ vcovFixed <- function(obj, quiet=FALSE)
 	Vi <- getMat(obj, "Vi")
 	VCov <- obj$VarFixed
 	if(is.null(VCov))
-		VCov <- Sinv(t(X) %*% Vi %*% X)
+		VCov <- Solve(t(X) %*% Vi %*% X, quiet=TRUE)
 	#VCov <- MPinv(t(X) %*% Vi %*% X)
 	rownames(VCov) <- colnames(VCov) <- rownames(obj$FixedEffects)
 	return(VCov)
@@ -3474,11 +3671,8 @@ DfSattHelper <- function(obj, x)
 	stopifnot(class(obj) == "VCA")
 	
 	rf.ind <- obj$Matrices$rf.ind
-#	Zi     <- obj$Matrices$Z
 	Zi <- obj$Matrices$Zre
 	Z <- Vs <- nam <- NULL 
-	
-#	for(i in 1:length(rf.ind))									# constructing complete Z-matrix from VC-wise Z-matrices
 	
 	ura <- unique(obj$re.assign[[1]])
 	
@@ -3487,11 +3681,8 @@ DfSattHelper <- function(obj, x)
 		if(i != length(x))
 		{
 			ind <- which(obj$re.assign[[1]] == i)
-#		Z <- cbind(Z, as.matrix(Zi[[rf.ind[i]]]))
 			Z <- cbind(Z, as.matrix(Zi[,ind]))
-#		Vs <- c(Vs, rep(x[i], ncol(Zi[[rf.ind[i]]])))
 			Vs <- c(Vs, rep(x[i], length(ind)))
-#		nam <- c(nam, colnames(Zi[[i]]))
 			nam <- c(nam, colnames(Zi)[ind])
 		}
 		else
@@ -3507,8 +3698,7 @@ DfSattHelper <- function(obj, x)
 	X  <- getMat(obj, "X")
 	V  <- Z %*% G %*% t(Z) + R
 	Vi <- Solve(V)
-	P  <- Sinv(t(X) %*% Vi %*% X)
-#	P  <- MPinv(t(X) %*% Vi %*% X)
+	P  <- Solve(t(X) %*% Vi %*% X, quiet=TRUE)
 	P <- as.matrix(P)	
 	return(P)
 }
@@ -3612,7 +3802,7 @@ test.lsmeans <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 #' This function performs t-Tests for one or multiple linear combinations (contrasts) of estimated 
 #' fixed effects.
 #' 
-#' Here, the same procedure as in SAS PROC MIXED ddfm=satterthwaite (sat) is implemented. 
+#' Here, the same procedure as in \code{SAS PROC MIXED ddfm=satterthwaite} (sat) is implemented. 
 #' This implementation was inspired by the code of function 'calcSatterth' of R-package 'lmerTest'. 
 #' Thanks to the authors for this nice implementation. \cr
 #' Note, that approximated Satterthwaite degrees of freedom might differ from 'lmerTest' and SAS PROC MIXED.
@@ -3691,7 +3881,7 @@ test.lsmeans <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 #' fe3 <- fixef(fit3)
 #' fe4 <- fixef(fit4)
 #' L <- diag(nrow(fe3))
-#' rownames(L) <- colnames(L) <- rownames(fe)
+#' rownames(L) <- colnames(L) <- rownames(fe3)
 #' system.time(tst1 <- test.fixef(fit3, L))
 #' system.time(tst2 <- test.fixef(fit3, L, opt=FALSE))
 #' system.time(tst3 <- test.fixef(fit4, L, opt=FALSE))
@@ -3730,8 +3920,10 @@ test.fixef <- function(	obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 	{
 		res <- matrix(ncol=5, nrow=nrow(L))
 		colnames(res) <- c("Estimate", "DF", "SE", "t Value", "Pr > |t|")
+		
 		for(i in 1:nrow(L))
 			res[i,] <- test.fixef(obj=obj, L=L[i,,drop=F], ddfm=ddfm, method.grad=method.grad, quiet=quiet, opt=opt, onlyDF=onlyDF, lsmeans=lsmeans)
+	
 		rownames(res) <- rownames(L)
 		if(onlyDF)
 			return(res[,"DF"])
@@ -3746,8 +3938,8 @@ test.fixef <- function(	obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 		{
 			if(!quiet)
 				warning("Linear contrast'", L ,"' not estimable!")
-			res <- rep(NA, 4)
-			names(res) <- c("Estimate", "DF", "t Value", "Pr > |t|")
+			res <- rep(NA, 5)
+			names(res) <- c("Estimate", "DF", "SE", "t Value", "Pr > |t|")
 			return(res)
 		}		
 		est		<- as.numeric(L %*% b)
@@ -3766,7 +3958,7 @@ test.fixef <- function(	obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 		DF		<- getDDFM(obj, L, ddfm, tol=tol, method.grad=method.grad, opt=opt, items=items)
 		if(onlyDF)
 		{
-			return(c(NA, DF, NA, NA))
+			return(c(NA, DF, NA, NA, NA))
 		}
 		t.stat 	<- as.numeric(sqrt((t(L %*% b) %*% lPli %*% (L %*% b))/r))
 		
@@ -3810,6 +4002,7 @@ test.fixef <- function(	obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 #' 
 #' # another custom hypothesis
 #' L2 <- getL(fit, "0.25*day1+0.25*day2+0.5*day3-0.5*day4-0.5*day5")
+#' L2
 #' 
 #' # more complex model
 #' data(VCAdata1)
@@ -3817,6 +4010,7 @@ test.fixef <- function(	obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 #' fit.S2 <- anovaMM(y~(lot+device)/day/(run), dataS2)
 #' L3 <- getL(fit.S2, c("lot1-lot2", "lot1:device3:day19-lot1:device3:day20", 
 #' 						"lot1:device1:day1-lot1:device1:day2"))
+#' L3
 #' test.fixef(fit.S2, L3)
 #' }
 
@@ -4069,6 +4263,19 @@ vcovVC <- function(obj, method=NULL, quiet=FALSE)
 		method <- obj$VarVC.method
 	
 	VCvar <- obj$VarCov
+
+	if(obj$EstMethod == "REML")
+	{
+		if(is.null(VCvar))
+		{
+			if(!quiet)
+				warning("When fitting a model via REML, set 'VarVC=TRUE' for computing the variance-covariance matrix of variance components!")
+			return(NULL)
+		}
+		if(method == "scm" && !quiet)
+			warning("For models fitted by REML only the Giesbrecht & Burns method is applicable!")
+	}
+
 	if(!is.null(VCvar))
 		return(VCvar)
 	
@@ -4122,7 +4329,7 @@ vcovVC <- function(obj, method=NULL, quiet=FALSE)
 
 #' Extract a Specific Matrix from a 'VCA' Object.
 #' 
-#' For convinience only, extracting a specific matrix from the 
+#' For convenience only, extracting a specific matrix from the 
 #' "Matrices" element of a 'VCA' object if this matrix exists.
 #' 
 #' When 'mat="Z"' the design matrix of random effects will be returned.
@@ -4145,8 +4352,9 @@ vcovVC <- function(obj, method=NULL, quiet=FALSE)
 #' getMat(fit, "Zday")
 #' getMat(fit, "Zday:run")
 #' getMat(fit, "Zerror")
-#' getMat(fit, "V")			 	# Var(y)
-#' getMat(fit, "G")				# Var(re)
+#' fit2 <- anovaMM(y~day/(run), dataEP05A2_1)
+#' getMat(fit2, "V")			 	# Var(y)
+#' getMat(fit2, "G")				# Var(re)
 #' }
 
 getMat <- function(obj, mat)
@@ -4204,6 +4412,7 @@ getMat <- function(obj, mat)
 #' (uncorrelated).
 #' 
 #' @param obj			(VCA) object
+#' 
 #' @return (VCA) object with additional elements in the 'Matrices' element, including matrix \eqn{V}.
 #' 
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
@@ -4415,11 +4624,11 @@ getAmatrix <- function(X1, X2)
 }
 
 
-#' Moore-Penrose Inverse of a Matrix.
+#' Moore-Penrose Generalized Inverse of a Matrix.
 #' 
-#' This function is originally defined in package 'MASS'. It was adapted
-#' to be able to deal with matrices from the 'Matrix' package, e.g. sparse
-#' matrices.
+#' This function is originally impelemented in package 'MASS' as function \code{ginv}. 
+#' It was adapted to be able to deal with matrices from the 'Matrix' package,
+#' e.g. sparse matrices.
 #' 
 #' @param X			(object) two-dimensional, for which a Moore-Penrose inverse
 #'                  has to be computed
@@ -4538,7 +4747,9 @@ getVCvar <- function(Ci, A, Z, VC)
 #' the model formula 'form'. Each combination of factor-levels and or numeric variables is identified
 #' and accounted for by a separate column. See examples for differences compared to function 'model.matrix' (stats).
 #' This type of design matrix is used e.g. in constructing A-matrices of quadratic forms in \eqn{y} expressing
-#' ANOVA sums of squares as such. This is key functionality of functions \code{\link{anovaVCA}} and \code{\link{anovaMM}}. 
+#' ANOVA sums of squares as such. This is key functionality of functions \code{\link{anovaVCA}} and \code{\link{anovaMM}}
+#' used e.g. in constructing the coefficient matrix \eqn{C} whose inverse is used in solving for ANOVA Type-1 based
+#' variance components.. 
 #' 
 #' @param form      (formula) with or without response specifying the model to be fit
 #' @param Data      (data.frame) with the data
@@ -4742,7 +4953,7 @@ SattDF <- function(MS, Ci, DF, type=c("total", "individual"))
 
 #' Standard Printing Method for Objects of Class 'VCA'.
 #' 
-#' Function prints 'VCA' objects as returned by function \code{\link{anovaVCA}}.
+#' Function prints 'VCA' objects as returned e.g. by function \code{\link{anovaVCA}}.
 #' 
 #' @param x         (VCA) object of class 'VCA' as returned by function 'anovaVCA'.
 #' @param digits    (integer) number of digits numeric values are rounded to before printing.
@@ -5012,7 +5223,7 @@ print.VCA <- function(x, digits=6L, ...)
 #'  
 #' ### use the numerical example from the CLSI EP05-A2 guideline (p.25)
 #' data(Glucose)
-#' res.ex <- anovaVCA(result~day/run, Glucose)
+#' res.ex <- anovaVCA(conc~day/run, Glucose)
 #' 
 #' ### also perform Chi-Squared tests
 #' ### Note: in guideline claimed SD-values are used, here, claimed variances are used
@@ -5146,7 +5357,7 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 			
 			nam0 <- deparse(Call$obj)
 			nam1 <- sub("\\[.*", "", nam0)
-			
+	
 			if(length(nam1) == 1 && nam1 %in% names(as.list(.GlobalEnv)))		# obj is not function call
 			{
 				expr <- paste(nam0, "<<- obj")						# update object missing MME results
@@ -5550,6 +5761,8 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 
 #' Standard Print Method for Objects of Class 'VCAinference'.
 #' 
+#' Prints the list-type 'VCAinference'-object as tabulated output. 
+#' 
 #' Formats the list-type objects of class 'VCAinference' for a more comprehensive
 #' presentation of results, which are easier to grasp. The default is to show the complete
 #' object (VCA ANOVA-table, VC-, SD-, and CV-CIs). Using parameter 'what' allows to
@@ -5789,15 +6002,17 @@ print.VCAinference <- function(x, digits=4L, what=c("all", "VC", "SD", "CV", "VC
 
 #' Check Whether Design Is Balanced Or Not.
 #' 
+#' Assess whether an experimental design is balanced or not.
+#' 
 #' This function is for internal use only. Thus, it is not exported.
 #' 
 #' The approach taken here is to check whether each cell defined by one level of a factor are all equal or
 #' not. Here, data is either balanced or unbalanced, there is no concept of "planned unbalancedness" as
 #' discussed e.g. in Searle et al. (1992) p.4. The expanded (simplified) formula is divided into main factors
-#' and nested factors, where the latter are interaction terms. The N-dimensional contingency table, N being the
+#' and nested factors, where the latter are interaction terms. The \eqn{N}-dimensional contingency table, \eqn{N} being the
 #' number of main factors, is checked for all cells containing the same number. If there are differences, the
 #' dataset is classified as "unbalanced". All interaction terms are tested individually. Firstly, a single factor 
-#' is generated from combining factor levels of the first (n-1) variables in the interaction term. The last variable
+#' is generated from combining factor levels of the first \eqn{(n-1)} variables in the interaction term. The last variable
 #' occuring in the interaction term is then recoded as factor-object with \eqn{M} levels. \eqn{M} is the number of factor
 #' levels within each factor level defined by the first \eqn{(n-1)} variables in the interaction term. This is done to 
 #' account for the independence within sub-classes emerging from the combination of the first \eqn{(n-1)} variables.
@@ -5909,7 +6124,7 @@ isBalanced <- function(form, Data, na.rm=TRUE)
 
 #' Compute the Trace of a Matrix.
 #' 
-#' Function computes the sum of main-diagonal elements of a squared matrix.
+#' Function computes the sum of main-diagonal elements of a square matrix.
 #' 
 #' @param x     	(matrix, Matrix) object
 #' @param quiet		(logical) TRUE = will suppress any warning, which will be issued otherwise 
@@ -5931,6 +6146,10 @@ Trace <- function(x, quiet=FALSE)
 #' 
 #' @return (matrix) equal to x$aov.tab with additional attributes "Mean" and "Nobs"
 #' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @seealso \code{\link{as.matrix.VCAinference}}
+#' 
 #' @method as.matrix VCA
 #' @S3method as.matrix VCA
 #' 
@@ -5945,13 +6164,74 @@ as.matrix.VCA <- function(x, ...)
 {
 	Mean <- x$Mean
 	Nobs <- x$Nobs
-	rn <- rownames(x$aov.tab)
-	cn <- colnames(x$aov.tab)
-	mat <- matrix(x$aov.tab, nrow=length(rn), ncol=length(cn), dimnames=list(rn, cn))
+	mat <- as.matrix(x$aov.tab)
 	attr(mat, "Mean") <- Mean
 	attr(mat, "Nobs") <- Nobs
 	return(mat)
 }
+
+
+#' Standard 'as.matrix' Method for 'VCAinference' S3-Objects.
+#' 
+#' This function makes use of the hidden feature of function \code{\link{print.VCAinference}} which invisibly returns character 
+#' matrices of estimated variance components expressed as "VC" (variance component), "SD" (standard deviation) or "CV" (coefficient
+#' of variation). If argument "what" is not specified, a named list will be returned with all three matrices.
+#' 
+#' @param x         (VCAinference) object 
+#' @param what		(character) one or multiple choices from "VC" (variance component), "SD" (standard deviation) or
+#' 					"CV" (coefficient of variation)
+#' @param digits	(integer) number of decimal digits to be used
+#' @param ...       additional arguments to be passed to or from methods.
+#' 
+#' @return 	(matrix) with point estimates, one- and two-sided confidence intervals and variances
+#' 			of the estimated variance components
+#' 
+#' @seealso \code{\link{print.VCAinference}}, \code{\link{as.matrix.VCA}}
+#' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @method as.matrix VCAinference
+#' @S3method as.matrix VCAinference
+#' 
+#' @examples 
+#' \dontrun{
+#' data(dataEP05A2_1)
+#' fit <- anovaVCA(y~day/run, dataEP05A2_1)
+#' inf <- VCAinference(fit, VarVC=TRUE)
+#' as.matrix(inf, what="VC", digits=6)
+#' as.matrix(inf, what="SD", digits=6)
+#' as.matrix(inf, what="CV", digits=2)
+#' 
+#' # request list of matrices
+#' as.matrix(inf)
+#' }
+
+as.matrix.VCAinference <- function(x, what=c("VC", "SD", "CV"), digits=6, ...)
+{
+	what <- match.arg(what, choices=c("VC", "SD", "CV"), several.ok=TRUE)
+	if(length(what) > 1)
+	{
+		obj <- x
+		mat <- lapply(what, function(x) as.matrix(obj, what=x, digits=digits, ...))
+		names(mat) <- what
+	}
+	else
+	{
+		out   <- capture.output(mat <- print(x, what=what, digits=digits))
+		vals  <- suppressWarnings(c(mat))
+		zero  <- which(vals == "0*")
+		vals  <- suppressWarnings(as.numeric(vals))
+		if(length(zero) > 0)
+			vals[zero] <- 0
+		mat  <- matrix( vals, ncol=ncol(mat), nrow=nrow(mat),
+						dimnames=attr(mat, "dimnames"))
+		attr(mat, "Method") <- x$VCAobj$EstMethod
+		attr(mat, "conf.level") <- 1-x$alpha
+		attr(mat, "unit") <- what
+	}
+	mat
+}
+
 
 
 
@@ -5989,7 +6269,7 @@ as.matrix.VCA <- function(x, ...)
 #' columns of the partial design matrix corresponding to a specific \eqn{VC}.
 #' 
 #' @param form          (formula) specifying the model to be fit, a response variable left of the '~' is mandatory
-#' @param Data          (data.frame) storing all variables referenced in 'form'
+#' @param Data          (data.frame) containing all variables referenced in 'form'
 #' @param by			(factor, character) variable specifying groups for which the analysis should be performed individually,
 #' 						i.e. by-processing
 #' @param NegVC         (logical) FALSE = negative variance component estimates (VC) will be set to 0 and they will not contribute to the total variance 
@@ -6155,7 +6435,7 @@ as.matrix.VCA <- function(x, ...)
 #' }
 
 anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "qf"), 
-		VarVC.method=c("gb", "scm"), MME=FALSE, quiet=FALSE)
+						VarVC.method=c("gb", "scm"), MME=FALSE, quiet=FALSE)
 {
 	if(!is.null(by))
 	{
@@ -6174,6 +6454,9 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 	stopifnot(nrow(Data) > 2)                                               # at least 2 observations for estimating a variance
 	stopifnot(is.logical(NegVC))
 	
+	if(is.null(.GlobalEnv$msgEnv))												# may removed after loading the package
+		msgEnv <<- new.env(parent=emptyenv())
+		
 	VarVC.method <- match.arg(VarVC.method)
 	SSQ.method   <- match.arg(SSQ.method)
 	VarVC.method <- ifelse(SSQ.method == "sweep", "gb", VarVC.method)		# always use "gb", since A-matrices will not be computed	
@@ -6213,7 +6496,7 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 	fac  <- attr(tobj, "term.labels")
 	vars <- rownames(attr(tobj, "factors"))[-1]                             # remove response
 	Nvc  <- length(fac) + 1 
-	
+
 	if(!is.null(vars))
 	{
 		for(i in vars)                                                          # convert all nested factors as factor-objects
@@ -6258,6 +6541,17 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 	Data <- na.omit(Data[,vcol, drop=F])
 	Nobs <- N <- nrow(Data)
 	
+	allObsEqual <- FALSE
+	if(all(Data[,resp] == Data[1,resp]))										# no variance detectable?
+	{
+		allObsEqual <- TRUE
+		Data.org <- Data
+		Data[,resp] <- Data[,resp] + rnorm(nrow(Data))
+		
+		if(!quiet)
+			warning("All values of response variable ", paste0("'", resp, "'"), " are equal!")
+	}
+	
 	if(SSQ.method == "qf")
 		tmp.res <- getSSQqf(Data, tobj)										# determine ANOVA Type-1 sum of squares using the quadratic form approach									
 	else
@@ -6269,7 +6563,24 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 	aov.tab <- tmp.res$aov.tab												# basic ANOVA-table
 	DF <- aov.tab[,"DF"]
 	SS <- aov.tab[,"SS"]
+	
+	if(allObsEqual)
+	{
+		aov.tab[,c("SS", "MS")] <- 0
+		Data <- Data.org
+		SS[1:length(SS)] <- 0
+	}
+	
 	C <- getCmatrix(form, Data, aov.tab[,"DF"], "SS", MM=Lmat$Zre) 			# compute coefficient matrix C in ss = C * s
+
+	if(allObsEqual)															# prevent singlular C-matrix in case of all obs equal situations
+	{
+		ind <- which(upper.tri(C, TRUE))
+		ind <- ind[which(C[ind] %in% c(0, NaN))]
+		if(length(ind) > 0)
+			C[ind] <- 1
+	}
+
 	Ci  <- solve(C)
 	C2  <- apply(C, 2, function(x) x/DF)                                    # coefficient matrix for mean squares (MS)
 	Ci2 <- solve(C2)
@@ -6343,6 +6654,9 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 	
 	if(MME)
 		res <- solveMME(res)
+	
+	if(allObsEqual)
+		res$aov.tab[,"%Total"] <- 0	
 	
 	gc(verbose=FALSE)													# trigger garbage collection
 	return(res)
@@ -6572,11 +6886,13 @@ residuals.VCA <- function(object, type=c("conditional", "marginal"), mode=c("raw
 #' In each step the current total variance is estimated by subtracting the sum of all left-out VCs
 #' from the total variance of the initial VCA object. Doing this guarantees that the contribution to the total 
 #' variance which is due to left-out VCs is accounted for, i.e. it is estimated but not included/reported.
-#' The degrees of freedom (DFs) the emerging total variances of sub-sets are estimated using the Satterthwaite
+#' The degrees of freedom (DFs) of the emerging total variances of sub-sets are determined using the Satterthwaite
 #' approximation. This is achieved by extracting the corresponding sub-matrix from the coefficient matrix \eqn{C} of
 #' the 'VCA' object, the sub-vector of ANOVA mean squares, and the sub-vector of degrees of freedom and calling
 #' function \code{\link{SattDF}} method="total".
+#' 
 #' This step-wise procedure starts one-level above error (repeatability) and ends at the level of the upper-most VC.
+#' It can only be used on models fitted by ANOVA Type-1, i.e. by function \code{\link{anovaVCA}}.
 #' 
 #' @param obj			(VCA) object representing the complete analysis
 #' @param VarVC			(logical) TRUE = estimate complete variance-covariance matrix of variance components and include
@@ -6609,6 +6925,7 @@ residuals.VCA <- function(object, type=c("conditional", "marginal"), mode=c("raw
 stepwiseVCA <- function(obj, VarVC=FALSE, VarVC.method=c("scm", "gb"))
 {
 	stopifnot(obj$Type == "Random Model")					# only random models correspond to true VCA-analyses
+	stopifnot(obj$EstType == "ANOVA")
 	VarVC.method <- match.arg(VarVC.method)
 	VarVC.method <- ifelse(obj$SSQ.method == "sweep", "gb", VarVC.method)		# always use "gb", since A-matrices will not be computed	
 	tab <- obj$aov.tab
@@ -6635,6 +6952,7 @@ stepwiseVCA <- function(obj, VarVC=FALSE, VarVC.method=c("scm", "gb"))
 		ele$NegVCmsg <- obj$NegVCmsg
 		class(ele) <- "VCA"
 		ele$Type <- "Random Model"
+		ele$EstMethod <- obj$EstMethod 
 		ele$Mean <- obj$Mean
 		ele$Nobs <- obj$Nobs
 		ele$balanced <- obj$balanced

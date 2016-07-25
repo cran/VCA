@@ -288,3 +288,19 @@ TF016.anovaMM.error.chol2inv <- function()
 	fit <- anovaMM(value~ID+(Site), chol2invData)
 	checkEquals(fit$VCoriginal, c(-0.0237369, 1.35363935))
 }
+
+
+TF017.anovaMM.zeroVariance <- function()
+{
+	data(dataEP05A2_3)
+	dat1 <- dataEP05A2_3
+	dat1$y <- dat1[1,"y"]
+	dat1$cov <- rnorm(nrow(dat1),15,3)
+	
+	fit1 <- anovaMM(y~day+cov+day:(run), dat1)
+	checkEquals(as.numeric(fit1$aov.tab[,"VC"]), rep(0,3))
+	fit2 <- anovaMM(y~day/(run), dat1)
+	checkEquals(as.numeric(fit2$aov.tab[,"VC"]), rep(0,3))
+	fit3 <- anovaMM(y~(day)/(run), dat1)
+	checkEquals(as.numeric(fit3$aov.tab[,"VC"]), rep(0,4))
+}

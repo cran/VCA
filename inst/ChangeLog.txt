@@ -1,3 +1,30 @@
+Version 1.3.2
+-------------
+
+- functions 'anovaVCA', 'anovaMM', 'remlVCA', and 'remlMM' do not throw an error any more in case all values of the
+  response variable are equal (zero variance)
+- bug fixed in 'anovaMM' and 'remlMM' when terms in the model formula contained a dot random terms could not be identified,
+  now all model terms may contain dot and underscore but are not allowed to start with a dot character
+- fixed test functions in the RUnit testcase collection which were not properly configured and added some tests
+- in function 'varPlot', if type is not equal to 3, graphical parameter "mfrow" is not set any more to c(1,1) to avoid 
+  interference with 'layout'
+- fixed bug in function 'as.matrix.VCA' for models fitted via REML
+- added S3-method 'as.matrix.VCAinference' which accesses 'VCAinference'-objects and converts its content to a matrix
+  of point-estimates, one- and two-sided confidence intervals for variance components expressed as "VC", "SD" or "CV"
+- added standard S3 plot-method for 'VCA'-objects, allowing to call function 'varPlot' with all possible arguments on
+  a 'VCA' object
+- fixed bug in function 'test.fixef' when generating "complex" output for a constrained level or when only the degrees of
+  freedom were requested
+- fixed bug in function 'stepwiseVCA' leading to an error when printing the resulting object 
+- function 'lmerSummary' can now also be applied to models fitted directly by 'lmer' (lme4)
+- in function 'varPlot' it is now possible to use custom plotting-symbol backgrounds and size as done previously for 
+  plotting-symbols and their colors (see description of argument 'Points')
+- in function 'varPlot' it is now possible apply BG-coloring via argument 'BG' individually for the data-region and the table
+  below it, list-elements 'col.table' and 'col.bg' can be used to switch both on and off
+- fixed bug in 'varPlot' that vertical lines specified via 'VLine' were not correctly shown if 'VARtype="CV"'
+
+
+
 Version 1.3.1
 -------------
 
@@ -15,6 +42,7 @@ Version 1.3.1
 - data is now automatically ordered fixing a bug, that unordered data is sometimes reported as "unbalanced" 
   although it is balanced
 - message environment now created if not existing (e.g. when deleted after loading the package)
+
 
 Version 1.3
 ------------
@@ -36,7 +64,6 @@ Version 1.3
 - added functionality for handling lists of VCA-objects for functions 'fixef.VCA', 'lsmeans', 'ranef.VCA', 'residuals.VCA'
 - added implicit object-updating for VCA-objects in functions 'fixef.VCA', 'lsmeans', 'ranef.VCA', 'residuals.VCA', i.e.
   results of required intermediate computations are added to VCA-objects silently 
-
 
 
 Version 1.2.1

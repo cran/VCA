@@ -532,6 +532,17 @@ TF033.check.equality.HugeData <- function()
 
 
 
-
+TF034.anovaVCA.zeroVariance <- function()
+{
+	data(dataEP05A2_3)
+	dat1 <- dataEP05A2_3
+	dat1$y <- dat1[1,"y"]
+	dat1$cov <- rnorm(nrow(dat1),15,3)
+	
+	fit1 <- anovaVCA(y~day, dat1)
+	checkEquals(as.numeric(fit1$aov.tab[,"VC"]), rep(0,3))
+	fit2 <- anovaVCA(y~day/run, dat1)
+	checkEquals(as.numeric(fit2$aov.tab[,"VC"]), rep(0,4))
+}
 
 

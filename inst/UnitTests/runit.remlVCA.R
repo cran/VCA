@@ -50,34 +50,52 @@ TF001.remlVCA.exception <- function()
 ## check remlVCA against remlVCA with 4 significant digits
 TF002.remlVCA.EP05_A2_intermediate_precision.balanced <- function()
 {        
-	res1 <- remlVCA(y~day/run, Data=dataEP05A2_1)                                            # call function    
-	res0 <- anovaVCA(y~day/run, Data=dataEP05A2_1)
-	checkEquals(signif(as.numeric(res1$aov.tab[,"VC"]),4), signif(as.numeric(res0$aov.tab[,"VC"]),4))     
+	res11 <- remlVCA(y~day/run, Data=dataEP05A2_1)                                            # call function    
+	res01 <- anovaVCA(y~day/run, Data=dataEP05A2_1)
+	checkEquals(as.numeric(res11$aov.tab[,"VC"]), as.numeric(res01$aov.tab[,"VC"]), tolerance=1e-7)  
+	checkEquals(as.numeric(res11$aov.tab[c("total", "error"),"DF"]), as.numeric(res01$aov.tab[c("total", "error"),"DF"]), tolerance=1e-7)   
 	
-	res1 <- remlVCA(y~day/run, Data=dataEP05A2_2)                                            # call function    
-	res0 <- remlVCA(y~day/run, Data=dataEP05A2_2)
-	checkEquals(signif(as.numeric(res1$aov.tab[,"VC"]),4), signif(as.numeric(res0$aov.tab[,"VC"]),4))     
+	res12 <- remlVCA(y~day/run, Data=dataEP05A2_2)                                            # call function    
+	res02 <- anovaVCA(y~day/run, Data=dataEP05A2_2)
+	checkEquals(as.numeric(res12$aov.tab[,"VC"]), as.numeric(res02$aov.tab[,"VC"]), tolerance=1e-7)     
+	checkEquals(as.numeric(res12$aov.tab[c("total", "error"),"DF"]), as.numeric(res02$aov.tab[c("total", "error"),"DF"]), tolerance=1e-7) 
 	
-	res1 <- remlVCA(y~day/run, Data=dataEP05A2_3)                                            # call function    
-	res0 <- remlVCA(y~day/run, Data=dataEP05A2_3)
-	checkEquals(signif(as.numeric(res1$aov.tab[,"VC"]),4), signif(as.numeric(res0$aov.tab[,"VC"]),4))    
+	res13 <- remlVCA(y~day/run, Data=dataEP05A2_3)                                            # call function    
+	res03 <- anovaVCA(y~day/run, Data=dataEP05A2_3)
+	checkEquals(as.numeric(res13$aov.tab[,"VC"]), as.numeric(res03$aov.tab[,"VC"]), tolerance=1e-7)    
+	checkEquals(as.numeric(res13$aov.tab[c("total", "error"),"DF"]), as.numeric(res03$aov.tab[c("total", "error"),"DF"]), tolerance=1e-7) 
 }
 
-# unbalance
+# unbalanced case, check against SAS PROC MIXED REML-estimator
+# below, 'data3' corresponds to dataEP05A2_3
+#
+# data data3ub;
+# 	set data3;
+# 	Nobs = _N_;
+# 	if Nobs in (1,6, 7, 36, 61, 62, 63, 64, 65) then delete;
+# run;
+# 
+# proc mixed data=data3ub;
+# 	class day run;
+# 	model y =;
+# 	random day day*run;
+# 	ods output covparms=covparms;
+# run;
 
 TF003.remlVCA.EP05_A2_intermediate_precision.unbalanced <- function()
 { 
 	res <- remlVCA(y~day/run, Data=dataEP05A2_1[-c(11, 12, 17, 37, 45, 56, 57, 68),])              
-	checkEquals(round(as.numeric(res$aov.tab[,"VC"]),3), c(3.257, 0.284, 0.906, 2.068))     
+	checkEquals(as.numeric(res$aov.tab[-1,"VC"]), c(0.28354702238093, 0.90581093706202, 2.06774293438701), tolerance=3e-4)     
 	
-#	res <- remlVCA(y~day/run, Data=dataEP05A2_2[-c(2, 12, 22, 23, 24, 55, 56, 71),])              
-#	checkEquals(round(as.numeric(res$aov.tab[,"VC"]),6), c(8.81105, 1.425126, 3.478988, 3.906936 ))  
-#	
-#	res <- remlVCA(y~day/run, Data=dataEP05A2_3[-c(1,6,7,36,61:65),])              
-#	checkEquals(round(as.numeric(res$aov.tab[,"VC"]),6), c( 33.701053, 10.384121, 7.937951, 15.378981 )) 
+	res <- remlVCA(y~day/run, Data=dataEP05A2_2[-c(2, 12, 22, 23, 24, 55, 56, 71),])              
+	checkEquals(as.numeric(res$aov.tab[-1,"VC"]), c(1.6266257270871, 3.24912440247053, 3.85555348892268 ), tolerance=3e-4)  
+	
+	res <- remlVCA(y~day/run, Data=dataEP05A2_3[-c(1,6,7,36,61:65),])              
+	checkEquals(as.numeric(res$aov.tab[-1,"VC"]), c(10.8147804686742, 8.1948752793538, 15.1256464181605), tolerance=3e-4) 
 }
 
-TF007.remlVCA.EP05_A3_Reproducibility.balanced <- function()
+
+TF004.remlVCA.EP05_A3_Reproducibility.balanced <- function()
 {      
 	res <- remlVCA(y~site/day, Data=dataEP05A3_MS_1)
 	checkEquals(round(as.numeric(res$aov.tab[,"VC"]), 6), c( 3.635232, 1.017401, 0.345882, 2.271949))
@@ -92,7 +110,7 @@ TF007.remlVCA.EP05_A3_Reproducibility.balanced <- function()
 ## RS0003 21 replications, testing only the residual error component
 ## WRI = within run imprecision
 
-TF009.remlVCA.WRI <- function()
+TF005.remlVCA.WRI <- function()
 { 
 	res <- remlVCA(y~1, Data=dataRS0003_1)
 	checkEquals( round(as.numeric(res$aov.tab[2,c("SS", "MS")]),5), c(22.44452, 1.12223) )
@@ -107,7 +125,7 @@ TF009.remlVCA.WRI <- function()
 ## RS0005 - Confirmation of internal data by external labs - balanced
 ## BDI = between day imprecision
 
-TF010.remlVCA.BDI.external_labs.balanced <- function()
+TF006.remlVCA.BDI.external_labs.balanced <- function()
 {     
 	res <- remlVCA(y~day, Data=dataRS0005_1)
 	checkEquals( round(as.numeric(res$aov.tab[,"VC"]), 6), c(5.193341, 1.818128, 3.375212))
@@ -129,7 +147,7 @@ TF010.remlVCA.BDI.external_labs.balanced <- function()
 #       random lot device lot*device*day lot*device*day*run;
 #   run;
 
-TF014.remlVCA.crossed_nested.balanced <- function()
+TF007.remlVCA.crossed_nested.balanced <- function()
 {
 	data(VCAdata1)
 	sample1 <- VCAdata1[which(VCAdata1$sample==1),]
@@ -152,7 +170,7 @@ TF014.remlVCA.crossed_nested.balanced <- function()
 
 # use subset "sample_8" of VCAdata1
 
-TF016.remlVCA.crossed_nested.balanced <- function()
+TF008.remlVCA.crossed_nested.balanced <- function()
 {
 	data(VCAdata1)
 	sample8 <- VCAdata1[which(VCAdata1$sample==8),]
@@ -170,6 +188,19 @@ TF016.remlVCA.crossed_nested.balanced <- function()
 	checkEquals(round(res8$aov.tab[5, "VC"], 4), 2.0302)
 	checkEquals(round(res8$aov.tab[6, "VC"], 4), 1.2219)
 	
+}
+
+TF009.remlVCA.zeroVariance <- function()
+{
+	data(dataEP05A2_3)
+	dat1 <- dataEP05A2_3
+	dat1$y <- dat1[1,"y"]
+	dat1$cov <- rnorm(nrow(dat1),15,3)
+	
+	fit1 <- remlVCA(y~day, dat1)
+	checkEquals(as.numeric(fit1$aov.tab[,"VC"]), rep(0,3))
+	fit2 <- remlVCA(y~day/run, dat1)
+	checkEquals(as.numeric(fit2$aov.tab[,"VC"]), rep(0,4))
 }
 
 
