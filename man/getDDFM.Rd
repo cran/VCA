@@ -2,7 +2,7 @@
 % Please edit documentation in R/vca.R
 \name{getDDFM}
 \alias{getDDFM}
-\title{Degrees of Freedom for Testing Linear Contrast of Fixed Effects and Least Square Means.}
+\title{Degrees of Freedom for Testing Linear Contrasts of Fixed Effects and Least Square Means.}
 \usage{
 getDDFM(obj, L, ddfm = c("contain", "residual", "satterthwaite"),
   tol = 1e-12, method.grad = "simple", opt = TRUE, items = NULL)
@@ -40,10 +40,9 @@ PROC MIXED for details on this topic.
 The implementation of the Satterthwaite approximation was inspired by the code of function 
 'calcSatterth' of R-package 'lmerTest'.
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \seealso{
 \code{\link{test.fixef}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

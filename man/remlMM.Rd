@@ -4,7 +4,8 @@
 \alias{remlMM}
 \title{Fit Linear Mixed Models via REML.}
 \usage{
-remlMM(form, Data, by = NULL, VarVC = TRUE, cov = TRUE, quiet = FALSE)
+remlMM(form, Data, by = NULL, VarVC = TRUE, cov = TRUE, quiet = FALSE,
+  order.data = TRUE)
 }
 \arguments{
 \item{form}{(formula) specifying the model to be fit, a response variable left of the '~' is mandatory, random terms
@@ -23,7 +24,10 @@ no confidence intervals for VC will be available}
 \item{cov}{(logical) TRUE = in case of non-zero covariances a block diagonal matrix will be constructed,
 FALSE = a diagonal matrix with all off-diagonal element being equal to zero will be contructed}
 
-\item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
+\item{quiet}{(logical) TRUE = will suppress any messages or warning, which will be issued otherwise}
+
+\item{order.data}{(logical) TRUE = class-variables will be ordered increasingly, FALSE = ordering of class-variables
+will remain as is}
 }
 \description{
 Function fits Linear Mixed Models (LMM) using Restricted Maximum Likelihood (REML).
@@ -102,7 +106,7 @@ Ortho$Subject <- factor(as.character(Ortho$Subject))
 fit.remlMM1 <- remlMM(distance~Sex*age2+(Subject)*age2, Ortho)
 
 # use simplified formula avoiding unnecessary terms
-fit.remlMM2 <- remlMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho)
+fit.remlMM2 <- remlMM(distance~Sex+age2+Sex:age2+(Subject)+age2:(Subject), Ortho)
 
 # and exclude intercept
 fit.remlMM3 <- remlMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2-1, Ortho)
@@ -125,12 +129,11 @@ cmat
 test.fixef(fit.remlMM3, L=cmat)
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \seealso{
 \code{\link{remlVCA}}, \code{\link{VCAinference}}, \code{\link{ranef.VCA}}, \code{\link{residuals.VCA}},
 			\code{\link{anovaVCA}}, \code{\link{anovaMM}}, \code{\link{plotRandVar}},  \code{\link{test.fixef}},  
 			\code{\link{test.lsmeans}}, \code{\link{lmer}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

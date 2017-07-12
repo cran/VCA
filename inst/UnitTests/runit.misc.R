@@ -52,6 +52,8 @@ TF001.CovarianceMatrix <- function()
 # test marginal residuals against SAS PROC MIXED implementation
 #
 # Here the Orthodont-dataset from package 'nlme' is used (if available)
+#
+# edit (schueta 2017-01-23): newly introduced arguement 'order.data' needed to be set to FALSE
 
 TF002.marginal_residuals <- function()
 {
@@ -59,7 +61,7 @@ TF002.marginal_residuals <- function()
 	Ortho <- Orthodont
 	Ortho$age2 <- Ortho$age - 11
 	
-	fit.R <- anovaMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho)
+	fit.R <- anovaMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho, order.data=FALSE)
 	sas.raw  <- c(3.384375,0.815625,3.246875,3.678125,-1.115625,-1.684375,-2.753125,-0.821875,0.384375,-1.684375,-1.753125,0.178125,2.884375,3.315625,0.746875,-0.321875,-2.615625,-0.684375,-3.253125,-1.321875,1.884375,1.315625,1.246875,1.178125,-0.615625,-2.184375,-1.253125,-0.821875,1.384375,-2.684375,-1.253125,-1.821875,0.384375,-3.684375,5.246875,-1.321875,4.884375,3.815625,5.246875,4.178125,0.384375,-1.184375,-2.253125,-2.321875,-1.115625,-0.684375,-1.753125,0.678125,-5.615625,0.315625,0.246875,2.178125,-0.115625,1.315625,-0.253125,-1.321875,0.384375,0.315625,0.246875,2.678125,-0.615625,-2.684375,-2.253125,-2.321875,-0.209090909,-2.168181818,-1.627272727,-1.086363636,-0.209090909,-0.668181818,0.8727272727,1.4136363636,-0.709090909,1.8318181818,1.3727272727,1.9136363636,2.2909090909,2.3318181818,1.8727272727,2.4136363636,0.2909090909,0.8318181818,-0.627272727,-0.586363636,-1.209090909,-1.168181818,-2.127272727,-1.586363636,0.2909090909,0.3318181818,-0.127272727,0.9136363636,1.7909090909,0.8318181818,0.3727272727,-0.086363636,-1.209090909,-1.168181818,-1.127272727,-2.586363636,-4.709090909,-3.168181818,-4.127272727,-4.586363636,3.2909090909,2.8318181818,4.8727272727,3.9136363636)
 	sas.stu <- c(1.5050944191,0.37015662,1.473535357,1.6357304998,-0.496139158,-0.764423058,-1.249455871,-0.365503077,0.1709387013,-0.764423058,-0.795623999,0.0792154957,1.2827351328,1.5047362981,0.3389556788,-0.143143791,-1.163217016,-0.310591187,-1.476371806,-0.587862363,0.8380165602,0.5970725556,0.5658716145,0.5239340683,-0.273779871,-0.991338994,-0.568708064,-0.365503077,0.6156572739,-1.218254929,-0.568708064,-0.810221649,0.1709387013,-1.672086801,2.3811990995,-0.587862363,2.1721722779,1.7316522338,2.3811990995,1.858089786,0.1709387013,-0.537507123,-1.022539935,-1.032580936,-0.496139158,-0.310591187,-0.795623999,0.301574782,-2.497372734,0.1432406844,0.1120397432,0.9686526409,-0.051420585,0.5970725556,-0.114876192,-0.587862363,0.1709387013,0.1432406844,0.1120397432,1.1910119272,-0.273779871,-1.218254929,-1.022539935,-1.032580936,-0.094278468,-0.99540562,-0.747075916,-0.489838127,-0.094278468,-0.306760222,0.400666413,0.6374044247,-0.319726978,0.8409821065,0.6302148788,0.8628529351,1.0329640838,1.0705305723,0.8597633446,1.0883014454,0.1311700424,0.3818851749,-0.287978984,-0.264389617,-0.545175489,-0.536308688,-0.976624382,-0.715286637,0.1311700424,0.1523367091,-0.058430519,0.4119559144,0.8075155734,0.3818851749,0.1711179472,-0.038941106,-0.545175489,-0.536308688,-0.51752745,-1.166183658,-2.123315061,-1.454502551,-1.894818245,-2.067977699,1.4838611045,1.3000790381,2.2370541394,1.7646469765)
 	sas.pea <- c(1.4619609019,0.3612064332,1.4379060694,1.5888531685,-0.48192063,-0.745939722,-1.219244704,-0.355028363,0.1660398808,-0.745939722,-0.776386242,0.0769453106,1.245974065,1.4683525887,0.3307599139,-0.139041526,-1.12988114,-0.30308126,-1.440673935,-0.5710152,0.8140003914,0.5826356643,0.552189145,0.5089189843,-0.265933793,-0.967368953,-0.55495701,-0.355028363,0.5980135545,-1.188798184,-0.55495701,-0.787002037,0.1660398808,-1.631656647,2.3236229938,-0.5710152,2.1099214124,1.6897818198,2.3236229938,1.8048400054,0.1660398808,-0.524510491,-0.997815473,-1.002988874,-0.48192063,-0.30308126,-0.776386242,0.2929321475,-2.425802161,0.1397772021,0.1093306829,0.940892658,-0.049946956,0.5826356643,-0.112098548,-0.5710152,0.1660398808,0.1397772021,0.1093306829,1.1568794948,-0.265933793,-1.188798184,-0.997815473,-1.002988874,-0.090321768,-0.960197666,-0.720651498,-0.469280491,-0.090321768,-0.295909972,0.3864946579,0.6106536933,-0.306308605,0.811236183,0.607923889,0.8266405301,0.9896124161,1.0326654141,0.8293531201,1.0426273669,0.1256650687,0.3683777208,-0.277793035,-0.253293654,-0.522295442,-0.517339204,-0.942080729,-0.685267328,0.1256650687,0.1469484897,-0.056363804,0.3946668564,0.7736255792,0.3683777208,0.1650654268,-0.037306817,-0.522295442,-0.517339204,-0.499222266,-1.117241001,-2.0342033,-1.403056128,-1.827797653,-1.981188349,1.4215860898,1.2540946452,2.1579285066,1.6905878775)
@@ -79,7 +81,7 @@ TF003.conditional_residuals <- function()
 	Ortho <- Orthodont
 	Ortho$age2 <- Ortho$age - 11
 	Ortho$Subject <- factor(as.character(Ortho$Subject))
-	fit.R <- anovaMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho)
+	fit.R <- anovaMM(distance~Sex+Sex:age2+(Subject)+(Subject):age2, Ortho, order.data=FALSE)
 	sas.raw  <- c(1.0554503692,-1.604344233,0.7358611644,1.0760665621,0.2894545536,-0.274141978,-1.33773851,0.5986649577,0.9931804233,-1.056673527,-1.106527478,0.843618572,0.9136978046,1.6799232283,-0.553851348,-1.287625924,-0.816278005,1.0788977187,-1.525926558,0.3692491659,0.5475924658,0.0389662598,0.0303400538,0.0217138478,0.4776426009,-1.099696512,-0.177035626,0.2456252606,2.0163981647,-1.827317063,-0.171032292,-0.51474752,0.4030450154,-3.770492168,5.0559706477,-1.617566536,0.8392188753,-0.210635075,1.2395109744,0.1896570239,1.1967876368,-0.119442428,-0.935672494,-0.751902559,-0.300680854,0.0120393803,-1.175240385,1.1374798497,-4.01735371,1.2731484286,0.5636505667,1.8541527049,-0.246387468,1.3274418148,-0.098728902,-1.024899619,-0.138123401,-0.394116074,-0.650108746,1.5938985808,0.9363555284,-1.00355777,-0.443471069,-0.383384367,0.8329387278,-1.068683204,-0.470305136,0.1280729319,-0.257137352,-0.892383169,0.4723710135,0.8371251962,-1.380761257,0.9565077625,0.2937767823,0.6310458021,0.3127531847,0.3561609268,-0.100431331,0.4429764109,0.142397156,0.79574555,-0.550906056,-0.397557662,0.0545559443,0.1529340124,-0.74868792,-0.150309852,0.0367239257,0.0389039233,-0.458916079,0.5432639185,0.8950900173,0.1034087373,-0.188272543,-0.479953823,-0.027899545,0.1254488494,0.2787972434,-1.067854363,-1.056621665,0.5005286586,-0.442321018,-0.885170694,0.1479608631,-0.418572047,1.5148950435,0.4483621337)
 	sas.stu <- c(1.0130072422,-1.40421926,0.6440702679,1.0327943903,0.277814635,-0.239945666,-1.170869781,0.5745906729,0.9532413755,-0.924864682,-0.968499879,0.8096938975,0.876955014,1.4703705752,-0.484764251,-1.235846255,-0.783452784,0.9443166405,-1.33558336,0.3544004438,0.5255719736,0.034105631,0.026555453,0.0208406626,0.4584350227,-0.962521005,-0.154952304,0.2357478619,1.9353121698,-1.599378588,-0.149697822,-0.494047831,0.3868372511,-3.300163153,4.4252917896,-1.552518871,0.8054711271,-0.184360578,1.0848950914,0.1820302919,1.148660874,-0.104543249,-0.818957247,-0.721666086,-0.288589489,0.010537595,-1.028641578,1.0917380478,-3.855802718,1.114336629,0.4933411206,1.7795911329,-0.236479419,1.1618574896,-0.086413516,-0.983685038,-0.132569005,-0.344954262,-0.569014557,1.5298026822,0.8987015962,-0.878374554,-0.388152744,-0.367967222,0.8058885013,-0.936507499,-0.412137372,0.1239136802,-0.248786649,-0.782012412,0.4139477394,0.8099390114,-1.335920138,0.8382060174,0.2574422042,0.6105521795,0.3025963217,0.3121106213,-0.088009893,0.4285904641,0.1377727158,0.6973270207,-0.482769497,-0.384646719,0.0527842046,0.1340189954,-0.656089521,-0.145428441,0.0355312923,0.0340922509,-0.402156923,0.5256210697,0.8660213873,0.0906190511,-0.164986824,-0.464367011,-0.026993489,0.1099332223,0.2443153482,-1.033175098,-1.02230719,0.4386228215,-0.387614354,-0.856424201,0.1431557379,-0.366802677,1.3275314545,0.433801282)
 	sas.pea <- c(0.805662962,-1.224653252,0.561709108,0.8214000384,0.2209509986,-0.209262363,-1.021143582,0.4569823435,0.7581300884,-0.806596642,-0.844651943,0.6439641857,0.6974581668,1.2823453984,-0.422774515,-0.982890855,-0.623094154,0.8235611613,-1.16479424,0.281861076,0.4179968863,0.0297443378,0.0231596466,0.0165749555,0.3646016562,-0.839437623,-0.135137616,0.1874945339,1.5391887345,-1.394856377,-0.130555057,-0.392925166,0.3076586549,-2.878151335,3.8594029686,-1.234746308,0.6406057401,-0.160785276,0.9461629957,0.1447719799,0.9135507463,-0.091174671,-0.714232232,-0.573954077,-0.229520435,0.009190089,-0.897102959,0.8682789942,-3.066589566,0.9718396658,0.4302546083,1.4153409804,-0.188076354,1.0132837466,-0.075363297,-0.782342484,-0.105434525,-0.300842875,-0.496251225,1.2166797125,0.7147536166,-0.766051488,-0.338517305,-0.29265098,0.6358118792,-0.815764058,-0.359000707,0.097762643,-0.196282124,-0.681187944,0.3605776652,0.6390075601,-1.053984381,0.7301365366,0.2242503101,0.4816997984,0.2387356758,0.2718703556,-0.076662822,0.3381397153,0.1086968349,0.6074209982,-0.420526268,-0.303469962,0.0416445008,0.1167399937,-0.571500228,-0.114736878,0.028032684,0.0296967541,-0.350307033,0.4146927516,0.6832541782,0.0789355824,-0.143715156,-0.366365894,-0.021296719,0.0957595871,0.2128158931,-0.815131373,-0.806557054,0.3820714014,-0.33763943,-0.675682405,0.1129438112,-0.319510993,1.1563734909,0.3422508298)
@@ -199,12 +201,12 @@ TF008.getL.complex_contrasts <- function()
 	dat1 <- VCAdata1[VCAdata1$sample==1,]
 	fit <- anovaMM(y~(lot+device)/day/run, dat1)
 	L <- getL(fit, c("lot1:device1:day1-lot1:device1:day2", "lot2:device1:day2-lot3:device1:day4"))
-	tmp <- rep(0,196)
-	tmp[c(8,41)] <- c(1,-1)
-	checkEquals(as.numeric(L[1,]), tmp)
-	tmp <- rep(0,196)
-	tmp[c(42,55)] <- c(1,-1)
-	checkEquals(as.numeric(L[2,]), tmp)
+	L0 <- matrix(0, nrow=2, ncol=ncol(L))
+	colnames(L0) <- colnames(L)
+	rownames(L0) <- rownames(L)
+	L0[1,c("lot1:device1:day1", "lot1:device1:day2")] <- c(1, -1)
+	L0[2,c("lot2:device1:day2", "lot3:device1:day4")] <- c(1, -1)
+	checkEquals(L, L0)
 }
 
 TF009.getL.complex_contrasts <- function()
@@ -1077,19 +1079,19 @@ TF048.as.matrix.VCAinference.REML <- function()
 	checkEquals(as.numeric(inf.reml$ConfInt$VC$OneSided[,"LCL"]), as.numeric(VC.mat[,"One-Sided LCL"]))
 	checkEquals(as.numeric(inf.reml$ConfInt$VC$OneSided[,"UCL"]), as.numeric(VC.mat[,"One-Sided UCL"]))
 	checkEquals(as.numeric(inf.reml$ConfInt$VC$TwoSided[,"LCL"]), as.numeric(VC.mat[,"CI LCL"]))
-	checkEquals(as.numeric(inf.reml$ConfInt$VC$TwoSided[,"LCL"]), as.numeric(VC.mat[,"CI LCL"]))
+	checkEquals(as.numeric(inf.reml$ConfInt$VC$TwoSided[,"UCL"]), as.numeric(VC.mat[,"CI UCL"]))
 	
 	checkEquals(as.numeric(fit.reml$aov.tab[,"SD"]), as.numeric(SD.mat[,"Estimate"]))
 	checkEquals(as.numeric(inf.reml$ConfInt$SD$OneSided[,"LCL"]), as.numeric(SD.mat[,"One-Sided LCL"]))
 	checkEquals(as.numeric(inf.reml$ConfInt$SD$OneSided[,"UCL"]), as.numeric(SD.mat[,"One-Sided UCL"]))
 	checkEquals(as.numeric(inf.reml$ConfInt$SD$TwoSided[,"LCL"]), as.numeric(SD.mat[,"CI LCL"]))
-	checkEquals(as.numeric(inf.reml$ConfInt$SD$TwoSided[,"LCL"]), as.numeric(SD.mat[,"CI LCL"]))
+	checkEquals(as.numeric(inf.reml$ConfInt$SD$TwoSided[,"UCL"]), as.numeric(SD.mat[,"CI UCL"]))
 	
 	checkEquals(as.numeric(fit.reml$aov.tab[,"CV[%]"]), as.numeric(CV.mat[,"Estimate"]))
 	checkEquals(as.numeric(inf.reml$ConfInt$CV$OneSided[,"LCL"]), as.numeric(CV.mat[,"One-Sided LCL"]))
 	checkEquals(as.numeric(inf.reml$ConfInt$CV$OneSided[,"UCL"]), as.numeric(CV.mat[,"One-Sided UCL"]))
 	checkEquals(as.numeric(inf.reml$ConfInt$CV$TwoSided[,"LCL"]), as.numeric(CV.mat[,"CI LCL"]))
-	checkEquals(as.numeric(inf.reml$ConfInt$CV$TwoSided[,"LCL"]), as.numeric(CV.mat[,"CI LCL"]))
+	checkEquals(as.numeric(inf.reml$ConfInt$CV$TwoSided[,"UCL"]), as.numeric(CV.mat[,"CI UCL"]))
 	
 	# check list of matrices
 	
@@ -1129,7 +1131,7 @@ TF049.as.matrix.VCAinference.ANOVA <- function()
 	checkEquals(as.numeric(inf.anova$ConfInt$CV$TwoSided[,"LCL"]), as.numeric(CV.mat[,"CI LCL"]))
 	
 	# check for VarVC=TRUE
-
+	
 	inf.anova <- VCAinference(fit.anova, VarVC=TRUE)			# there should be many NAs indicating missing values
 	VC.mat <- as.matrix(inf.anova, what="VC", digits=12)
 	SD.mat <- as.matrix(inf.anova, what="SD", digits=12)
@@ -1161,7 +1163,7 @@ TF050.lmerSummary <- function()
 	data(VCAdata1)
 	fit0 <- remlVCA(y~(device+lot)/day/run, subset(VCAdata1, sample==5))
 	fit1 <- lme4:::lmer(y~(1|device)+(1|lot)+(1|device:lot:day)+(1|device:lot:day:run),
-	             		subset(VCAdata1, sample==5))
+			subset(VCAdata1, sample==5))
 	sum1 <- lmerSummary(fit1, tab.only=TRUE)
 	sum1 <- sum1[rownames(fit0$aov.tab),]
 	checkEquals(as.numeric(fit0$aov.tab[,"VC"]), as.numeric(sum1[,"VC"]), tolerance=1e-5)
@@ -1169,3 +1171,731 @@ TF050.lmerSummary <- function()
 	checkEquals(as.numeric(fit0$aov.tab[,"SD"]), as.numeric(sum1[,"SD"]), tolerance=1e-6)
 	checkEquals(as.numeric(fit0$aov.tab[,"CV[%]"]), as.numeric(sum1[,"CV[%]"]), tolerance=1e-6)
 }
+
+
+TF051.Scale.reScale.anovaVCA <- function()
+{
+	data(VCAdata1)
+	
+	scaled.fits 	<- Scale("anovaVCA", y~(device+lot)/day/run, VCAdata1, by="sample")
+	reference.fits	<- anovaVCA(y~(device+lot)/day/run, VCAdata1, by="sample")
+	scaled.infs		<- VCAinference(scaled.fits, VarVC=TRUE)
+	reference.infs	<- VCAinference(reference.fits, VarVC=TRUE)
+	rescaled.infs	<- reScale(scaled.infs)
+	
+	for(i in 1:length(scaled.infs))
+	{
+		scl <- rescaled.infs[[i]]
+		ref <- reference.infs[[i]]
+		
+		sfac <- 1e12/scl$VCAobj$scale				# tolerance depending on scaling-factor, i.e. much scaling reduces required accuracy due to less precise reference results that can be generated
+		tol  <- 1/sfac
+		
+		checkEquals(ref$VCAobj$aov.tab[,"VC"], scl$VCAobj$aov.tab[,"VC"], tolerance=tol)
+		checkEquals(diag(ref$vcovVC), diag(scl$vcovVC), tolerance=tol)
+	}
+}
+
+#TF052.Scale.reScale.anovaVCA <- function()
+#{
+#	data(VCAdata1)
+#	
+#	scaled.fits 	<- Scale("anovaVCA", y~(device+lot)/day/run, VCAdata1, by="sample")
+#	reference.fits	<- anovaVCA(y~(device+lot)/day/run, VCAdata1, by="sample")
+#	scaled.infs		<- VCAinference(scaled.fits, VarVC=TRUE)
+#	reference.infs	<- VCAinference(reference.fits, VarVC=TRUE)
+#	rescaled.infs	<- reScale(scaled.infs)
+#	
+#	for(i in 1:length(scaled.infs))
+#	{
+#		scl <- rescaled.infs[[i]]
+#		ref <- reference.infs[[i]]
+#		
+#		tol <- 1e-10
+#		
+#		checkEquals(ref$VCAobj$aov.tab[,"SD"], scl$VCAobj$aov.tab[,"SD"], tolerance=tol)
+#		checkEquals(diag(ref$vcovVC), diag(scl$vcovVC), tolerance=tol)
+#	}
+#}
+
+TF052.Scale.reScale.anovaMM <- function()
+{
+	data(VCAdata1)
+	
+	scaled.fits 	<- Scale("anovaMM", y~((device)+(lot))/(day)/(run), VCAdata1, by="sample")
+	reference.fits	<- anovaMM( y~((device)+(lot))/(day)/(run), VCAdata1, by="sample")
+	scaled.infs		<- VCAinference(scaled.fits, VarVC=TRUE)
+	reference.infs	<- VCAinference(reference.fits, VarVC=TRUE)
+	rescaled.infs	<- reScale(scaled.infs)
+	
+	for(i in 1:length(scaled.infs))
+	{
+		scl <- rescaled.infs[[i]]
+		ref <- reference.infs[[i]]
+		
+		tol <- 1e-10
+		
+		checkEquals(ref$VCAobj$aov.tab[,"SD"], scl$VCAobj$aov.tab[,"SD"], tolerance=tol)
+		checkEquals(diag(ref$vcovVC), diag(scl$vcovVC), tolerance=tol)
+	}
+}
+
+TF053.Scale.reScale.remlVCA <- function()
+{
+	data(VCAdata1)
+	
+	scaled.fits 	<- Scale("remlVCA", y~(device+lot)/day/run, VCAdata1, by="sample")
+	reference.fits	<- remlVCA(y~(device+lot)/day/run, VCAdata1, by="sample")
+	scaled.infs		<- VCAinference(scaled.fits, VarVC=TRUE)
+	reference.infs	<- VCAinference(reference.fits, VarVC=TRUE)
+	rescaled.infs	<- reScale(scaled.infs)
+	
+	for(i in 1:length(scaled.infs))
+	{
+		scl <- rescaled.infs[[i]]
+		ref <- reference.infs[[i]]
+		
+		tol <- 1e-5
+		
+		checkEquals(ref$VCAobj$aov.tab[,"SD"], scl$VCAobj$aov.tab[,"SD"], tolerance=tol)
+		checkEquals(diag(ref$vcovVC), diag(scl$vcovVC), tolerance=tol)
+	}
+}
+
+
+TF054.Scale.reScale.remlMM <- function()
+{
+	data(VCAdata1)
+	
+	scaled.fits 	<- Scale("remlMM",  y~((device)+(lot))/(day)/(run), VCAdata1, by="sample")
+	reference.fits	<- remlMM( y~((device)+(lot))/(day)/(run), VCAdata1, by="sample")
+	scaled.infs		<- VCAinference(scaled.fits, VarVC=TRUE)
+	reference.infs	<- VCAinference(reference.fits, VarVC=TRUE)
+	rescaled.infs	<- reScale(scaled.infs)
+	
+	for(i in 1:length(scaled.infs))
+	{
+		scl <- rescaled.infs[[i]]
+		ref <- reference.infs[[i]]
+		
+		tol <- 1e-5
+		
+		checkEquals(ref$VCAobj$aov.tab[,"SD"], scl$VCAobj$aov.tab[,"SD"], tolerance=tol)
+		checkEquals(diag(ref$vcovVC), diag(scl$vcovVC), tolerance=tol)
+	}
+}
+
+# ensure that fitVCA gives same results as the functions it calls
+
+TF055.fitVCA.anovaVCA.remlVCA <- function()
+{
+	data(VCAdata1)
+	sgnf <- 5				# number of significant digits, 
+	for(i in 1:10)			# over samples
+	{
+		tmpData	 	<- subset(VCAdata1, sample==i)
+		fit0.anova 	<- anovaVCA(y~(device+lot)/day/run, tmpData)
+		fit0.reml 	<- remlVCA( y~(device+lot)/day/run, tmpData)
+		fit1.anova 	<- fitVCA(  y~(device+lot)/day/run, tmpData, method="anova", scale=(i%%2==0))		# alternate whether to scale data or not
+		fit1.reml	<- fitVCA(  y~(device+lot)/day/run, tmpData, method="reml", scale=(i%%2!=0))
+		cat("\nsample",i,":\n")
+		print(checkEquals(round(fit0.anova$aov.tab[,"VC"], sgnf), round(fit1.anova$aov.tab[,"VC"], sgnf)))
+		print(checkEquals(round(fit0.reml$aov.tab[ ,"VC"], sgnf), round(fit1.reml$aov.tab[, "VC"], sgnf)))
+	}
+}
+
+
+TF056.orderData.remlVCA <- function()
+{	
+	data(MLrepro)
+	
+	MLrepro.ord <- with(MLrepro, MLrepro[order(Lab, Lot, Day, Run),]) # manually order factors 
+	
+	opt.new <- options(scipen=12)
+	
+	M1.ref	<- remlVCA(Result ~ (Lab + Lot)/Day/Run, MLrepro.ord, VarVC = TRUE)	
+	M1	   	<- remlVCA(Result ~ (Lab + Lot)/Day/Run, MLrepro, VarVC = TRUE)
+	
+	checkEquals(M1$aov.tab, M1.ref$aov.tab)
+	
+	options(opt.new)	
+}
+
+TF057.orderData.remlMM <- function()
+{	
+	data(MLrepro)
+	
+	MLrepro.ord <- with(MLrepro, MLrepro[order(Lab, Lot, Day, Run),]) # manually order factors 
+	
+	opt.new <- options(scipen=12)
+	
+	M1.ref	<- remlMM(Result ~ ((Lab) + (Lot))/(Day)/(Run), MLrepro.ord, VarVC = TRUE, order.data = FALSE)	
+	M1	   	<- remlMM(Result ~ ((Lab) + (Lot))/(Day)/(Run), MLrepro, VarVC = TRUE, order.data = TRUE)
+	
+	checkEquals(M1$aov.tab, M1.ref$aov.tab)
+	
+	options(opt.new)	
+}
+
+TF058.predict.anovaMM <- function()
+{
+	# fit LMM with fixed lot and device effects and test for lot-differences
+	data(VCAdata1)
+	VCAdata1_sample5 <- subset(VCAdata1, sample==5)
+	
+	fitS5 <- fitLMM(y~(device+lot)/(day)/(run), VCAdata1_sample5, "anova")
+	
+	# fitted values including fixed and random effects
+	pred <- predict(fitS5)
+	
+	# SAS 9.4 reference
+	## proc mixed data=VCAdata1_sample5;
+	## class device lot day run;
+	## model y=device lot/ s outp=outp;
+	## random device*lot*day device*lot*day*run;
+	## run;
+	
+	SASref <- c(17.899050479, 17.899050479, 18.019161777, 18.019161777, 17.851799074, 
+			17.851799074, 17.844764076, 17.844764076, 16.814900319, 16.814900319, 
+			18.099103148, 18.099103148, 18.323024006, 18.323024006, 18.402690956, 
+			18.402690956, 18.02856588, 18.02856588, 17.414336609, 17.414336609, 
+			18.01615201, 18.01615201, 18.150495477, 18.150495477, 17.810710437, 
+			17.810710437, 17.541187839, 17.541187839, 17.891970672, 17.891970672, 
+			17.477222676, 17.477222676, 16.936743521, 16.936743521, 17.009863088, 
+			17.009863088, 16.996838687, 16.996838687, 17.742573591, 17.742573591, 
+			17.181168314, 17.181168314, 17.913059433, 17.913059433, 17.886696332, 
+			17.886696332, 17.920933794, 17.920933794, 17.453001574, 17.453001574, 
+			17.908328271, 17.908328271, 17.168513101, 17.168513101, 17.208107861, 
+			17.208107861, 18.350257975, 18.350257975, 18.454610947, 18.454610947, 
+			18.05353796, 18.05353796, 18.148658917, 18.148658917, 17.782646776, 
+			17.782646776, 18.191321439, 18.191321439, 17.747847363, 17.747847363, 
+			18.160575146, 18.160575146, 17.854959068, 17.854959068, 17.94836637, 
+			17.94836637, 17.778571123, 17.778571123, 17.981690354, 17.981690354, 
+			17.721834759, 17.721834759, 18.210214242, 18.210214242, 17.426262307, 
+			17.426262307, 17.516597821, 17.516597821, 17.995705373, 17.995705373, 
+			17.839060278, 17.839060278, 17.870866129, 17.870866129, 17.455708536, 
+			17.455708536, 17.484376436, 17.484376436, 17.633759632, 17.633759632, 
+			18.059467054, 18.059467054, 18.109651477, 18.109651477, 17.763661497, 
+			17.763661497, 17.678617607, 17.678617607, 17.649497267, 17.649497267, 
+			17.671977329, 17.671977329, 16.844471453, 16.844471453, 16.304322063, 
+			16.304322063, 17.155502328, 17.155502328, 16.959623965, 16.959623965, 
+			17.248848449, 17.248848449, 17.203171369, 17.203171369, 16.377849768, 
+			16.377849768, 16.840993943, 16.840993943, 17.598257565, 17.598257565, 
+			16.993849474, 16.993849474, 15.847775522, 15.847775522, 16.139327587, 
+			16.139327587, 17.235607942, 17.235607942, 17.194286781, 17.194286781, 
+			18.151865586, 18.151865586, 18.006728937, 18.006728937, 17.932605325, 
+			17.932605325, 17.993503934, 17.993503934, 17.972653873, 17.972653873, 
+			17.938784406, 17.938784406, 17.656457414, 17.656457414, 18.171206871, 
+			18.171206871, 18.056473288, 18.056473288, 18.12599667, 18.12599667, 
+			18.195670704, 18.195670704, 18.531011728, 18.531011728, 18.067735776, 
+			18.067735776, 18.445249298, 18.445249298, 17.374363044, 17.374363044, 
+			17.467161232, 17.467161232, 17.095178243, 17.095178243, 17.74331252, 
+			17.74331252, 17.470110835, 17.470110835, 17.734284011, 17.734284011, 
+			17.575357936, 17.575357936, 18.042970992, 18.042970992, 17.151979443, 
+			17.151979443, 17.175104385, 17.175104385, 17.442102655, 17.442102655, 
+			16.823553712, 16.823553712, 17.519946213, 17.519946213, 17.338524873, 
+			17.338524873, 17.147467912, 17.147467912, 16.713978566, 16.713978566, 
+			16.472854882, 16.472854882, 16.65792692, 16.65792692, 15.675853935, 
+			15.675853935, 16.380109642, 16.380109642, 16.915108884, 16.915108884, 
+			17.599223625, 17.599223625, 16.92119403, 16.92119403, 16.700892957, 
+			16.700892957, 15.747910906, 15.747910906, 15.559174464, 15.559174464, 
+			17.193351366, 17.193351366, 17.602150973, 17.602150973, 17.502256685, 
+			17.502256685, 17.701333304, 17.701333304, 17.407119593, 17.407119593, 
+			17.591792282, 17.591792282, 17.188676031, 17.188676031, 17.659079358, 
+			17.659079358, 17.552768564, 17.552768564, 17.347926526, 17.347926526, 
+			16.295013278, 16.295013278, 16.52279957, 16.52279957, 16.232855875, 
+			16.232855875, 15.900764272, 15.900764272, 16.411652347, 16.411652347, 
+			17.135995502, 17.135995502)
+	
+	checkEqualsNumeric(as.vector(pred), SASref)
+}
+
+TF059.predict.remlMM.newdata <- function()
+{
+	# fit LMM with fixed lot and device effects and test for lot-differences
+	data(VCAdata1)
+	datS5 <- subset(VCAdata1, sample==5)
+	# add continous covariate for changes in newdata
+	set.seed(1)
+	datS5$cov <- round(rnorm(nrow(datS5), 65, 8),1)
+	
+	fitS5 <- fitLMM(y~cov+device+lot+(day)+(run), datS5, "reml")
+	
+	# select 2 observations and edit covariate to calculate predictions for
+	newdata <- datS5[c(1,62),]
+	newdata$cov <- newdata$cov + 3.5
+	
+	# fitted values including fixed and random effects
+	pred <- predict(fitS5, newdata)
+	
+	# SAS 9.4 reference
+	## proc mixed data=dats5 order=data;
+	## class device lot day run;
+	## model y=cov device lot;
+	## random day run;
+	## ods output Estimates=pred_newdata;
+	## estimate	'newdata_obs1'
+	## intercept 1
+	## cov 63.5
+	## device 1 0 0 
+	## lot    1 0 0 |
+	##         day 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	## run 1 0;
+	## estimate	'newdata_obs2'
+	## intercept 1
+	## cov 68.2
+	## device 0 0 1 
+	## lot    1 0 0 |
+	##         day 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0
+	## run 1 0;		
+	## run;
+	
+	SASref <- c(18.12473221,17.28640975)
+	
+	checkEqualsNumeric(as.vector(pred), SASref, tolerance=1e-6)
+}
+
+TF060.predict.remlMM.newdata <- function()
+{
+	data(Orthodont)                                                              
+	Ortho <- Orthodont                                                           
+	Ortho$age2 <- Ortho$age-11         
+	
+	fit.fitLMM <- fitLMM(distance~Sex*age2+(Subject)*age2, Ortho, "reml")  
+	
+	# user-specified 'newdata'                                                   
+	newdata <- Ortho[c(45,75),]                                                     
+	newdata$age2 <- newdata$age2 + 5 
+	
+	# fitted values including fixed and random effects
+	pred <- predict(fit.fitLMM, newdata)
+	
+	# SAS 9.4 reference
+	## proc mixed data=Ortho order=data;
+	## class sex subj;
+	## model distance=sex age2 sex*age2;
+	## random intercept age2 / subject=subj type=un;
+	## ods output Estimates=pred_newdata;
+	## estimate	'newdata_obs1'
+	## intercept 1
+	## sex 0 1
+	## age2 2
+	## sex*age2 0 2 |
+	##         intercept 1
+	## age2 2 / subject 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0;
+	## estimate	'newdata_obs2'
+	## intercept 1
+	## sex 1 0
+	## age2 6
+	## sex*age2 6 0 |
+	##         intercept 1
+	## age2 6 / subject 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
+	## run;
+	
+	SASref <- c(26.0117,27.2067)
+	
+	checkEqualsNumeric(as.vector(pred), SASref, tolerance=1e-4)
+}
+
+TF061.predict.remlMM.restriction <- function()
+{	
+	data(Orthodont)                                                              
+	Ortho <- Orthodont                                                           
+	Ortho$age2 <- Ortho$age-11         
+	
+	fit.fitLMM <- fitLMM(distance~Sex*age2+(Subject)*age2, Ortho, "reml")  
+	
+	# restrict to fixed effects only                                                                                               
+	pred <- predict(fit.fitLMM, re=NA)                                             
+	
+	# SAS 9.4 reference
+	## proc mixed data=Ortho order=data;
+	## class sex subj;
+	## model distance=sex age2 sex*age2 / outpm=outpm;
+	## random intercept age2 / subject=subj type=un;
+	## run;
+	
+	SASref <- c(21.209090909, 22.168181818, 23.127272727, 24.086363636, 21.209090909, 
+			22.168181818, 23.127272727, 24.086363636, 21.209090909, 22.168181818, 
+			23.127272727, 24.086363636, 21.209090909, 22.168181818, 23.127272727, 
+			24.086363636, 21.209090909, 22.168181818, 23.127272727, 24.086363636, 
+			21.209090909, 22.168181818, 23.127272727, 24.086363636, 21.209090909, 
+			22.168181818, 23.127272727, 24.086363636, 21.209090909, 22.168181818, 
+			23.127272727, 24.086363636, 21.209090909, 22.168181818, 23.127272727, 
+			24.086363636, 21.209090909, 22.168181818, 23.127272727, 24.086363636, 
+			21.209090909, 22.168181818, 23.127272727, 24.086363636, 22.615625, 
+			24.184375, 25.753125, 27.321875, 22.615625, 24.184375, 25.753125, 
+			27.321875, 22.615625, 24.184375, 25.753125, 27.321875, 22.615625, 
+			24.184375, 25.753125, 27.321875, 22.615625, 24.184375, 25.753125, 
+			27.321875, 22.615625, 24.184375, 25.753125, 27.321875, 22.615625, 
+			24.184375, 25.753125, 27.321875, 22.615625, 24.184375, 25.753125, 
+			27.321875, 22.615625, 24.184375, 25.753125, 27.321875, 22.615625, 
+			24.184375, 25.753125, 27.321875, 22.615625, 24.184375, 25.753125, 
+			27.321875, 22.615625, 24.184375, 25.753125, 27.321875, 22.615625, 
+			24.184375, 25.753125, 27.321875, 22.615625, 24.184375, 25.753125, 
+			27.321875, 22.615625, 24.184375, 25.753125, 27.321875, 22.615625, 
+			24.184375, 25.753125, 27.321875)
+	
+	checkEqualsNumeric(as.vector(pred), SASref, tolerance=1e-6)
+}
+
+#TODO: More test functions for fitLMM necessary?
+TF062.comparison.fitLMM.REML <- function()
+{	
+	data(Orthodont)                                                              
+	Ortho <- Orthodont                                                           
+	Ortho$age2 <- Ortho$age-11         
+	
+	fit.fitLMM <- fitLMM(distance~Sex*age2+(Subject)*age2, Ortho, "reml")  
+	fit.remlMM <- remlMM(distance~Sex*age2+(Subject)*age2, Ortho)
+	
+	checkEqualsNumeric(fit.fitLMM$aov.tab, fit.remlMM$aov.tab, tolerance=1e-7)
+}
+
+TF063.comparison.fitLMM.ANOVA <- function()
+{	
+	data(Orthodont)                                                              
+	Ortho <- Orthodont                                                           
+	Ortho$age2 <- Ortho$age-11         
+	
+	fit.fitLMM <- fitLMM(distance~Sex*age2+(Subject)*age2, Ortho)  
+	fit.anovaMM <- anovaMM(distance~Sex*age2+(Subject)*age2, Ortho)
+	
+	checkEqualsNumeric(fit.fitLMM$aov.tab, fit.anovaMM$aov.tab, tolerance=1e-8)
+}
+
+TF064.Scale.reScale.response <- function()
+{
+	data(VCAdata1)
+	sample1 <- VCAdata1[VCAdata1$sample==1,]
+	
+	scaled.fit 	<- Scale("remlMM", y~((device)+(lot))/(day)/(run), sample1)
+	scaled.inf		<- VCAinference(scaled.fit, VarVC=TRUE)
+	rescaled.inf	<- reScale(scaled.inf)
+	
+	# order input data accroding to model fit and obtain response variable
+	ref.response <- orderData(sample1 , y~((device)+(lot))/(day)/(run))$y
+	
+	checkEqualsNumeric(rescaled.inf$VCAobj$data$y, ref.response, tolerance=1e-10)
+}
+
+TF065.comparison.fitVCA.REML <- function()
+{	
+	data(dataEP05A2_2)         
+	
+	fit.fitVCA <- fitVCA(y~day/run, dataEP05A2_2, "reml") 
+	fit.remlVCA <- remlVCA(y~day/run, dataEP05A2_2)
+	
+	checkEqualsNumeric(fit.fitVCA$aov.tab, fit.remlVCA$aov.tab, tolerance=1e-8)
+}
+
+TF066.comparison.fitVCA.ANOVA <- function()
+{	
+	data(dataEP05A2_2)         
+	
+	fit.fitVCA <- fitVCA(y~day/run, dataEP05A2_2, "anova")  
+	fit.anovaVCA <- anovaVCA(y~day/run, dataEP05A2_2)
+	
+	checkEqualsNumeric(fit.fitVCA$aov.tab, fit.anovaVCA$aov.tab, tolerance=1e-8)
+}
+
+TF067.checkException.NoReScaling <- function()
+{
+	data(VCAdata1)
+	datS511 <- subset(VCAdata1, sample==5 & lot == 1 & device == 1)
+	fit <- Scale("anovaVCA", y~day/run, datS511)
+	options(warn=2)
+	checkException(ranef(fit))
+	checkException(resid(fit))
+	options(warn=0)
+}
+
+TF068.check.Scale.reScale.anovaVCA <- function()
+{
+	data(VCAdata1)
+	datS5 <- subset(VCAdata1, sample == 5)
+	
+	datHV <- datS5					# HV = huge value
+	datHV$y <- datHV$y * 1e7		# make response variable really big numbers
+	
+	checkException(anovaVCA(y~(device+lot)/day/run, datHV))			# should generate an error
+	fit.anovaVCA <- Scale("anovaVCA", y~(device+lot)/day/run, datHV)	# should not generate an error
+	fit.anovaVCA <- reScale(fit.anovaVCA)
+	
+	# check equivalence of scaling against not scaling
+	# the null model (reference) without scaling
+	fit0 <- anovaVCA(y~((device)+(lot))/day/run, datS5)		
+	VarCov0 <- vcovVC(fit0)
+	# the model to compare to the null model
+	fit1 <- Scale("anovaVCA", y~((device)+(lot))/day/run, datS5)
+	fit1 <- reScale(fit1, VarVC=TRUE)
+	VarCov1 <- vcovVC(fit1)
+	
+	tol		<- 1e-6
+	digits 	<- log10(1/tol)
+	
+	checkEquals(round(VarCov0, digits=digits), round(VarCov1, digits=digits), tolerance=tol)
+	
+	# check equality of raw random effects
+	
+	checkEquals(round(ranef(fit0),digits=digits), round(ranef(fit1),digits=digits), tolerance=tol)
+	
+	# check equality of raw studentized random effects
+	
+	checkEquals(round(ranef(fit0, mode="student"),digits=digits), round(ranef(fit1, mode="student"),digits=digits), tolerance=tol)
+	
+	# check equality of raw standardized random effects
+	
+	checkEquals(round(ranef(fit0, mode="standard"),digits=digits), round(ranef(fit1, mode="standard"),digits=digits), tolerance=tol)
+	
+	# check equality of raw conditional residuals
+	
+	checkEquals(round(resid(fit0, term="cond"),digits=digits), round(resid(fit1, term="cond"),digits=digits), tolerance=tol)
+	
+	# check equality of raw studentized conditional residuals
+	
+	checkEquals(round(resid(fit0, term="cond", mode="student"),digits=digits), round(resid(fit1, term="cond", mode="student"),digits=digits), tolerance=tol)
+	
+	# check equality of raw pearson-type transformed conditional residuals
+	
+	checkEquals(round(resid(fit0, term="cond", mode="pearson"),digits=digits), round(resid(fit1,term="cond", mode="pearson"),digits=digits), tolerance=tol)
+	
+	# check equality of raw marginal residuals
+	
+	checkEquals(round(resid(fit0, term="marginal"),digits=digits), round(resid(fit1, term="marginal"),digits=digits), tolerance=tol)
+	
+	# check equality of studentized marginal residuals
+	
+	checkEquals(round(resid(fit0, term="marginal", mode="student"),digits=digits), round(resid(fit1, term="marginal", mode="student"),digits=digits), tolerance=tol)
+	
+	# check equality of pearson-type transformed marginal residuals
+	
+	checkEquals(round(resid(fit0, term="marginal", mode="pearson"),digits=digits), round(resid(fit1,term="marginal", mode="pearson"),digits=digits), tolerance=tol)
+	
+}
+
+TF069.check.Scale.reScale.remlVCA <- function()
+{
+	data(VCAdata1)
+	datS5 <- subset(VCAdata1, sample == 5)
+	
+	datHV <- datS5					# HV = huge value
+	datHV$y <- datHV$y * 1e7		# make response variable really big numbers
+	
+	#checkException(remlVCA(y~(device+lot)/day/run, datHV))			# should generate an error
+	fit.remlVCA <- Scale("remlVCA", y~(device+lot)/day/run, datHV)	# should not generate an error
+	fit.remlVCA <- reScale(fit.remlVCA)
+	
+	# check equivalence of scaling against not scaling
+	# the null model (reference) without scaling
+	fit0 <- remlVCA(y~((device)+(lot))/day/run, datS5)		
+	VarCov0 <- vcovVC(fit0)
+	# the model to compare to the null model
+	fit1 <- Scale("remlVCA", y~((device)+(lot))/day/run, datS5)
+	fit1 <- reScale(fit1, VarVC=TRUE)
+	VarCov1 <- vcovVC(fit1)
+	
+	tol		<- 1e-4					# lower precision due to differences in the results of the numerical optimization algorithm applied to data on different scales
+	digits 	<- log10(1/tol)
+	
+	checkEquals(round(VarCov0, 6), round(VarCov1, 6), tolerance=1e-6)
+	
+	# check equality of raw random effects
+	
+	checkEquals(round(ranef(fit0),digits=digits), round(ranef(fit1),digits=digits), tolerance=tol)
+	
+	# check equality of raw studentized random effects
+	
+	checkEquals(round(ranef(fit0, mode="student"),digits=digits), round(ranef(fit1, mode="student"),digits=digits), tolerance=tol)
+	
+	# check equality of raw standardized random effects
+	
+	checkEquals(round(ranef(fit0, mode="standard"),digits=digits), round(ranef(fit1, mode="standard"),digits=digits), tolerance=tol)
+	
+	# check equality of raw conditional residuals
+	
+	checkEquals(round(resid(fit0, term="cond"),digits=digits), round(resid(fit1, term="cond"),digits=digits), tolerance=tol)
+	
+	# check equality of raw studentized conditional residuals
+	
+	checkEquals(round(resid(fit0, term="cond", mode="student"),digits=digits), round(resid(fit1, term="cond", mode="student"),digits=digits), tolerance=tol)
+	
+	# check equality of raw pearson-type transformed conditional residuals
+	
+	checkEquals(round(resid(fit0, term="cond", mode="pearson"),digits=digits), round(resid(fit1,term="cond", mode="pearson"),digits=digits), tolerance=tol)
+	
+	# check equality of raw marginal residuals
+	
+	checkEquals(round(resid(fit0, term="marginal"),digits=digits), round(resid(fit1, term="marginal"),digits=digits), tolerance=tol)
+	
+	# check equality of studentized marginal residuals
+	
+	checkEquals(round(resid(fit0, term="marginal", mode="student"),digits=digits), round(resid(fit1, term="marginal", mode="student"),digits=digits), tolerance=tol)
+	
+	# check equality of pearson-type transformed marginal residuals
+	
+	checkEquals(round(resid(fit0, term="marginal", mode="pearson"),digits=digits), round(resid(fit1,term="marginal", mode="pearson"),digits=digits), tolerance=tol)
+}
+
+
+TF070.check.Scale.reScale.anovaMM <- function()
+{
+	data(VCAdata1)
+	datS5 <- subset(VCAdata1, sample == 5)
+	
+	datHV <- datS5					# HV = huge value
+	datHV$y <- datHV$y * 1e7		# make response variable really big numbers
+	
+	checkException(anovaMM(y~(device+lot)/(day)/(run), datHV))			# should generate an error
+	fit.anovaMM <- Scale("anovaMM", y~(device+lot)/(day)/(run), datHV)	# should not generate an error
+	fit.anovaMM <- reScale(fit.anovaMM)
+	
+	# check equivalence of scaling against not scaling
+	# the null model (reference) without scaling
+	fit0 <- anovaMM(y~(device+lot)/(day)/(run), datS5)		
+	VarCov0 <- vcovVC(fit0)
+	# the model to compare to the null model
+	fit1 <- Scale("anovaMM", y~(device+lot)/(day)/(run), datS5)
+	fit1 <- reScale(fit1, VarVC=TRUE)
+	VarCov1 <- vcovVC(fit1)
+	
+	tol		<- 1e-6					# lower precision due to differences in the results of the numerical optimization algorithm applied to data on different scales
+	digits 	<- log10(1/tol)
+	
+	checkEquals(round(VarCov0, 6), round(VarCov1, 6), tolerance=1e-6)
+	
+	# check equality of raw random effects
+	
+	checkEquals(round(ranef(fit0),digits=digits), round(ranef(fit1),digits=digits), tolerance=tol)
+	
+	# check equality of raw studentized random effects
+	
+	checkEquals(round(ranef(fit0, mode="student"),digits=digits), round(ranef(fit1, mode="student"),digits=digits), tolerance=tol)
+	
+	# check equality of raw standardized random effects
+	
+	checkEquals(round(ranef(fit0, mode="standard"),digits=digits), round(ranef(fit1, mode="standard"),digits=digits), tolerance=tol)
+	
+	# check equality of raw conditional residuals
+	
+	checkEquals(round(resid(fit0, term="cond"),digits=digits), round(resid(fit1, term="cond"),digits=digits), tolerance=tol)
+	
+	# check equality of raw studentized conditional residuals
+	
+	checkEquals(round(resid(fit0, term="cond", mode="student"),digits=digits), round(resid(fit1, term="cond", mode="student"),digits=digits), tolerance=tol)
+	
+	# check equality of raw pearson-type transformed conditional residuals
+	
+	checkEquals(round(resid(fit0, term="cond", mode="pearson"),digits=digits), round(resid(fit1,term="cond", mode="pearson"),digits=digits), tolerance=tol)
+	
+	# check equality of raw marginal residuals
+	
+	checkEquals(round(resid(fit0, term="marginal"),digits=digits), round(resid(fit1, term="marginal"),digits=digits), tolerance=tol)
+	
+	# check equality of studentized marginal residuals
+	
+	checkEquals(round(resid(fit0, term="marginal", mode="student"),digits=digits), round(resid(fit1, term="marginal", mode="student"),digits=digits), tolerance=tol)
+	
+	# check equality of pearson-type transformed marginal residuals
+	
+	checkEquals(round(resid(fit0, term="marginal", mode="pearson"),digits=digits), round(resid(fit1,term="marginal", mode="pearson"),digits=digits), tolerance=tol)
+}
+
+
+TF071.check.Scale.reScale.remlMM <- function()
+{
+	data(VCAdata1)
+	datS5 <- subset(VCAdata1, sample == 5)
+	
+	datHV <- datS5					# HV = huge value
+	datHV$y <- datHV$y * 1e7		# make response variable really big numbers
+	
+	#checkException(remlMM(y~(device+lot)/(day)/(run), datHV))			# should generate an error
+	fit.remlMM <- Scale("remlMM", y~(device+lot)/(day)/(run), datHV)	# should not generate an error
+	fit.remlMM <- reScale(fit.remlMM)
+	
+	# check equivalence of scaling against not scaling
+	# the null model (reference) without scaling
+	fit0 <- remlMM(y~(device+lot)/(day)/(run), datS5)		
+	VarCov0 <- vcovVC(fit0)
+	# the model to compare to the null model
+	fit1 <- Scale("remlMM", y~(device+lot)/(day)/(run), datS5)
+	fit1 <- reScale(fit1, VarVC=TRUE)
+	VarCov1 <- vcovVC(fit1)
+	
+	tol		<- 1e-5					# lower precision due to differences in the results of the numerical optimization algorithm applied to data on different scales
+	digits 	<- log10(1/tol)
+	
+	checkEquals(round(VarCov0, 6), round(VarCov1, 6), tolerance=1e-6)
+	
+	# check equality of raw random effects
+	
+	checkEquals(round(ranef(fit0),digits=digits), round(ranef(fit1),digits=digits), tolerance=tol)
+	
+	# check equality of raw studentized random effects
+	
+	checkEquals(round(ranef(fit0, mode="student"),digits=digits), round(ranef(fit1, mode="student"),digits=digits), tolerance=tol)
+	
+	# check equality of raw standardized random effects
+	
+	checkEquals(round(ranef(fit0, mode="standard"),digits=digits), round(ranef(fit1, mode="standard"),digits=digits), tolerance=tol)
+	
+	# check equality of raw conditional residuals
+	
+	checkEquals(round(resid(fit0, term="cond"),digits=digits), round(resid(fit1, term="cond"),digits=digits), tolerance=tol)
+	
+	# check equality of raw studentized conditional residuals
+	
+	checkEquals(round(resid(fit0, term="cond", mode="student"),digits=digits), round(resid(fit1, term="cond", mode="student"),digits=digits), tolerance=tol)
+	
+	# check equality of raw pearson-type transformed conditional residuals
+	
+	checkEquals(round(resid(fit0, term="cond", mode="pearson"),digits=digits), round(resid(fit1,term="cond", mode="pearson"),digits=digits), tolerance=tol)
+	
+	# check equality of raw marginal residuals
+	
+	checkEquals(round(resid(fit0, term="marginal"),digits=digits), round(resid(fit1, term="marginal"),digits=digits), tolerance=tol)
+	
+	# check equality of studentized marginal residuals
+	
+	checkEquals(round(resid(fit0, term="marginal", mode="student"),digits=digits), round(resid(fit1, term="marginal", mode="student"),digits=digits), tolerance=tol)
+	
+	# check equality of pearson-type transformed marginal residuals
+	
+	checkEquals(round(resid(fit0, term="marginal", mode="pearson"),digits=digits), round(resid(fit1,term="marginal", mode="pearson"),digits=digits), tolerance=tol)
+}
+
+# check correct implementation of model with multiple numeric covariables
+# numeric examples taken from 
+# Jonas Haslbeck
+# University of Amsterdam
+# Psychological Methods
+# Nieuwe Achtergracht 129-B
+# Postbus 15906
+# 1018 WT, Amsterdam
+# the Netherlands
+# jonashaslbeck@gmail.com
+# http://jmbh.github.io
+
+TF072.getMM.multi.covariables <- function()
+{
+	# example provided by Jonas Haslbeck
+	data <- as.data.frame(matrix(rnorm(40), nrow=10))
+	colnames(data) <- c('V.1', 'V.2', 'V.3', 'V.4')
+	form <- as.formula('V.1 ~ V.2 + V.3 + V.4 + V.2 * V.3 + V.2 * V.4 + V.3 * V.4 + V.2 * V.3 * V.4')
+	X0 <- model.matrix(form, data = data) 
+	X1 <- getMM(form, Data = data) 
+	checkEquals(c(X0), c(as.matrix(X1)))
+	
+	# check equality to mix
+	
+	data2 <- data
+	data2$subject <- gl(5, 2)
+	form2 <-  as.formula('V.1 ~ V.2 + subject*V.2 * V.3')
+	X3 <- model.matrix(form2, data2)
+	X4 <- getMM(form2, data2)
+	# exclude extra-columns in X4 for comparison and re-arrage column-order (content counts)
+	checkEquals(c(X3[,c(1:6, 8:11, 7, 12:20)]), c(as.matrix(X4)[,-c(3,8,14,20)]))
+}
+
+

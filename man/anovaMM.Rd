@@ -5,7 +5,8 @@
 \title{ANOVA-Type Estimation of Mixed Models.}
 \usage{
 anovaMM(form, Data, by = NULL, VarVC.method = c("gb", "scm"),
-  SSQ.method = c("sweep", "qf"), NegVC = FALSE, quiet = FALSE)
+  SSQ.method = c("sweep", "qf"), NegVC = FALSE, quiet = FALSE,
+  order.data = TRUE)
 }
 \arguments{
 \item{form}{(formula) specifying the linear mixed model (fixed and random part of the model),
@@ -40,6 +41,9 @@ The degrees of freedom of the total variance are based on adapted mean squares (
    variance (original definition of the total variance).}
 
 \item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
+
+\item{order.data}{(logical) TRUE = class-variables will be ordered increasingly, FALSE = ordering of class-variables
+will remain as is}
 }
 \value{
 (VCA) object
@@ -176,9 +180,6 @@ anovaMM.Tab2
 }
 
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \references{
 Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York	
 
@@ -202,4 +203,6 @@ SAS Help and Documentation PROC MIXED, SAS Institute Inc., Cary, NC, USA
 			\code{\link{ranef}}, \code{\link{fixef}}, \code{\link{vcov}}, \code{\link{vcovVC}}, 
 			\code{\link{test.fixef}}, \code{\link{test.lsmeans}}, \code{\link{plotRandVar}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

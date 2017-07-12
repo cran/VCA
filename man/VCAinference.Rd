@@ -207,9 +207,6 @@ inf.all <- VCAinference(fit.all, total.claim=c(.1,.75,.8,1,.5,.5,2.5,20,.1,1))
 print.VCAinference(inf.all, what="VC")
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \references{
 Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components., Wiley New York
 
@@ -221,4 +218,6 @@ Biometrics Bulletin 2, 110-114
 \seealso{
 \code{\link{print.VCAinference}}, \code{\link{getVCvar}}, \code{\link{anovaVCA}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

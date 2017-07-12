@@ -17,4 +17,3 @@ Trace(x, quiet = FALSE)
 \description{
 Function computes the sum of main-diagonal elements of a square matrix.
 }
-

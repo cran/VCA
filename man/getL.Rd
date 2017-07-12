@@ -53,4 +53,3 @@ test.fixef(fit.S2, L3)
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

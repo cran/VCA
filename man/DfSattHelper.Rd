@@ -18,4 +18,3 @@ DfSattHelper(obj, x)
 This is a helper function for function \code{\link{test.fixef}} approximating degrees of freedom for 
 linear contrasts of fixed effect parameter estimates.
 }
-

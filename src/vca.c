@@ -12,17 +12,20 @@
  *					Nonnenwald 2																*
  *					82377 Penzberg / Germany													*
  *																								*
- *					Phone: +49 8856 60 6621														*
  *					mailto:andre.schuetzenmeister@roche.com										*
  *																								*
  *				  																			    *
- * Last modified:	2015-May-19																	*
+ * Last modified:	2017-July-12																*
  *																								*
  ************************************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <R.h>
+#include <R_ext/Rdynload.h>
+#include <Rinternals.h>
+
+void R_init_VCA(DllInfo *dll);
 
 void getAmatBmatSparse(	double* xEl, int* iEl, int* pEl, int* NobsCol, int* ncol, int* nrow, double* tol, 
 						double* Amat, double* Bmat, double* amat, double* Cmat, int* NVC, int* asgn, 
@@ -37,6 +40,53 @@ void Tsweep(double* M, int* k, double* thresh, int* NumK, int* nr, int* LC, doub
 void TsweepFull(double* M, int* nr, double* tol);
 
 double Round(double val, double Pow);
+
+
+/* Define routine register objects */
+
+/* Tsweep */
+
+static R_NativePrimitiveArgType Tsweep_types[] = {
+	REALSXP, INTSXP, REALSXP, INTSXP, INTSXP, INTSXP, REALSXP, REALSXP
+};
+
+/* TsweepFull */
+
+static R_NativePrimitiveArgType TsweepFull_types[] = {
+	REALSXP, INTSXP, REALSXP
+};
+
+/* getAmatBmat */
+
+static R_NativePrimitiveArgType getAmatBmat_types[] = {
+	REALSXP, INTSXP, INTSXP, REALSXP, REALSXP, REALSXP, REALSXP, REALSXP, INTSXP, INTSXP, INTSXP
+};
+
+static R_NativePrimitiveArgType getAmatBmatSparse_types[] = {
+	REALSXP, INTSXP, INTSXP, INTSXP, INTSXP, INTSXP, REALSXP, REALSXP, REALSXP, REALSXP, REALSXP, INTSXP, INTSXP, INTSXP
+};
+
+/* getAmatBmatSparse */
+
+static const R_CMethodDef C_Method_Entries[] = {
+   {"Tsweep", (DL_FUNC) &Tsweep, 8, Tsweep_types},
+   {"TsweepFull", (DL_FUNC) &TsweepFull, 3, TsweepFull_types},
+   {"getAmatBmat", (DL_FUNC) &getAmatBmat, 11, getAmatBmat_types},
+   {"getAmatBmatSparse", (DL_FUNC) &getAmatBmatSparse, 14, getAmatBmatSparse_types},
+   {NULL, NULL, 0, NULL}
+};
+
+
+/* initialize library */
+
+void R_init_VCA(DllInfo *dll)
+{
+	/* Register routines */
+	R_registerRoutines(dll, C_Method_Entries, NULL, NULL, NULL);
+
+	R_useDynamicSymbols(dll, FALSE);
+}
+
 
 double Round(double val, double Pow)
 {

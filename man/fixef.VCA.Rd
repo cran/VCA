@@ -49,4 +49,3 @@ fit <- anovaMM(y~(lot+device)/(day)/(run), VCAdata1[VCAdata1$sample==2,])
 fixef(fit, "c")
 }
 }
-

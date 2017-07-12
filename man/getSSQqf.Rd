@@ -39,6 +39,6 @@ str(res)
 }
 }
 \author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com},
+			Florian Dufey \email{florian.dufey@contractors.roche.com}
 }
-

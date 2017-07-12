@@ -43,13 +43,13 @@ vcovVC(fit, "scm")		# Searle-Casella-McCulloch method (1st reference)
 vcovVC(fit, "gb")		# Giesbrecht and Burns method (2nd reference)
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \references{
 Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York
 
 Giesbrecht, F.G. and Burns, J.C. (1985), Two-Stage Analysis Based on a Mixed Model: Large-Sample
 Asymptotic Theory and Small-Sample Simulation Results, Biometrics 41, p. 477-486
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com},
+			Florian Dufey \email{florian.dufey@contractors.roche.com}
+}

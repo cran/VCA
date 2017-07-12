@@ -17,4 +17,3 @@ Generic Method for Extracting Fixed Effects from a Fitted Model.
 \seealso{
 \code{\link{fixef.VCA}}
 }
-

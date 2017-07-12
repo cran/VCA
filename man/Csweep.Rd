@@ -62,10 +62,9 @@ SSQ   <- c(SSQ, tail(SS,1))
 SSQ		# compare to column "Sum Sq" in 'anova(lmD9)' output
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \references{
 Goodnight, J.H. (1979), A Tutorial on the SWEEP Operator, The American Statistician, 33:3, 149-158
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

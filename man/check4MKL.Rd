@@ -24,4 +24,3 @@ This function is for internal use only and therefore not exported.
 Authors of the Rprofile.site file in Microsoft R Open,
 			Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

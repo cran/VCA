@@ -56,4 +56,3 @@ VCAinference(sw.res[["device:day"]], VarVC=TRUE)
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

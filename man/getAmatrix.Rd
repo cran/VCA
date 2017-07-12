@@ -28,4 +28,3 @@ This function is not intended to be used directly.
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

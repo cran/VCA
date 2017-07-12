@@ -295,4 +295,3 @@ varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

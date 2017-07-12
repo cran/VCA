@@ -89,4 +89,3 @@ VCA:::anovaDF( y~(lot+calibration)/day/run, datP1,
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

@@ -34,7 +34,16 @@ export(
 	"varPlot",
 	"vcov.VCA",
 	"vcovVC",		
-	"VCAinference"
+	"VCAinference",
+	"Scale",
+	"reScale",
+	"predict.VCA",
+	"orderData",
+	"model.frame.VCA",
+	"model.matrix.VCA",
+	"fitLMM",
+	"fitVCA",
+	"scaleData"
 )
 
 ### Packages which are imported (appearing in the Description->Imports enumeration)
@@ -68,5 +77,8 @@ S3method(ranef, VCA)
 S3method(fixef, VCA)
 S3method(print, VCAinference)
 S3method(plot, VCA)
+S3method(model.frame, VCA)
+S3method(predict, VCA)
+S3method(model.matrix, VCA)
 	     
 useDynLib(VCA)

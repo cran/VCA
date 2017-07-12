@@ -254,7 +254,7 @@ TF014.anovaVCA.crossed_nested.balanced <- function()
 	
 	res1 <- anovaVCA(y~lot+device+(lot:device:day)/run, sample1)
 	
-	checkEquals(round(res1$aov.tab[2, "VC"], 5), 0.01552)                        # round to precision of SAS PROC MIXED output
+	checkEquals(round(res1$aov.tab[2, "VC"], 5), 0.01552)                        # round to default precision of SAS PROC MIXED output
 	checkEquals(round(res1$aov.tab[3, "VC"], 5), 0.06214)
 	checkEquals(round(res1$aov.tab[4, "VC"], 5), 0.01256)
 	checkEquals(round(res1$aov.tab[5, "VC"], 5), 0.05074)

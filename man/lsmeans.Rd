@@ -133,4 +133,3 @@ lsmeans(fit3, var="snp", type="complex", contr.mat=TRUE,
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

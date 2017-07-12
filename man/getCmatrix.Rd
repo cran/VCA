@@ -4,7 +4,7 @@
 \alias{getCmatrix}
 \title{Coefficient Matrix for (V)ariance (C)omponent (A)nalysis.}
 \usage{
-getCmatrix(form, Data, DF = NULL, type = c("MS", "SS"), digits = 8L,
+getCmatrix(form, Data, DF = NULL, type = c("MS", "SS"), digits = 12L,
   MM = NULL)
 }
 \arguments{
@@ -59,13 +59,12 @@ aov.tab
 apply(C_ss, 2, function(x) x/aov.tab[,"Df"])
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \references{
 Gaylor,D.W., Lucas,H.L., Anderson,R.L. (1970), Calculation of Expected Mean Squares by the Abbreviated Doolittle and Square Root Methods. Biometrics 26(4):641-655
 }
 \seealso{
 \code{\link{anovaVCA}}, \code{\link{getMM}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

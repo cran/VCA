@@ -28,4 +28,3 @@ Here, \eqn{G} is assumed to be a diagonal matrix, i.e. all random effects \eqn{g
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

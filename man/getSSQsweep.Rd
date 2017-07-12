@@ -44,13 +44,12 @@ res <- VCA:::getSSQsweep(dataEP05A2_1, terms(y~day/run))
 str(res)
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \references{
 Goodnight, J.H., (1979), A Tutorial on the SWEEP Operator, The American Statistician, 33:3, p.149-158
 }
 \seealso{
 \code{\link{Csweep}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

@@ -50,10 +50,9 @@ plot(fit2,
 		MeanLine=list(var="lot", col="blue", lwd=2))
 #' }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \seealso{
 \code{\link{varPlot}}, \code{\link{anovaVCA}},\code{\link{remlVCA}}, \code{\link{anovaMM}},\code{\link{remlMM}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

@@ -910,9 +910,9 @@ varPlot <- function(form, Data, keep.order=TRUE,
 				}
 				
 				StatsList <- processList(	lst=tmp, xlim=c(Xlower, Xupper), yval=yval[-1], Xdiff=Xdiff, type=type, 
-											VARtype=VARtype, StatsList=StatsList, index=index, VarLab=VarLab[-1],
-											MeanLine=MeanLine, VLine=VLine, Intercept=Intercept, JoinLevels=JoinLevels,
-											draw.vertical=tmp.draw.vertical)
+						VARtype=VARtype, StatsList=StatsList, index=index, VarLab=VarLab[-1],
+						MeanLine=MeanLine, VLine=VLine, Intercept=Intercept, JoinLevels=JoinLevels,
+						draw.vertical=tmp.draw.vertical)
 				index <- attr(StatsList, "index")
 			}
 			else                                                                    # leaf-node reached (numeric vector)
@@ -1308,8 +1308,8 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		StatsList <- list(SDvec=numeric(), Nobs=integer())
 		#SDvec <- numeric()
 		StatsList <- processList(	lst=lst, xlim=range(Xbound), yval=SDYbound, Xdiff=Xdiff, type=2, StatsList=StatsList, 
-									VARtype=VARtype, VarLab=VarLab, MeanLine=MeanLine, Intercept=Intercept, VLine=VLine,
-									JoinLevels=JoinLevels)   
+				VARtype=VARtype, VarLab=VarLab, MeanLine=MeanLine, Intercept=Intercept, VLine=VLine,
+				JoinLevels=JoinLevels)   
 		
 		if(length(rec.env$VLineCollection) > 0)
 		{
@@ -1605,7 +1605,6 @@ buildList <- function(Data, Nesting, Current, resp, keep.order=TRUE, useVarNam=T
 #' @seealso \code{\link{varPlot}}, \code{\link{anovaVCA}},\code{\link{remlVCA}}, \code{\link{anovaMM}},\code{\link{remlMM}}
 #' 
 #' @method plot VCA
-#' @S3method plot VCA
 #' 
 #' @examples 
 #' \dontrun{

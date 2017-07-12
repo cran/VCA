@@ -58,4 +58,3 @@ Laird, N.M., Ware, J.H., 1982. Random effects models for longitudinal data. Biom
 Schuetzenmeister, A. and Piepho, H.P. (2012). Residual analysis of linear mixed models using a simulation approach.
 Computational Statistics and Data Analysis, 56, 1405-1416
 }
-

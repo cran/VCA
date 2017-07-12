@@ -60,15 +60,15 @@
   \tabular{ll}{
     Package: \tab VCA\cr
     Type: \tab Package \cr
-    Version: \tab 1.3.2 \cr
-    Date: \tab 2016-07-25\cr
+    Version: \tab 1.3.3 \cr
+    Date: \tab 2017-07-12\cr
     License:  \tab GPL (>=3) \cr
     LazyLoad: \tab yes \cr
   }
 }
 \author{
-	Andre Schuetzenmeister 
-	\email{andre.schuetzenmeister@roche.com}
+	Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com},
+	Florian Dufey \email{florian.dufey@contractors.roche.com}
 }
 \references{
 	Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York

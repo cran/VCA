@@ -1,11 +1,12 @@
 Package: VCA
-Version: 1.3.2
-Date: 2016-07-25
+Version: 1.3.3
+Date: 2017-07-12
 Title: Variance Component Analysis
-Author: Andre Schuetzenmeister <andre.schuetzenmeister@roche.com>
+Author: Andre Schuetzenmeister [aut, cre], Florian Dufey [ctb]
 Maintainer: Andre Schuetzenmeister <andre.schuetzenmeister@roche.com>
 Depends: R (>= 3.0.0)
 Imports: stats, graphics, grDevices, lme4, Matrix, methods, numDeriv
+Suggests: STB
 Description: 
  ANOVA and REML estimation of linear mixed models is implemented, once following
  Searle et al. (1991, ANOVA for unbalanced data), once making use of the 'lme4' package.
@@ -21,6 +22,6 @@ Description:
 License: GPL (>= 3)
 Collate: 'plot.R' 'vca.R'
 NeedsCompilation: yes
-Packaged: 2016-07-25 13:31:38 UTC; schueta6
+Packaged: 2017-07-12 08:40:20 UTC; schueta6
 Repository: CRAN
-Date/Publication: 2016-07-25 20:30:17
+Date/Publication: 2017-07-12 12:52:42 UTC

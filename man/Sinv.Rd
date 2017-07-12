@@ -43,4 +43,3 @@ M \%*\% Mi2 \%*\% M			# should be M
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

@@ -46,4 +46,3 @@ getDF(fitMM, L, method="satt")		# takes quite long for this model
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

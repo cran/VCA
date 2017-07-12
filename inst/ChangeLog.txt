@@ -1,3 +1,24 @@
+Version 1.3.3
+-------------
+
+- functions 'Scale' and 'reScale' were added, which aim to remedy the problem with numerical problems when 
+  values of the response variable are too large resulting in errors
+- functions 'fitLMM' and 'fitVCA' were added serving as convenience interface for either fitting linear mixed models (LMM)
+  or variance component analysis (VCA) models, allowing to specify the estimation method (REML, ANOVA) and any other 
+  function argument accepted by functions 'anovaVCA' and 'remlVCA' (fitVCA), 'anovaMM' and 'remlMM' (fitLMM)
+- functions 'predict.VCA', 'model.frame.VCA', and 'model.matrix.VCA' added implementing generic methods for 'VCA'-objects,
+  which are required by e.g. the 'multcomp' R Add-on package for testing general linear hypotheses
+- all warning-exceptions thrown were re-visited and replaced by messages if no "real" exception condition was
+  communicated
+- in functions 'anovaVCA', 'anovaMM', 'remlVCA' and 'remlMM' ordering of non-numeric variables is now done per
+  default (set 'order.data=FALSE' to prevent this)
+- bug fixed in function 'getMM', an error occurred if all variables were numeric, y~(.)^k generic function interface
+  also works now, thx to Jonas Haslbeck for reporting this bug
+- the algorithm for ANOVA type-1 estimation using quadratic forms was massively improved
+- variance-covariance matrix of variance components more efficiently computed using both available options ("scm", "gb")
+
+
+
 Version 1.3.2
 -------------
 

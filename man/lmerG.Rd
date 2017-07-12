@@ -38,4 +38,3 @@ G2[1:10,1:10]
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

@@ -5,7 +5,8 @@
 \title{ANOVA-Type Estimation of Variance Components for Random Models.}
 \usage{
 anovaVCA(form, Data, by = NULL, NegVC = FALSE, SSQ.method = c("sweep",
-  "qf"), VarVC.method = c("gb", "scm"), MME = FALSE, quiet = FALSE)
+  "qf"), VarVC.method = c("gb", "scm"), MME = FALSE, quiet = FALSE,
+  order.data = TRUE)
 }
 \arguments{
 \item{form}{(formula) specifying the model to be fit, a response variable left of the '~' is mandatory}
@@ -37,6 +38,9 @@ element has addional elements corresponding to intermediate results of solving M
 FALSE = do not solve MMEs, which reduces the computation time for very complex models significantly.}
 
 \item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
+
+\item{order.data}{(logical) TRUE = class-variables will be ordered increasingly, FALSE = ordering of class-variables
+will remain as is}
 }
 \value{
 (object) of class 'VCA'
@@ -84,7 +88,7 @@ data(dataEP05A2_2)
 res <- anovaVCA(y~day/run, dataEP05A2_2)
 res
 
-# desing with two main effects (ignoring the hierarchical structure of the design)
+# design with two main effects (ignoring the hierarchical structure of the design)
 anovaVCA(y~day+run, dataEP05A2_2)
 
 # compute confidence intervals, perform F- and Chi-Squared tests
@@ -96,7 +100,7 @@ data(VCAdata1)
 
 data_sample1 <- VCAdata1[VCAdata1$sample==1,]
 
-### plot data for visual inspection (there is no variance between runs on a day)
+### plot data for visual inspection
 varPlot(y~lot/day/run, data_sample1)
 
 ### estimate VCs for 4-level hierarchical design (error counted) for sample_1 data
@@ -177,7 +181,7 @@ lst
 # now fitting a nonsense model on the complete dataset "VCAdata1" 
 # using both methods for fitting ANOVA Type-1 sum of squares
 # SSQ.method="qf" used to be the default up to package version 1.1.1
-# took ~165s on a Intel Xeon E5-2687W (3.1GHz) in V1.1.1, now takes ~95s
+# took ~165s on a Intel Xeon E5-2687W (3.1GHz) in V1.1.1, now takes ~25s
 system.time(res.qf <- anovaVCA(y~(sample+lot+device)/day/run, VCAdata1, SSQ.method="qf"))
 # the SWEEP-operator is the new default since package version 1.2
 # takes ~5s
@@ -188,9 +192,6 @@ res.qf
 res.sw
 res.lm
 }
-}
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
 \references{
 Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York
@@ -214,4 +215,6 @@ SAS Help and Documentation PROC VARCOMP, SAS Institute Inc., Cary, NC, USA
 \code{\link{anovaMM}}, \code{\link{remlVCA}}, \code{\link{remlMM}}, \code{\link{print.VCA}}, \code{\link{VCAinference}}, 
 			\code{\link{getCmatrix}}, \code{\link{ranef}}, \code{\link{plotRandVar}}, \code{\link{stepwiseVCA}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

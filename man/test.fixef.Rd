@@ -98,9 +98,6 @@ tst2
 tst3
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com} inspired by authors of R-package 'lmerTest'
-}
 \references{
 Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York	
 
@@ -112,4 +109,6 @@ SAS Help and Documentation PROC MIXED (MODEL-statement, Option 'ddfm'), SAS Inst
 \seealso{
 \code{\link{test.lsmeans}}, \code{\link{getL}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com} inspired by authors of R-package 'lmerTest'
+}

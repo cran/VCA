@@ -47,4 +47,3 @@ all.equal(V1i, V2i)
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

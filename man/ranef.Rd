@@ -17,4 +17,3 @@ Generic Method for Extracting Random Effects from a Fitted Model.
 \seealso{
 \code{\link{ranef.VCA}}
 }
-

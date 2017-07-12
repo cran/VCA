@@ -4,12 +4,13 @@
 \alias{getVCvar}
 \title{Covariance-Matrix of Variance Components.}
 \usage{
-getVCvar(Ci, A, Z, VC)
+getVCvar(Ci, B, Z, VC)
 }
 \arguments{
 \item{Ci}{(matrix) inverted C-matrix of coefficients equating observed Sum of Squares (SS) to expected values.}
 
-\item{A}{(list) of A-matrices representing quadratic forms of ANOVA-Type I sums of squares}
+\item{B}{(list) of B-matrices representing orthogonal basis of Z*Z', where Z is the design matrix of a certain
+term in the model formula}
 
 \item{Z}{(list) of Z-matrices, the design matrices assigning random effects to observations for each variance component.}
 
@@ -41,10 +42,13 @@ Var <- VCA:::getVCvar(Ci=mat$Ci.SS, A=mat$A, Z=mat$Z, VC=res$aov.tab[-1,"VC"])
 round(Var, 12)
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \references{
 Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York
 }
-
+\seealso{
+\code{\link{getBasis}}
+}
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com},
+			Florian Dufey \email{florian.dufey@contractors.roche.com}
+}

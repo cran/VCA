@@ -23,4 +23,3 @@ e.g. sparse matrices.
 \author{
 Authors of the 'MASS' package.
 }
-

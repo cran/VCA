@@ -64,7 +64,7 @@ TF002.anovaMM.NegVC.balanced <- function()
 	resRM2 <- anovaVCA(y~day/run, test.dat, NegVC=TRUE)			# allowing negative VCs
 	resMM2 <- anovaMM(y~(day)/(run), test.dat, NegVC=TRUE)
 	
-	checkEquals(resRM1$aov.tab, resMM1$aov.tab)
+	checkEquals(resRM2$aov.tab, resMM2$aov.tab)
 }
 
 
@@ -89,7 +89,7 @@ TF003.anovaMM.NegVC.unbalanced <- function()
 	resRM2 <- anovaVCA(y~day/run, test.dat, NegVC=TRUE)				# allowing negative VCs
 	resMM2 <- anovaMM(y~(day)/(run), test.dat, NegVC=TRUE)
 	
-	checkEquals(resRM1$aov.tab, resMM1$aov.tab)
+	checkEquals(resRM2$aov.tab, resMM2$aov.tab)
 }
 
 
@@ -153,8 +153,9 @@ TF007.anovaDF.unbalanced <- function()
 	Ortho.ub <- Ortho[-c(3, 5, 8, 25, 29, 64, 79, 82, 102), ]				# introduce unbalancedness
 	Ortho.ub$Subject <- factor(as.character(Ortho.ub$Subject))
 	
-	aov.fit <- anova(lm(distance~Sex*age2+(Subject)*age2, Ortho.ub))
 	mm.fit  <- anovaMM( distance~Sex*age2+(Subject)*age2, Ortho.ub)
+	tmp.dat <- mm.fit$data[attr(mm.fit$data, "analysis.order"),]			# use identical data set, i.e. ordering, as used within 'anovaMM'
+	aov.fit <- anova(lm(distance~Sex*age2+(Subject)*age2, tmp.dat))	
 	
 	rn <- rownames(aov.fit)
 	rn[length(rn)] <- "error"

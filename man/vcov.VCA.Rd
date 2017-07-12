@@ -38,4 +38,3 @@ fit2 <- anovaVCAy~day/run, dataEP05A2_1)
 vcov(fit2)
 }
 }
-

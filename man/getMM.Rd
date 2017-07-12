@@ -4,12 +4,15 @@
 \alias{getMM}
 \title{Overparameterized Design Matrices.}
 \usage{
-getMM(form, Data)
+getMM(form, Data, keep.order = TRUE)
 }
 \arguments{
 \item{form}{(formula) with or without response specifying the model to be fit}
 
 \item{Data}{(data.frame) with the data}
+
+\item{keep.order}{(logical) TRUE = terms in 'form' should keep their positions, otherwise
+main effects come first and all interactions will be put into increasing order}
 }
 \description{
 Function \code{getMM} constructs overparameterized design matrices from a model formula and a data.frame.
@@ -47,10 +50,9 @@ model.matrix(~day*cov, tmpData2)
 }
 
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \seealso{
 \code{\link{getAmatrix}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

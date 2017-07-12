@@ -4,7 +4,8 @@
 \alias{remlVCA}
 \title{Perform (V)ariance (C)omponent (A)nalysis via REML-Estimation.}
 \usage{
-remlVCA(form, Data, by = NULL, VarVC = TRUE, quiet = FALSE)
+remlVCA(form, Data, by = NULL, VarVC = TRUE, quiet = FALSE,
+  order.data = TRUE)
 }
 \arguments{
 \item{form}{(formula) specifying the model to be fit, a response variable left of the '~' is mandatory}
@@ -19,7 +20,10 @@ the method found in Giesbrecht & Burns (1985), which also serves as basis for ap
 approximation of the degrees of freedom for each variance component, FALSE = leaves out this step, 
 no confidence intervals for VC will be available}
 
-\item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
+\item{quiet}{(logical) TRUE = will suppress any messages or warnings, which will be issued otherwise}
+
+\item{order.data}{(logical) TRUE = class-variables will be ordered increasingly, FALSE = ordering of class-variables
+will remain as is}
 }
 \description{
 Function performs a Variance Component Analysis (VCA) using Restricted Maximum Likelihood (REML)
@@ -92,7 +96,7 @@ reproMat <- data.frame(
  Repro_CV=c(fit.all[[1]]$aov.tab["total","CV[\%]"],fit.all[[2]]$aov.tab["total","CV[\%]"],
             fit.all[[3]]$aov.tab["total","CV[\%]"],fit.all[[4]]$aov.tab["total","CV[\%]"],
             fit.all[[5]]$aov.tab["total","CV[\%]"],fit.all[[6]]$aov.tab["total","CV[\%]"]))
- 
+  
  for(i in 3:8) reproMat[,i] <- round(reproMat[,i],digits=ifelse(i\%\%2==0,1,3))
  reproMat
 
@@ -127,11 +131,10 @@ fit2
 fit3
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \seealso{
 \code{\link{remlMM}}, \code{\link{VCAinference}}, \code{\link{ranef.VCA}}, \code{\link{residuals.VCA}},
 			\code{\link{anovaVCA}}, \code{\link{anovaMM}}, \code{\link{plotRandVar}}, \code{\link{lmer}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}
