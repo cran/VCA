@@ -7,14 +7,15 @@
 varPlot(form, Data, keep.order = TRUE, type = c(1L, 2L, 3L)[1],
   VARtype = "SD", htab = 0.5, Title = NULL, VSpace = NULL,
   VarLab = list(cex = 0.75, adj = c(0.5, 0.5)), YLabel = list(text =
-  "Value", side = 2, line = 2.5), SDYLabel = list(side = 2, line = 2.5),
-  Points = list(pch = 16, cex = 0.5, col = "black"), SDs = list(pch = 16,
-  col = "blue", cex = 0.75), SDline = list(lwd = 1, lty = 1, col = "blue"),
-  BG = list(border = "lightgray", col.table = FALSE), VLine = NULL,
+  "Value", side = 2, line = 3.5, cex = 1.5), SDYLabel = list(side = 2, line =
+  2.5), Points = list(pch = 16, cex = 0.5, col = "black"), SDs = list(pch =
+  16, col = "blue", cex = 0.75), SDline = list(lwd = 1, lty = 1, col =
+  "blue"), BG = list(border = "lightgray", col.table = FALSE),
+  VLine = list(lty = 1, lwd = 1, col = "gray90"), HLine = NULL,
   Join = list(lty = 1, lwd = 1, col = "gray"), JoinLevels = NULL,
   Mean = list(pch = 3, col = "red", cex = 0.5), MeanLine = NULL,
-  VCnam = list(cex = 0.75, col = "black", line = 0.25), useVarNam = FALSE,
-  ylim = NULL, max.level = 25, ...)
+  Boxplot = NULL, VCnam = list(cex = 0.75, col = "black", line = 0.25),
+  useVarNam = FALSE, ylim = NULL, max.level = 25, ...)
 }
 \arguments{
 \item{form}{(formula) object specifying the model, NOTE: any crossed factors are reduced to last term of the crossing structure, i.e.
@@ -35,7 +36,7 @@ the SD-plot will be used for the CV-plot in case 'VARtype="CV"'.}
 \item{htab}{(numeric) value 0 < htab < 1 specifying the height of the table representing the experimental design. This value represents
 the proportion in relation to the actual plotting area, i.e. htab=1 mean 50\% of the vertical space is reserved for the table.}
 
-\item{Title}{(list) specifying all parameters applicable to function 'title' for printing main- or sub-titles to plots. If 'type==3',
+\item{Title}{(list) specifying all parameters applicable in function \code{\link{title}} for printing main- or sub-titles to plots. If 'type==3',
 these settings will apply to each plot. For individual settings specify a list with two elements, where each element is a
    list itself specifying all parameters of function 'title'. The first one is used for the variability chart, 
    the second one for the SD or CV plot. Set to NULL to omit any titles.}
@@ -44,27 +45,27 @@ these settings will apply to each plot. For individual settings specify a list w
 to each variance component in the tabular indicating the model structure. These elements have to sum to 1, otherwise equal
    sizes will be used for each VC.}
 
-\item{VarLab}{(list) specifying all parameters applicable to function 'text', used to add labels within the table environment refering
+\item{VarLab}{(list) specifying all parameters applicable in function \code{\link{text}}, used to add labels within the table environment refering
 to the nesting structure. This can be a list of lists, where the i-th list corresponds to the i-th variance component, counted
 in bottom-up direction, i.e. starting from the most general variance component ('day' in the 1st example).}
 
-\item{YLabel}{(list) specifying all parameters applicable to function 'mtext', used for labelling the Y-axis.}
+\item{YLabel}{(list) specifying all parameters applicable in function \code{\link{mtext}}, used for labelling the Y-axis.}
 
-\item{SDYLabel}{(list) specifying all parameters applicable to function 'mtext', used for labelling the Y-axis.}
+\item{SDYLabel}{(list) specifying all parameters applicable in function \code{\link{mtext}}, used for labelling the Y-axis.}
 
-\item{Points}{(list) specifying all parameters applicable to function 'points', used to specify scatterplots per lower-end factor-level
+\item{Points}{(list) specifying all parameters applicable in function \code{\link{points}}, used to specify scatterplots per lower-end factor-level
 (e.g. 'run' in formula run/day). If list-elements "col", "pch", "bg" and "cex" are lists themselves with elements "var" and "col"/"pch"/"bg"/"cex", 
    where the former specifies a variable used for assigning colors/symbols/backgrounds/sizes according to the class-level of
    variable "var", point-colors/plotting-symbols/plotting-symbol backgrounds/plotting-symbol sizes can be used for indicating
    specific sub-classes not addressed by the model/design or indicate any sort of information (see examples).
    Note the i-th element of 'col'/'pch' refers of the i-th element of unique(Data$var), even if 'var' is an integer variable.}
 
-\item{SDs}{(list) specifying all parameters applicable to function 'points', used to specify the appearance of SD-plots.}
+\item{SDs}{(list) specifying all parameters applicable in function \code{\link{points}}, used to specify the appearance of SD-plots.}
 
-\item{SDline}{(list) specifying all parameters applicable to function 'lines', used to specify the (optional) line joining individual SDs,
+\item{SDline}{(list) specifying all parameters applicable in function \code{\link{lines}}, used to specify the (optional) line joining individual SDs,
 Set to NULL to omit.}
 
-\item{BG}{(list) specifying the background for factor-levels of a nested factor. This list is passed on to function 'rect' after element
+\item{BG}{(list) specifying the background for factor-levels of a nested factor. This list is passed on to function \code{\link{rect}} after element
 'var', which identifies the factor to be used for coloring, has been removed. If not set to NULL and no factor has been specified by the
 user, the top-level factor is selected by default. If this list contains element 'col.table=TRUE', the same coloring schema is used
    in the table below at the corresponding row/factor (see examples). Addionally, list-elment 'col.bg=FALSE' can be used to turn off
@@ -79,7 +80,13 @@ vertical lines for separation. See argument 'VLine' for additional highlighting 
 as vertical lines. This is useful in addition to 'BG' (see examples), where automatically 'border=NA' will be set that 'VLine' will
 take full effect. If this list contains element 'col.table=TRUE', vertical lines will be extended to the table below the plot.}
 
-\item{Join}{(list) specifying lines joining observed values within lower-level factor-levels, set to NULL to omit.}
+\item{HLine}{(list) specifying all parameters applicable in function \code{\link{abline}} to add horizontal lines. Only horizontal lines can be
+set specifying the 'h' parameter. 'HLine=list()' will use default settings. 'HLine=NULL' will omit horizontal lines.
+In case 'type=3', two separate lists can be specified where the first list applies to the variability chart and the second list
+to the SD-/CV-chart.}
+
+\item{Join}{(list) specifying all parameter applicable in function \code{\link{lines}} controlling how observed values within lower-level factor-levels,
+are joined. Set to NULL to omit.}
 
 \item{JoinLevels}{(list) specifying all arguments applicable in function \code{\link{lines}}, joining factor-levels nested within higher order factor levels,
 list-element "var" specifies this variable}
@@ -94,8 +101,15 @@ Set equal to NULL to omit. Use 'var="int"' for specifying the overall mean (gran
 If this list contains logical 'join' which is set to TRUE, these mean lines will be joined. If list-element "top" is set to TRUE, 
 these lines will be plotted on top, which is particularily useful for very large datasets.}
 
+\item{Boxplot}{(list) if not NULL, a boxplot of all values within the smallest possible subgroup (replicates) will be added to the plot,
+On can set list-elements 'col.box="gray65"', 'col.median="white"', 'col.whiskers="gray65"' specifying different colors and 'lwd=3'
+for the line width of the median-line and whiskers-lines as well as 'jitter=1e3' controlling the jittering of points around the
+center of the box in horizontal direction, smallest possible value is 5 meaning the largest amount of jittering (1/5 in both directions)
+value is)}
+
 \item{VCnam}{(list) specifying the text-labels (names of variance components) appearing as axis-labels. These parameters are passed to function
-'mtext'. Set to NULL to omit VC-names.}
+\code{\link{mtext}}. Parameter 'side' can only be set to 2 (left) or 4 (right) controlling where names of variance components appear. 
+   Set to NULL to omit VC-names.}
 
 \item{useVarNam}{(logical) TRUE = each factor-level specifier is pasted to the variable name of the current variable and used as list-element name, 
 FALSE = factor-level specifiers are used as names of list-elements; the former is useful when factor levels are indicated
@@ -162,17 +176,26 @@ varPlot(y~day+run, dataEP05A2_3, BG=list(col=c("lightblue", "lightgray"), border
 
 # now also color the corresponding row in the table accordingly
 varPlot( y~day+run, dataEP05A2_3, 
-			BG=list(col=c("lightblue", "lightgray"), border=NA, col.table=TRUE))
+         BG=list(col=c("lightblue", "lightgray"), border=NA, col.table=TRUE))
 
 # assign different point-colors according to a classification variable
 # not part of the model (artificial example in this case)
-varPlot( y~day+day:run, dataEP05A2_3, 
+varPlot( y~day+day:run, dataEP05A2_3, mar=c(1,5,1,7), VCnam=list(side=4),
          Points=list(col=list(var="user", col=c("red", "green"))) )
+
+# always check order of factor levels before annotating
+order(unique(dataEP05A2_3$user))
+
+# add legend to right margin
+legend.m(fill=c("green", "red"), legend=c("User 1", "User 2")
 
 # assign different plotting symbols according to a classification
 # variable not part of the model
-varPlot( y~day+day:run, dataEP05A2_3, 
+varPlot( y~day+day:run, dataEP05A2_3, mar=c(1,5,1,7), VCnam=list(side=4), 
          Points=list(pch=list(var="user", pch=c(2, 8))) )
+
+# add legend to right margin
+legend.m(pch=c(8,2), legend=c("User 1", "User 2")
 
 # assign custom plotting symbols by combining 'pch' and 'bg'
 varPlot( y~day+day:run, dataEP05A2_3, 
@@ -187,10 +210,19 @@ varPlot( y~day+day:run, dataEP05A2_3,
 
 # now combine point-coloring and plotting symbols
 # to indicate two additional classification variables
-varPlot( y~day+day:run, dataEP05A2_3,
+varPlot( y~day+day:run, dataEP05A2_3, mar=c(1,5,1,10), 
+         VCnam=list(side=4, cex=1.5),
          Points=list(col=list(var="user", col=c("red", "darkgreen")), 
-					   	pch=list(var="cls2", pch=c(21, 22)),
-						bg =list(var="user", bg =c("orange", "green"))) )
+                     pch=list(var="cls2", pch=c(21, 22)),
+                     bg =list(var="user", bg =c("orange", "green"))) )
+
+# add legend to (right) margin
+ legend.m( margin="right", pch=c(21, 22, 22, 22), 
+           pt.bg=c("white", "white", "orange", "green"), 
+           col=c("black", "black", "white", "white"), 
+           pt.cex=c(1.75, 1.75, 2, 2), 
+           legend=c("Cls2=1", "Cls2=2", "User=2", "User=1"),
+           cex=1.5)
 
 # use magenta lines between each level of factor "run" 
 varPlot(y~day/run, dataEP05A2_3, BG=list(var="run", border="magenta"))
@@ -217,13 +249,13 @@ varPlot(result~day/run, Glucose, type=3)
 
 # use individual settings of 'VarLab' and 'VSpace' for each variance component
 varPlot(result~day/run, Glucose, type=3, 
-		   VarLab=list(list(srt=45, col="red", font=2), 
-		   list(srt=90, col="blue", font=3)), VSpace=c(.25, .75))
+        VarLab=list(list(srt=45, col="red", font=2), 
+        list(srt=90, col="blue", font=3)), VSpace=c(.25, .75))
 
 # set individual titles for both plot when 'type=3'
 varPlot(	result~day/run, Glucose, type=3, 
-  		Title=list(list(main="Variability Chart"), 
-  		list(main="Plot of SD-Values")))
+         Title=list(list(main="Variability Chart"), 
+         list(main="Plot of SD-Values")))
 
 # more complex experimental design
 data(realData)
@@ -232,64 +264,76 @@ varPlot(y~lot/calibration/day/run, Data, type=3)
 
 # improve visual appearance of the plot
 varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
-  	   BG=list(var="calibration", col=c("white", "lightgray")))
+        BG=list(var="calibration", col=c("white", "lightgray")))
 
 # add horizontal lines indicating mean-value for each factor-level of all variables
 varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
-  	   BG=list(var="calibration", 
-				   col=c("aquamarine","antiquewhite2","antiquewhite4",
-						 "antiquewhite1","aliceblue","antiquewhite3",
-						 "white","antiquewhite","wheat" ), 
-				   col.table=TRUE),
-		   MeanLine=list(var=c("lot", "calibration", "day", "int"), 
-						 col=c("orange", "blue", "darkgreen", "yellow"), 
-						 lwd=c(2,2,2,2)))
+        BG=list(var="calibration", 
+                col=c("aquamarine","antiquewhite2","antiquewhite4",
+                      "antiquewhite1","aliceblue","antiquewhite3",
+                      "white","antiquewhite","wheat" ), 
+                col.table=TRUE),
+        MeanLine=list(var=c("lot", "calibration", "day", "int"), 
+                      col=c("orange", "blue", "darkgreen", "yellow"), 
+                      lwd=c(2,2,2,2)))
 
 # now also highlight bounds between factor levels of "lot" and "day" 
 # as vertical lines and extend them into the table (note that each 
 # variable needs its specific value for 'col.table')
 varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
-  	   BG=list(var="calibration", 
-				   col=c("aquamarine","antiquewhite2","antiquewhite4",
-						 "antiquewhite1","aliceblue","antiquewhite3",
-						 "white","antiquewhite","wheat" ), 
-				   col.table=TRUE),
-		   MeanLine=list(var=c("lot", "calibration", "day", "int"), 
-						 col=c("orange", "blue", "darkgreen", "yellow"), 
-						 lwd=c(2,2,2,2)),
-		   VLine=list(var=c("lot", "day"), col=c("black", "skyblue1"),
-			      lwd=c(2, 1), col.table=c(TRUE, TRUE)))
+        BG=list(var="calibration", 
+                col=c("aquamarine","antiquewhite2","antiquewhite4",
+                      "antiquewhite1","aliceblue","antiquewhite3",
+                      "white","antiquewhite","wheat" ), 
+                 col.table=TRUE),
+        MeanLine=list(var=c("lot", "calibration", "day", "int"), 
+                      col=c("orange", "blue", "darkgreen", "yellow"), 
+                      lwd=c(2,2,2,2)),
+        VLine=list(var=c("lot", "day"), col=c("black", "skyblue1"),
+                   lwd=c(2, 1), col.table=c(TRUE, TRUE)))
 
 # one can use argument 'JoinLevels' to join factor-levels or a variable
 # nested within a higher-level factor, 'VLine' is used to separate levels
 # of variables "calibration" and "lot" with different colors
  varPlot(y~calibration/lot/day/run, Data, 
- 		BG=list(var="calibration", 
- 				col=c("#f7fcfd","#e5f5f9","#ccece6","#99d8c9",
- 				"#66c2a4","#41ae76","#238b45","#006d2c","#00441b"), 
- 				col.table=TRUE), 
-			VLine=list(var=c("calibration", "lot"), 
- 				   col=c("black", "darkgray"), lwd=c(2,1), col.table=TRUE), 
- 		JoinLevels=list(var="lot", col=c("#ffffb2","orangered","#feb24c"), 
- 				        lwd=c(2,2,2)), 
- 		MeanLine=list(var="lot", col="blue", lwd=2))
+         BG=list(var="calibration", 
+                 col=c("#f7fcfd","#e5f5f9","#ccece6","#99d8c9",
+                       "#66c2a4","#41ae76","#238b45","#006d2c","#00441b"), 
+                 col.table=TRUE), 
+         VLine=list(var=c("calibration", "lot"), 
+                    col=c("black", "darkgray"), lwd=c(2,1), col.table=TRUE), 
+         JoinLevels=list(var="lot", col=c("#ffffb2","orangered","#feb24c"), 
+                         lwd=c(2,2,2)), 
+         MeanLine=list(var="lot", col="blue", lwd=2))
 
 # same plot demonstrating additional features applicable via 'Points' 
  varPlot(y~calibration/lot/day/run, Data, 
-		BG=list(var="calibration", 
-				col=c("#f7fcfd","#e5f5f9","#ccece6","#99d8c9",
-				"#66c2a4","#41ae76","#238b45","#006d2c","#00441b"), 
-				col.table=TRUE), 
-		VLine=list(var=c("calibration", "lot"), 
+         BG=list(var="calibration", 
+                 col=c("#f7fcfd","#e5f5f9","#ccece6","#99d8c9",
+                       "#66c2a4","#41ae76","#238b45","#006d2c","#00441b"), 
+                 col.table=TRUE), 
+         VLine=list(var=c("calibration", "lot"), 
                     col=c("black", "mediumseagreen"), lwd=c(2,1), 
                     col.table=c(TRUE,TRUE)), 
-		JoinLevels=list(var="lot", col=c("lightblue", "cyan", "yellow"), 
-				        lwd=c(2,2,2)), 
-		MeanLine=list(var="lot", col="blue", lwd=2),
-	Points=list(pch=list(var="lot", pch=c(21, 22, 24)), 
-                 bg =list(var="lot", bg=c("lightblue", "cyan", "yellow")), 
-                 cex=1.25))
+         JoinLevels=list(var="lot", col=c("lightblue", "cyan", "yellow"), 
+                         lwd=c(2,2,2)), 
+         MeanLine=list(var="lot", col="blue", lwd=2),
+         Points=list(pch=list(var="lot", pch=c(21, 22, 24)), 
+                     bg =list(var="lot", bg=c("lightblue", "cyan", "yellow")), 
+                     cex=1.25))
 
+# depict measurements as boxplots
+datS5 <- subset(VCAdata1, sample==5)
+varPlot(y~device/day, datS5, Boxplot=list()) 
+
+# present points as jitter-plot around box-center
+varPlot(	y~device/day, datS5, 
+         Boxplot=list(jitter=1),
+         Points=list(pch=16, 
+						col=list(var="run", col=c("blue", "red"))), 
+			Mean=list(col="black", cex=1, lwd=2)) 
+legend( "topright", legend=c("run 1", "run 2"),
+        fill=c("blue", "red"), box.lty=0, border="white")
 }
 }
 \author{

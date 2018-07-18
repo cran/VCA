@@ -6,7 +6,7 @@
 \usage{
 plotRandVar(obj, term = NULL, mode = c("raw", "student", "standard",
   "pearson"), main = NULL, Xlabels = list(), Points = list(),
-  Vlines = list(), pick = FALSE)
+  Vlines = list(), pick = FALSE, ...)
 }
 \arguments{
 \item{obj}{(VCA) object}
@@ -31,6 +31,8 @@ for better visual separation, set to NULL for omitting vertical lines.}
 
 \item{pick}{(logical) TRUE = lets the user identify single points using the mouse, useful, when many,
 points were drawn where the X-labels are not readable.}
+
+\item{...}{additional arguments to be passed to methods, such as graphical parameters (see \code{\link{par}})}
 }
 \description{
 Plots, possibly transformed, random variates of a linear mixed model (random effects, contitional or marginal

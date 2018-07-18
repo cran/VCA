@@ -1,7 +1,7 @@
-82b9e873f880e8a181fe6576567d8a37 *DESCRIPTION
-6b97d35d6cc78c1cb3be587b760b8287 *NAMESPACE
-37dbdca2ba790c1b6d98ed8a984a846b *R/plot.R
-6faf17d75f70d8042fd34351c43280db *R/vca.R
+1ad32622c040c51fd6d86a0b4e260c4a *DESCRIPTION
+46a1ad9affdab7b708a4d6151d2ddc3b *NAMESPACE
+1bcfb279876c4418b7c1320ad00f0913 *R/plot.R
+6a60e1056a4cca8ab2cb5206f22439c5 *R/vca.R
 5dad30822795145f8a1f67b464788a73 *data/CA19_9.RData
 2edb99722bb114ba9f68c1628ee1ecbb *data/Glucose.RData
 7881f5f59e064ea2cb13f87e5fb5d9bb *data/HugeData.RData
@@ -24,7 +24,7 @@ d7d833be64e7b21229a4c20d9b63aa30 *data/dataRS0005_1.RData
 3d07387e18ee92c60c8630391aaa748c *data/dataRS0005_3.RData
 7038467e7829ab5088c56a96c29bd27c *data/realData.RData
 7d98dab966518cf30f4b4abc4e560b99 *data/sleepstudy.RData
-2ebe8af1652ba30c76229e5f217ecb74 *inst/ChangeLog.txt
+0441309f19b341140386b0862a050104 *inst/ChangeLog.txt
 057b46d31090f2c53531c3b33bb0f856 *inst/UnitTests/RunAllTests.R
 5b48da793aabad31830239f975811caa *inst/UnitTests/SASresultsRealData_Model1_by_PID_Lot.txt
 c0808d5f0dbb385c152c6d33656a6877 *inst/UnitTests/SASresultsRealData_Model2_by_PID.txt
@@ -32,7 +32,7 @@ c0808d5f0dbb385c152c6d33656a6877 *inst/UnitTests/SASresultsRealData_Model2_by_PI
 6b3595a8efcf8dbe2cd2cf2f4736e0c4 *inst/UnitTests/runit.anovaMM.R
 da7812ecb6d1d1bd96dad54c532b4ba6 *inst/UnitTests/runit.anovaVCA.R
 2e111ba0786a12a335f2d72f5fb9b87d *inst/UnitTests/runit.misc.R
-ea805ee037ee2108e70c6490bc0d3f2d *inst/UnitTests/runit.remlMM.R
+f483e6e8fd8e46c9c6a443518e6885e3 *inst/UnitTests/runit.remlMM.R
 e6a16a7411cef2f5cde7b7beed116459 *inst/UnitTests/runit.remlVCA.R
 5c6b3d3d25dfb296328a43eadd819d9e *inst/doc/How_to_work_with_package_VCA.pdf
 9067e493f749ad1be13d85cad9fc739b *man/CA19_9.Rd
@@ -49,7 +49,7 @@ a2e25ed9019bd189ffca24f7445f6398 *man/Scale.Rd
 33bb3af2e8c449521820bbac7aff7485 *man/Sinv.Rd
 1e3a1c5308b26c7e9f900f7e0c92c7bd *man/Solve.Rd
 cc9b69dd689dc58d2af8178b04440ad2 *man/Trace.Rd
-05dce0a602615019d5e737e6b51d14fe *man/VCA-Package.Rd
+48a7662843cd28d70611ec6ff15bc94a *man/VCA-Package.Rd
 87ee2d56eb707305d37ab247f5894fd0 *man/VCAdata1.Rd
 a614aad4a6793c09568d847e11efb7c2 *man/VCAinference.Rd
 4151b5a746d16f8225a1743e0a30c1c6 *man/anovaDF.Rd
@@ -91,6 +91,7 @@ d132c1863171d22ebe161787b8cca1aa *man/getSSQqf.Rd
 5c8fbaa895aa154817b8c260290357bd *man/getV.Rd
 a2e178b62b8cfcf16a7e07eea46ac20d *man/getVCvar.Rd
 dfa6a483b63460dcd7895e2939c1d779 *man/isBalanced.Rd
+7d84db8172a5679f3ff33c7068f74dbf *man/legend.m.Rd
 80ca481a8a8d690298323a289e070a1b *man/lmerG.Rd
 2fa616611aedb611c968f43e90421306 *man/lmerMatrices.Rd
 4533b200f039376844bca12984fad2fe *man/lmerSummary.Rd
@@ -101,7 +102,7 @@ c0715edf7b0a3f47883d6032cf6a1223 *man/lsmMat.Rd
 0bb579cfd83524c79cabbc0dcdbdb388 *man/model.matrix.VCA.Rd
 f7f2b37fc1cb75ec509cf447cf9fd691 *man/orderData.Rd
 0c8f18b743cf3d15077206b3fcd44167 *man/plot.VCA.Rd
-55a9c1e0af9981629941e9a39d6c0e93 *man/plotRandVar.Rd
+2c544dbb6ddf469148748d7cefa24739 *man/plotRandVar.Rd
 949a4b8adec0e116b92a1fd12c5fe823 *man/predict.VCA.Rd
 889c9545cfab596c01968c201967d2a3 *man/print.VCA.Rd
 dc2c2ad6cf8ff23d5547a9aa1b24f212 *man/print.VCAinference.Rd
@@ -118,8 +119,8 @@ d477b271246b7556a9b48b4f88da4c1d *man/ranef.VCA.Rd
 3ea843c81417e4937bf4fd9ddfb17fb2 *man/stepwiseVCA.Rd
 6095b9d6160a3766b3bea637436995ab *man/test.fixef.Rd
 c4536f334808ed5ccc9c01b1d6f57a20 *man/test.lsmeans.Rd
-43c40d00ac4a0d40227c6a6ccc99cad4 *man/varPlot.Rd
+c4de1593c7bad9758f1f3efcc71644ec *man/varPlot.Rd
 b3d28f009418a7306f1381fc57f6d371 *man/vcov.VCA.Rd
 e2457044057c5a1da5b0593917c2eebd *man/vcovFixed.Rd
 e34f41de0528548a6e8919c28591a2de *man/vcovVC.Rd
-75e646eca9cf66976ab2029a64e3f9c1 *src/vca.c
+009a189af97cbb4f01c4b78e2ac49646 *src/vca.c

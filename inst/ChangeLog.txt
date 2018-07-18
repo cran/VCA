@@ -1,3 +1,15 @@
+Version 1.3.4
+-------------
+
+- in function 'plotRandVar' the ... argument was added
+- in function 'varPlot' argument "Boxplot" was added allowing to depict data as boxplots
+- in function 'varPlot' argument "HLine" was added controlling how horizontal lines will appear in the plot for better
+  orientation
+- in function 'varPlot' in argument "VCnam" one can now set on which side names of variance components appear (2=left,
+  4=right), only these two options work  
+- function 'legend.m' added for easily adding legend to right margin
+
+
 Version 1.3.3
 -------------
 

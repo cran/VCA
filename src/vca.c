@@ -12,10 +12,11 @@
  *					Nonnenwald 2																*
  *					82377 Penzberg / Germany													*
  *																								*
+ *					Phone: +49 8856 60 6621														*
  *					mailto:andre.schuetzenmeister@roche.com										*
  *																								*
  *				  																			    *
- * Last modified:	2017-July-12																*
+ * Last modified:	2015-May-19																	*
  *																								*
  ************************************************************************************************/
 #include <stdio.h>

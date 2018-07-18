@@ -15,6 +15,7 @@ export(
 	"getV",
 	"getMat",
 	"isBalanced",
+	"legend.m",
 	"lsmeans",
 	"lmerSummary",
 	"MPinv",

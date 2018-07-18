@@ -57,9 +57,7 @@ TF002.anovaMM.balanced1 <- function()
 	
 }
 
-# checks whether both function yield identical results when fitting a random model, 
-# once setting negative variance estimates equal to zero, and once allowing negative 
-# variance estimates
+# checks whether both functions yield identical results when fitting a random model
 
 TF003.anovaMM.NegVC.balanced <- function()
 {
@@ -69,13 +67,8 @@ TF003.anovaMM.NegVC.balanced <- function()
 	set.seed(123)
 	test.dat$y <- test.dat$y + rnorm(40,,2.5)						# add something which yields negative estimates
 	
-	resRM1 <- remlVCA(y~day/run, test.dat)							# constrain VC to 0
+	resRM1 <- remlVCA(y~day/run, test.dat)							# constrain negative VC to zero by design
 	resMM1 <- remlMM(y~(day)/(run), test.dat)
-	
-	checkEquals(resRM1$aov.tab, resMM1$aov.tab)
-	
-	resRM2 <- remlVCA(y~day/run, test.dat)			# allowing negative VCs
-	resMM2 <- remlMM(y~(day)/(run), test.dat)
 	
 	checkEquals(resRM1$aov.tab, resMM1$aov.tab)
 }

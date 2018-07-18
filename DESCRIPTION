@@ -1,6 +1,6 @@
 Package: VCA
-Version: 1.3.3
-Date: 2017-07-12
+Version: 1.3.4
+Date: 2018-07-18
 Title: Variance Component Analysis
 Author: Andre Schuetzenmeister [aut, cre], Florian Dufey [ctb]
 Maintainer: Andre Schuetzenmeister <andre.schuetzenmeister@roche.com>
@@ -22,6 +22,6 @@ Description:
 License: GPL (>= 3)
 Collate: 'plot.R' 'vca.R'
 NeedsCompilation: yes
-Packaged: 2017-07-12 08:40:20 UTC; schueta6
+Packaged: 2018-07-18 11:30:42 UTC; schueta6
 Repository: CRAN
-Date/Publication: 2017-07-12 12:52:42 UTC
+Date/Publication: 2018-07-18 12:20:03 UTC

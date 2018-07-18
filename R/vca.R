@@ -297,7 +297,7 @@ predict.VCA <- function(object, newdata=NULL, re=NULL, allow.new.levels=FALSE, .
 			tmpZ <- getMM(as.formula(paste0("~", rtrms[i], "-1")), newdata) 	# model.matrix wo intercept
 			Z  	 <- cbind(Z, tmpZ) 												# build complete Z-matrix corresponding to newdata
 		}	
-		
+
 		ref <- ref[colnames(Z),,drop=F]						# align random effects to column-order of Z
 		preds <- preds + as.numeric(Z %*% ref)		
 	}	
@@ -454,7 +454,7 @@ fitLMM <- function(	form, Data, method=c("anova", "reml"), scale=TRUE, VarVC=TRU
 	call 	<- match.call()
 	method	<- match.arg(tolower(method[1]), choices=c("anova", "reml"))
 	Args	<- list(...)
-	
+
 	Args$form  <- form
 	Args$Data  <- Data
 	
@@ -505,7 +505,7 @@ fitLMM <- function(	form, Data, method=c("anova", "reml"), scale=TRUE, VarVC=TRU
 		
 		attr(fit[[i]]$Type, "fitted.by") <- "fitLMM"	# only LMM fitted by 'fitLMM' can be handled in standard ways
 	}
-	
+
 	if(wasVCA)								
 		fit <- fit[[1]]
 	
@@ -733,7 +733,7 @@ scaleData <- function(Data=NULL, resp=NULL)
 Scale <- function(Fun, form, Data, ...)
 {
 	call <- as.list(match.call())			# check whether a complete funtion call was the sole argument
-	
+
 	if(class(call$Fun) == "call")
 	{
 		call <- as.list(call$Fun)
@@ -896,7 +896,7 @@ reScale <- function(obj, VarVC=TRUE)
 	
 	VCAobj$Matrices$y <- VCAobj$Matrices$y * scale
 	VCAobj$data[,VCAobj$response] <- VCAobj$data[,VCAobj$response] * scale			# re-scale response variable in the data-element
-	
+
 	if(!is.null(VCAobj$FixedEffects))
 		VCAobj$FixedEffects 	<- try(VCAobj$FixedEffects * scale,  silent=TRUE)
 	if(!is.null(VCAobj$RandomEffects))
@@ -1063,7 +1063,7 @@ getGB <- function (obj, tol = 1e-12)
 	if (!"error" %in% VCnames)
 		VCnames <- c(VCnames, "error")
 	rownames(VCvar) <- colnames(VCvar) <- VCnames
-	
+
 	VCvar[nze, nze] <- 2 * solve(VCvar[nze, nze])
 	VCvar <- VCvar
 	attr(VCvar, "method") <- "gb"
@@ -1165,7 +1165,7 @@ lmerMatrices <- function(obj, tab=NULL, terms=NULL, cov=FALSE, X=NULL)
 	count  <- 1
 	REnam  <- names(re)
 	REnamZ <- NULL
-	
+
 	for(i in 1:length(re))				# transform random effects into VCA-compatible structure and derive					
 	{									# column-index in random effects design matrix Z for all random effects
 		if(ncol(re[[i]]) > 1)			# regression model, i.e. random effects in multi-column matrix
@@ -1225,7 +1225,7 @@ lmerMatrices <- function(obj, tab=NULL, terms=NULL, cov=FALSE, X=NULL)
 	sNre   		<- sum(Nre)
 	re.assign 	<- list(ind=integer(sNre), terms=names(reInd))
 	VC	  	  	<- tab[-c(1, nrow(tab)), "VC"]
-	
+
 	for(i in 1:length(reInd))
 		re.assign$ind[reInd[[i]]] <- i
 	
@@ -1375,7 +1375,7 @@ lmerSummary <- function(obj, VarVC=TRUE, terms=NULL, Mean=NULL, cov=FALSE, X=NUL
 			terms <- terms[-length(terms)]
 		}
 	}
-	
+
 	Sum  <- Sum[,-c(2,3)]
 	rownames(Sum) <- Sum[,"grp"]
 	Sum <- Sum[c(terms, "Residual"), ]
@@ -1390,10 +1390,10 @@ lmerSummary <- function(obj, VarVC=TRUE, terms=NULL, Mean=NULL, cov=FALSE, X=NUL
 	if(!tab.only)										# complete VCA-object shall be created
 	{
 		obj <- lmerMatrices(obj, tab=Sum, terms=terms,	# compute some required matrices
-				cov=cov, X=X)							
+							cov=cov, X=X)							
 		obj$aov.tab <- Sum								# required for Giesbrecht & Burns approximation
 	}
-	
+
 	if(VarVC)
 	{
 		varVC <- obj$VarCov <- getGB(obj)				# apply Giesbrecht & Burns approximation optimized for MKL
@@ -1672,9 +1672,9 @@ remlVCA <- function(form, Data, by=NULL, VarVC=TRUE, quiet=FALSE, order.data=TRU
 	res$NegVCmsg 	 <- ""														# there will never be anything to report
 	res$VarVC.method <- "gb"
 	res$balanced <- if(isBalanced(as.formula(trms), Data)) 
-				"balanced"  
-			else 
-				"unbalanced" 
+						"balanced"  
+					else 
+						"unbalanced" 
 	
 	res$terms.classes <- sapply(Data[,rownames(attr(trms, "factors"))[-1]], class)
 	
@@ -1684,8 +1684,8 @@ remlVCA <- function(form, Data, by=NULL, VarVC=TRUE, quiet=FALSE, order.data=TRU
 	res$Nobs <- Nobs
 	
 	tmp <- lmerSummary(	obj=fit, VarVC=VarVC, 			# construct table similar to aov-table and approximate vcovVC
-			terms=attr(trms, "term.labels"),
-			Mean=res$Mean)	
+						terms=attr(trms, "term.labels"),
+						Mean=res$Mean)	
 	res <- c(res, tmp)
 	class(res) <- "VCA"
 	
@@ -2083,9 +2083,9 @@ remlMM <- function(form, Data, by=NULL, VarVC=TRUE, cov=TRUE, quiet=FALSE, order
 	res$Nobs <- Nobs
 	
 	tmp <- lmerSummary(	obj=fit, VarVC=VarVC, 			# construct table similar to aov-table and approximate vcovVC
-			terms=res$random,
-			Mean=res$Mean,
-			cov=cov, X=X2)				
+						terms=res$random,
+						Mean=res$Mean,
+						cov=cov, X=X2)				
 	
 	tmp$Matrices$y <- Matrix(Data[,resp], ncol=1)
 	res <- c(res, tmp)
@@ -2231,9 +2231,9 @@ Csweep <- function(M, asgn, thresh=1e-12, tol=1e-12, Ncpu=1)
 		M[which(ind)] <- 0
 	
 	swept <- .C("Tsweep", M=as.double(t(M)), k=as.integer(asgn), thresh=as.double(thresh), 
-				NumK=as.integer(length(asgn)), nr=as.integer(nr), LC=as.integer(LC), 
-				tol=as.double(tol), SSQ=as.double(rep(0, length(unique(asgn)))), 
-				PACKAGE="VCA")
+			NumK=as.integer(length(asgn)), nr=as.integer(nr), LC=as.integer(LC), 
+			tol=as.double(tol), SSQ=as.double(rep(0, length(unique(asgn)))), 
+			PACKAGE="VCA")
 	
 	res <- list(SSQ=swept$SSQ, 
 			LC=tapply(swept$LC, asgn, function(x) length(which(x==1))))
@@ -2285,7 +2285,7 @@ Sinv <- function(M, tol=.Machine$double.eps)
 #		M[which(ind)] <- 0
 #	
 	swept <- .C("TsweepFull", M=as.double(t(M)), nr=as.integer(nr), 
-				tol=as.double(tol*max(abs(diag(M)))), PACKAGE="VCA")
+			tol=as.double(tol*max(abs(diag(M)))), PACKAGE="VCA")
 	
 	if(class(M) == "matrix")
 		return(matrix(round(swept$M, abs(log10(tol))), nrow=nr, ncol=nr, byrow=TRUE))
@@ -2411,7 +2411,7 @@ getSSQsweep <- function(Data, tobj, random=NULL)
 	yt <- t(y)
 	
 	M <- rbind(	cbind(as.matrix(Xt%*%X), as.matrix(Xt%*%y)), 
-				cbind(as.matrix(yt%*%X), as.matrix(yt%*%y)))	
+			cbind(as.matrix(yt%*%X), as.matrix(yt%*%y)))	
 	
 	uind <- unique(asgn)							# all factors
 	SS <- LC <- NULL
@@ -3224,7 +3224,7 @@ anovaDF <- function(form, Data, Zmat, Amat, tol=1e-8)
 			{
 				resp <- as.character(form)[2]					# response variable
 				
-				tmp <- anova(lm(paste(	resp, "~", paste(fac[which(mf)], collapse="+"), 
+				tmp <- anova(lm(paste(resp, "~", paste(fac[which(mf)], collapse="+"), 
 										ifelse(attr(form, "intercept"),"", "-1"), sep=""), Data))
 				
 				DF[which(mf)]  <- tmp[-nrow(tmp), "Df"]
@@ -3294,7 +3294,7 @@ solveMME <- function(obj)
 	K 		<- Solve(t(X) %*% Vi %*% X, quiet=TRUE)		# variance-covariance matrix of fixed effects
 	T	   	<- K %*% t(X) %*% Vi
 	fixed  	<- T %*% y
-	
+
 	mats$Vi <- Vi
 	mats$T  <- T
 	rownames(fixed) <- colnames(X)
@@ -3398,12 +3398,12 @@ ranef.VCA <- function(object, term=NULL, mode=c("raw", "student", "standard"), q
 		if(is.null(term))
 		{
 			res <- mapply(	FUN=ranef.VCA, object=obj,
-					mode=mode[1], quiet=quiet, SIMPLIFY=FALSE)
+							mode=mode[1], quiet=quiet, SIMPLIFY=FALSE)
 		}
 		else
 		{
 			res <- mapply(	FUN=ranef.VCA, object=obj, term=term,
-					mode=mode[1], quiet=quiet, SIMPLIFY=FALSE)
+							mode=mode[1], quiet=quiet, SIMPLIFY=FALSE)
 		}
 		names(res) <- names(obj)
 		
@@ -3411,7 +3411,7 @@ ranef.VCA <- function(object, term=NULL, mode=c("raw", "student", "standard"), q
 			res <- res[1]
 		
 		rm("VCAinference.obj.is.list", envir=msgEnv)
-		
+
 		return(res)
 	}	
 	
@@ -3572,8 +3572,8 @@ fixef <- function(object, ...)
 #' fixef(fit, "c")
 #' }
 
-fixef.VCA <- function(	object, type=c("simple", "complex"), ddfm=c("contain", "residual", "satterthwaite"), 
-						tol=1e-12, quiet=FALSE, ...)
+fixef.VCA <- function(object, type=c("simple", "complex"), ddfm=c("contain", "residual", "satterthwaite"), 
+		tol=1e-12, quiet=FALSE, ...)
 {
 	Call <- match.call()
 	
@@ -3592,8 +3592,8 @@ fixef.VCA <- function(	object, type=c("simple", "complex"), ddfm=c("contain", "r
 		assign("VCAinference.obj.is.list", TRUE, envir=msgEnv)			# indicate that a list-type object was passed intially
 		
 		res <- mapply(	FUN=fixef.VCA, obj=obj, type=type[1],
-						ddfm=ddfm[1], tol=tol, quiet=quiet,
-						SIMPLIFY=FALSE)
+				ddfm=ddfm[1], tol=tol, quiet=quiet,
+				SIMPLIFY=FALSE)
 		
 		names(res) <- names(obj)
 		
@@ -3788,7 +3788,7 @@ fixef.VCA <- function(	object, type=c("simple", "complex"), ddfm=c("contain", "r
 #' }
 
 lsmeans <- function(obj, var=NULL, type=c("simple", "complex"), ddfm=c("contain", "residual", "satterthwaite"), 
-					at=NULL, contr.mat=FALSE, quiet=FALSE)
+		at=NULL, contr.mat=FALSE, quiet=FALSE)
 {
 	Call <- match.call()
 	
@@ -4266,7 +4266,7 @@ lsmMat <- function(obj, var=NULL, quiet=FALSE)
 			
 			tmp.splt  <- unlist(strsplit(lvl.nam[j], ":"))									# [rule 2] handling all effects that are contained by the current effect
 			contained <- sapply(rem.nam, function(x) 
-								all(unlist(strsplit(x, ":")) %in% tmp.splt))				
+						all(unlist(strsplit(x, ":")) %in% tmp.splt))				
 			
 			if(any(contained))
 			{
@@ -4280,8 +4280,8 @@ lsmMat <- function(obj, var=NULL, quiet=FALSE)
 			
 			con.mat[1,lvl.ind[j]] <- 1														# [rule 3] setting the columns corresponding to the current effect to 1, all others remain 0
 			
-			contain <- sapply(	rem.nam, function(x) 											# [rule 4] consider effects that contain the current effect
-								all(tmp.splt %in% unlist(strsplit(x, ":"))))  
+			contain <- sapply(rem.nam, function(x) 											# [rule 4] consider effects that contain the current effect
+						all(tmp.splt %in% unlist(strsplit(x, ":"))))  
 			
 			if(any(contain))
 			{
@@ -4521,7 +4521,7 @@ vcovFixed <- function(obj, quiet=FALSE)
 		VCov <- Solve(t(X) %*% Vi %*% X, quiet=TRUE)
 	#VCov <- MPinv(t(X) %*% Vi %*% X)
 	rownames(VCov) <- colnames(VCov) <- rownames(obj$FixedEffects)
-	
+
 	return(VCov)
 }
 
@@ -4833,7 +4833,7 @@ test.fixef <- function(	obj, L, ddfm=c("contain", "residual", "satterthwaite"),
 		t.stat 	<- as.numeric(sqrt((t(L %*% b) %*% lPli %*% (L %*% b))/r))
 		
 		res <- matrix(c(est, DF, se, sgn*t.stat, 2*pt(abs(t.stat), df=DF, lower.tail=FALSE)), nrow=1,
-						dimnames=list(NULL, c("Estimate", "DF", "SE", "t Value", "Pr > |t|"))) 
+				dimnames=list(NULL, c("Estimate", "DF", "SE", "t Value", "Pr > |t|"))) 
 		
 		attr(res, "ddfm") <- ddfm
 		
@@ -4952,10 +4952,10 @@ getL <- function(obj, s, what=c("fixef", "lsmeans"))
 	cnl <- nchar(colnames(res))	
 	
 	tms <- apply(res, 1, function(x){
-							ind <- which(x > 0)
-							len <- cnl[ind]
-							return(ind[which(len == max(len))])
-						 })
+				ind <- which(x > 0)
+				len <- cnl[ind]
+				return(ind[which(len == max(len))])
+			})
 	contr[tms] <- fac	
 	return(matrix(contr, nrow=1, dimnames=list(cname, n)))
 }
@@ -5430,19 +5430,19 @@ getCmatrix <- function(form, Data, DF=NULL, type=c("MS", "SS"), digits=12L, MM=N
 	if(inherits(MM, "CsparseMatrix"))			# even faster implementation for sparse matrices
 	{	
 		res <- .C(	"getAmatBmatSparse", xEl=as.double(MM@x), iEl=as.integer(MM@i),
-					pEl=as.integer(MM@p), NobsCol=as.integer(diff(MM@p)), 
-					ncol=as.integer(nc), nrow=as.integer(nr), tol=as.double(tol), 
-					Amat=as.double(Amat), Bmat=as.double(Bmat), amat=as.double(amat),
-					Cmat=double(NVC^2), Nvc=as.integer(NVC), asgn=as.integer(asgn[-1]),
-					DF=as.integer(DF), PACKAGE="VCA")
+				pEl=as.integer(MM@p), NobsCol=as.integer(diff(MM@p)), 
+				ncol=as.integer(nc), nrow=as.integer(nr), tol=as.double(tol), 
+				Amat=as.double(Amat), Bmat=as.double(Bmat), amat=as.double(amat),
+				Cmat=double(NVC^2), Nvc=as.integer(NVC), asgn=as.integer(asgn[-1]),
+				DF=as.integer(DF), PACKAGE="VCA")
 	}
 	else										# fast C-implementation for dense matrices
 	{
-		res <- .C(	"getAmatBmat", mm=as.double(MM), 										# call C-implementation of the most elaborate part of the algorithm
-					ncol=as.integer(nc), nrow=as.integer(nr), tol=as.double(tol), 
-					Amat=as.double(Amat), Bmat=as.double(Bmat), amat=as.double(amat),
-					Cmat=double(NVC^2), NVC=as.integer(NVC), asgn=as.integer(asgn[-1]),
-					DF=as.integer(DF),	PACKAGE="VCA")
+		res <- .C("getAmatBmat", mm=as.double(MM), 										# call C-implementation of the most elaborate part of the algorithm
+				ncol=as.integer(nc), nrow=as.integer(nr), tol=as.double(tol), 
+				Amat=as.double(Amat), Bmat=as.double(Bmat), amat=as.double(amat),
+				Cmat=double(NVC^2), NVC=as.integer(NVC), asgn=as.integer(asgn[-1]),
+				DF=as.integer(DF),	PACKAGE="VCA")
 	}
 	
 	C <- matrix(res$Cmat, NVC, NVC)
@@ -5576,7 +5576,7 @@ getVCvar <- function(Ci, B, Z, VC)
 	listlen3=laeng*laeng*laeng
 	ZAZ <-vector("list",listlen3) 
 	dim(ZAZ) <- c(laeng,laeng,laeng)
-	
+
 	for(i in 1:laeng)
 	{
 		for (j in i:laeng)    #Zb is nonvanishing only if j>=i and k>=i
@@ -5700,7 +5700,7 @@ getMM <- function(form, Data, keep.order=TRUE)
 	N <- nrow(Data)
 	lvls <- strsplit(form[ifelse(length(form) == 3, 3, 2)], "\\+")  # obtain single factors
 	lvls <- gsub(" ", "", unlist(lvls))  
-	
+
 	if(int)
 	{
 		mm <- matrix(1, nrow=N, ncol=1)                             # include intercept
@@ -5712,12 +5712,12 @@ getMM <- function(form, Data, keep.order=TRUE)
 		mm <- matrix(nrow=N, ncol=0)
 		assign <- NULL
 	}
-	
+
 	for(i in 1:length(lvls))                                        # over terms in the formula
 	{   
 		if(grepl("-.?1", lvls[i]))
 			lvls[i] <- sub("-.?1", "", lvls[i])
-		
+
 		if(grepl(":", lvls[i]))                                     # crossed terms
 		{
 			tmpVar  <- unlist(strsplit(lvls[i], ":"))
@@ -5742,7 +5742,7 @@ getMM <- function(form, Data, keep.order=TRUE)
 				if(VarNum)
 				{
 					nam0 <- rep(lvls[i], length(tmpName))
-					
+				
 					for(j in 1:length(facVar))
 					{
 						mat  <- tmpName
@@ -5788,7 +5788,7 @@ getMM <- function(form, Data, keep.order=TRUE)
 				VarFac  <- FALSE
 			}
 		}
-		
+
 		if(VarFac)
 		{
 			eff <- unique(Data[,lvls[i]])
@@ -5808,7 +5808,7 @@ getMM <- function(form, Data, keep.order=TRUE)
 			tmp <- matrix(1,nrow=N)
 			colnames(tmp) <- tmpName
 		}        
-		
+
 		if(VarNum)										
 		{
 			for(j in 1:ncol(tmp))
@@ -6218,10 +6218,10 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 		assign("VCAinference.obj.is.list", TRUE, envir=msgEnv)			# indicate that a list-type object was passed intially
 		
 		res <- mapply(	FUN=VCAinference, obj=obj, alpha=alpha, 
-						total.claim=total.claim, error.claim=error.claim,
-						claim.type=claim.type, VarVC=VarVC, excludeNeg=excludeNeg,
-						constrainCI=constrainCI, ci.method=ci.method, 
-						SIMPLIFY=FALSE)
+				total.claim=total.claim, error.claim=error.claim,
+				claim.type=claim.type, VarVC=VarVC, excludeNeg=excludeNeg,
+				constrainCI=constrainCI, ci.method=ci.method, 
+				SIMPLIFY=FALSE)
 		names(res) <- names(obj)
 		
 		if(obj.len == 1)			# mapply returns a list of length 2 in case that length(obj) was equal to 1
@@ -7365,7 +7365,7 @@ as.matrix.VCAinference <- function(x, what=c("VC", "SD", "CV"), digits=6, ...)
 #' }
 
 anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "qf"), 
-						VarVC.method=c("gb", "scm"), MME=FALSE, quiet=FALSE, order.data=TRUE)
+		VarVC.method=c("gb", "scm"), MME=FALSE, quiet=FALSE, order.data=TRUE)
 {
 	if(!is.null(by))
 	{
@@ -7481,7 +7481,7 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE, SSQ.method=c("sweep", "q
 	aov.tab <- tmp.res$aov.tab												# basic ANOVA-table
 	DF <- aov.tab[,"DF"]
 	SS <- aov.tab[,"SS"]
-	
+
 	if(allObsEqual)
 	{
 		aov.tab[,c("SS", "MS")] <- 0

@@ -32,6 +32,7 @@
 #'                      for better visual separation, set to NULL for omitting vertical lines.
 #' @param pick			(logical) TRUE = lets the user identify single points using the mouse, useful, when many,
 #'                      points were drawn where the X-labels are not readable.
+#' @param ...			additional arguments to be passed to methods, such as graphical parameters (see \code{\link{par}})
 #' 
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #' 
@@ -59,7 +60,7 @@
 #' } 
 
 plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pearson"), main=NULL, 
-		Xlabels=list(), Points=list(), Vlines=list(), pick=FALSE)
+						Xlabels=list(), Points=list(), Vlines=list(), pick=FALSE, ...)
 {
 	Call <- match.call()
 	
@@ -151,7 +152,7 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 	
 	nam <- names(vec)
 	
-	plot(1:Nvec, vec, main=main, axes=FALSE, xlab=NA, ylab=Ylab, type="n")
+	plot(1:Nvec, vec, main=main, axes=FALSE, xlab=NA, ylab=Ylab, type="n", ...)
 	
 	axis(2)
 	axis(1, at=1:Nvec, labels=NA)
@@ -204,7 +205,7 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' @param Data          (data.frame) with the data
 #' @param form          (formula) object specifying the model, NOTE: any crossed factors are reduced to last term of the crossing structure, i.e.
 #'                      "a:b" is reduced to "b", "a:b:c" is reduced to "c". 
-#' @param Title			(list) specifying all parameters applicable to function 'title' for printing main- or sub-titles to plots. If 'type==3',
+#' @param Title			(list) specifying all parameters applicable in function \code{\link{title}} for printing main- or sub-titles to plots. If 'type==3',
 #'                      these settings will apply to each plot. For individual settings specify a list with two elements, where each element is a
 #' 						list itself specifying all parameters of function 'title'. The first one is used for the variability chart, 
 #' 						the second one for the SD or CV plot. Set to NULL to omit any titles.
@@ -220,21 +221,21 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #'                      the SD-plot will be used for the CV-plot in case 'VARtype="CV"'.
 #' @param htab          (numeric) value 0 < htab < 1 specifying the height of the table representing the experimental design. This value represents
 #'                      the proportion in relation to the actual plotting area, i.e. htab=1 mean 50\% of the vertical space is reserved for the table.
-#' @param VarLab        (list) specifying all parameters applicable to function 'text', used to add labels within the table environment refering
+#' @param VarLab        (list) specifying all parameters applicable in function \code{\link{text}}, used to add labels within the table environment refering
 #'                      to the nesting structure. This can be a list of lists, where the i-th list corresponds to the i-th variance component, counted
 #'                      in bottom-up direction, i.e. starting from the most general variance component ('day' in the 1st example).
-#' @param YLabel        (list) specifying all parameters applicable to function 'mtext', used for labelling the Y-axis.
-#' @param SDYLabel      (list) specifying all parameters applicable to function 'mtext', used for labelling the Y-axis.
-#' @param Points        (list) specifying all parameters applicable to function 'points', used to specify scatterplots per lower-end factor-level
+#' @param YLabel        (list) specifying all parameters applicable in function \code{\link{mtext}}, used for labelling the Y-axis.
+#' @param SDYLabel      (list) specifying all parameters applicable in function \code{\link{mtext}}, used for labelling the Y-axis.
+#' @param Points        (list) specifying all parameters applicable in function \code{\link{points}}, used to specify scatterplots per lower-end factor-level
 #'                      (e.g. 'run' in formula run/day). If list-elements "col", "pch", "bg" and "cex" are lists themselves with elements "var" and "col"/"pch"/"bg"/"cex", 
 #' 						where the former specifies a variable used for assigning colors/symbols/backgrounds/sizes according to the class-level of
 #' 						variable "var", point-colors/plotting-symbols/plotting-symbol backgrounds/plotting-symbol sizes can be used for indicating
 #' 						specific sub-classes not addressed by the model/design or indicate any sort of information (see examples).
 #' 						Note the i-th element of 'col'/'pch' refers of the i-th element of unique(Data$var), even if 'var' is an integer variable.
-#' @param SDs           (list) specifying all parameters applicable to function 'points', used to specify the appearance of SD-plots.
-#' @param SDline        (list) specifying all parameters applicable to function 'lines', used to specify the (optional) line joining individual SDs,
+#' @param SDs           (list) specifying all parameters applicable in function \code{\link{points}}, used to specify the appearance of SD-plots.
+#' @param SDline        (list) specifying all parameters applicable in function \code{\link{lines}}, used to specify the (optional) line joining individual SDs,
 #'                      Set to NULL to omit.
-#' @param BG            (list) specifying the background for factor-levels of a nested factor. This list is passed on to function 'rect' after element
+#' @param BG            (list) specifying the background for factor-levels of a nested factor. This list is passed on to function \code{\link{rect}} after element
 #'                      'var', which identifies the factor to be used for coloring, has been removed. If not set to NULL and no factor has been specified by the
 #'                      user, the top-level factor is selected by default. If this list contains element 'col.table=TRUE', the same coloring schema is used
 #' 						in the table below at the corresponding row/factor (see examples). Addionally, list-elment 'col.bg=FALSE' can be used to turn off
@@ -247,8 +248,13 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' @param VLine			(list) specifying all parameters applicable in \code{\link{lines}} optionally separating levels of one or multiple variables
 #' 						as vertical lines. This is useful in addition to 'BG' (see examples), where automatically 'border=NA' will be set that 'VLine' will
 #' 						take full effect. If this list contains element 'col.table=TRUE', vertical lines will be extended to the table below the plot.
+#' @param HLine			(list) specifying all parameters applicable in function \code{\link{abline}} to add horizontal lines. Only horizontal lines can be
+#' 						set specifying the 'h' parameter. 'HLine=list()' will use default settings. 'HLine=NULL' will omit horizontal lines.
+#' 						In case 'type=3', two separate lists can be specified where the first list applies to the variability chart and the second list
+#' 						to the SD-/CV-chart.
 #' @param ylim          (numeric) vector of length two, specifying the limits in Y-direction, if not set these values will be determined automatically.
-#' @param Join          (list) specifying lines joining observed values within lower-level factor-levels, set to NULL to omit.
+#' @param Join          (list) specifying all parameter applicable in function \code{\link{lines}} controlling how observed values within lower-level factor-levels,
+#' 						are joined. Set to NULL to omit.
 #' @param JoinLevels	(list) specifying all arguments applicable in function \code{\link{lines}}, joining factor-levels nested within higher order factor levels,
 #' 						list-element "var" specifies this variable
 #' @param Mean          (list) passed to function \code{\link{points}} specifying plotting symbols used to indicate mean values per lower-level factor-level, 
@@ -259,8 +265,14 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' 						Set equal to NULL to omit. Use 'var="int"' for specifying the overall mean (grand mean, intercept).
 #' 						If this list contains logical 'join' which is set to TRUE, these mean lines will be joined. If list-element "top" is set to TRUE, 
 #' 						these lines will be plotted on top, which is particularily useful for very large datasets.
+#' @param Boxplot		(list) if not NULL, a boxplot of all values within the smallest possible subgroup (replicates) will be added to the plot,
+#' 						On can set list-elements 'col.box="gray65"', 'col.median="white"', 'col.whiskers="gray65"' specifying different colors and 'lwd=3'
+#' 						for the line width of the median-line and whiskers-lines as well as 'jitter=1e3' controlling the jittering of points around the
+#' 						center of the box in horizontal direction, smallest possible value is 5 meaning the largest amount of jittering (1/5 in both directions)
+#' 						value is)
 #' @param VCnam         (list) specifying the text-labels (names of variance components) appearing as axis-labels. These parameters are passed to function
-#'                      'mtext'. Set to NULL to omit VC-names. 
+#'                      \code{\link{mtext}}. Parameter 'side' can only be set to 2 (left) or 4 (right) controlling where names of variance components appear. 
+#' 						Set to NULL to omit VC-names. 
 #' @param useVarNam     (logical) TRUE = each factor-level specifier is pasted to the variable name of the current variable and used as list-element name, 
 #'                               FALSE = factor-level specifiers are used as names of list-elements; the former is useful when factor levels are indicated
 #'                               as integers, e.g. days as 1,2,..., the latter is useful when factor levels are already unique, e.g. day1, day2, ... .
@@ -310,17 +322,26 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' 
 #' # now also color the corresponding row in the table accordingly
 #' varPlot( y~day+run, dataEP05A2_3, 
-#' 			BG=list(col=c("lightblue", "lightgray"), border=NA, col.table=TRUE))
+#'          BG=list(col=c("lightblue", "lightgray"), border=NA, col.table=TRUE))
 #' 
 #' # assign different point-colors according to a classification variable
 #' # not part of the model (artificial example in this case)
-#' varPlot( y~day+day:run, dataEP05A2_3, 
+#' varPlot( y~day+day:run, dataEP05A2_3, mar=c(1,5,1,7), VCnam=list(side=4),
 #'          Points=list(col=list(var="user", col=c("red", "green"))) )
+#' 
+#' # always check order of factor levels before annotating
+#' order(unique(dataEP05A2_3$user))
+#' 
+#' # add legend to right margin
+#' legend.m(fill=c("green", "red"), legend=c("User 1", "User 2")
 #' 
 #' # assign different plotting symbols according to a classification
 #' # variable not part of the model
-#' varPlot( y~day+day:run, dataEP05A2_3, 
+#' varPlot( y~day+day:run, dataEP05A2_3, mar=c(1,5,1,7), VCnam=list(side=4), 
 #'          Points=list(pch=list(var="user", pch=c(2, 8))) )
+#' 
+#' # add legend to right margin
+#' legend.m(pch=c(8,2), legend=c("User 1", "User 2")
 #' 
 #' # assign custom plotting symbols by combining 'pch' and 'bg'
 #' varPlot( y~day+day:run, dataEP05A2_3, 
@@ -335,10 +356,19 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' 
 #' # now combine point-coloring and plotting symbols
 #' # to indicate two additional classification variables
-#' varPlot( y~day+day:run, dataEP05A2_3,
+#' varPlot( y~day+day:run, dataEP05A2_3, mar=c(1,5,1,10), 
+#'          VCnam=list(side=4, cex=1.5),
 #'          Points=list(col=list(var="user", col=c("red", "darkgreen")), 
-#' 					   	pch=list(var="cls2", pch=c(21, 22)),
-#' 						bg =list(var="user", bg =c("orange", "green"))) )
+#'                      pch=list(var="cls2", pch=c(21, 22)),
+#'                      bg =list(var="user", bg =c("orange", "green"))) )
+#' 
+#' # add legend to (right) margin
+#'  legend.m( margin="right", pch=c(21, 22, 22, 22), 
+#'            pt.bg=c("white", "white", "orange", "green"), 
+#'            col=c("black", "black", "white", "white"), 
+#'            pt.cex=c(1.75, 1.75, 2, 2), 
+#'            legend=c("Cls2=1", "Cls2=2", "User=2", "User=1"),
+#'            cex=1.5)
 #' 
 #' # use magenta lines between each level of factor "run" 
 #' varPlot(y~day/run, dataEP05A2_3, BG=list(var="run", border="magenta"))
@@ -365,13 +395,13 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' 
 #' # use individual settings of 'VarLab' and 'VSpace' for each variance component
 #' varPlot(result~day/run, Glucose, type=3, 
-#' 		   VarLab=list(list(srt=45, col="red", font=2), 
-#' 		   list(srt=90, col="blue", font=3)), VSpace=c(.25, .75))
+#'         VarLab=list(list(srt=45, col="red", font=2), 
+#'         list(srt=90, col="blue", font=3)), VSpace=c(.25, .75))
 #' 
 #' # set individual titles for both plot when 'type=3'
 #' varPlot(	result~day/run, Glucose, type=3, 
-#'   		Title=list(list(main="Variability Chart"), 
-#'   		list(main="Plot of SD-Values")))
+#'          Title=list(list(main="Variability Chart"), 
+#'          list(main="Plot of SD-Values")))
 #' 
 #' # more complex experimental design
 #' data(realData)
@@ -380,84 +410,98 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' 
 #' # improve visual appearance of the plot
 #' varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
-#'   	   BG=list(var="calibration", col=c("white", "lightgray")))
+#'         BG=list(var="calibration", col=c("white", "lightgray")))
 #' 
 #' # add horizontal lines indicating mean-value for each factor-level of all variables
 #' varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
-#'   	   BG=list(var="calibration", 
-#' 				   col=c("aquamarine","antiquewhite2","antiquewhite4",
-#' 						 "antiquewhite1","aliceblue","antiquewhite3",
-#' 						 "white","antiquewhite","wheat" ), 
-#' 				   col.table=TRUE),
-#' 		   MeanLine=list(var=c("lot", "calibration", "day", "int"), 
-#' 						 col=c("orange", "blue", "darkgreen", "yellow"), 
-#' 						 lwd=c(2,2,2,2)))
+#'         BG=list(var="calibration", 
+#'                 col=c("aquamarine","antiquewhite2","antiquewhite4",
+#'                       "antiquewhite1","aliceblue","antiquewhite3",
+#'                       "white","antiquewhite","wheat" ), 
+#'                 col.table=TRUE),
+#'         MeanLine=list(var=c("lot", "calibration", "day", "int"), 
+#'                       col=c("orange", "blue", "darkgreen", "yellow"), 
+#'                       lwd=c(2,2,2,2)))
 #' 
 #' # now also highlight bounds between factor levels of "lot" and "day" 
 #' # as vertical lines and extend them into the table (note that each 
 #' # variable needs its specific value for 'col.table')
 #' varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
-#'   	   BG=list(var="calibration", 
-#' 				   col=c("aquamarine","antiquewhite2","antiquewhite4",
-#' 						 "antiquewhite1","aliceblue","antiquewhite3",
-#' 						 "white","antiquewhite","wheat" ), 
-#' 				   col.table=TRUE),
-#' 		   MeanLine=list(var=c("lot", "calibration", "day", "int"), 
-#' 						 col=c("orange", "blue", "darkgreen", "yellow"), 
-#' 						 lwd=c(2,2,2,2)),
-#' 		   VLine=list(var=c("lot", "day"), col=c("black", "skyblue1"),
-#'				      lwd=c(2, 1), col.table=c(TRUE, TRUE)))
+#'         BG=list(var="calibration", 
+#'                 col=c("aquamarine","antiquewhite2","antiquewhite4",
+#'                       "antiquewhite1","aliceblue","antiquewhite3",
+#'                       "white","antiquewhite","wheat" ), 
+#'                  col.table=TRUE),
+#'         MeanLine=list(var=c("lot", "calibration", "day", "int"), 
+#'                       col=c("orange", "blue", "darkgreen", "yellow"), 
+#'                       lwd=c(2,2,2,2)),
+#'         VLine=list(var=c("lot", "day"), col=c("black", "skyblue1"),
+#'                    lwd=c(2, 1), col.table=c(TRUE, TRUE)))
 #' 
 #' # one can use argument 'JoinLevels' to join factor-levels or a variable
 #' # nested within a higher-level factor, 'VLine' is used to separate levels
 #' # of variables "calibration" and "lot" with different colors
 #'  varPlot(y~calibration/lot/day/run, Data, 
-#'  		BG=list(var="calibration", 
-#'  				col=c("#f7fcfd","#e5f5f9","#ccece6","#99d8c9",
-#'  				"#66c2a4","#41ae76","#238b45","#006d2c","#00441b"), 
-#'  				col.table=TRUE), 
-#' 			VLine=list(var=c("calibration", "lot"), 
-#'  				   col=c("black", "darkgray"), lwd=c(2,1), col.table=TRUE), 
-#'  		JoinLevels=list(var="lot", col=c("#ffffb2","orangered","#feb24c"), 
-#'  				        lwd=c(2,2,2)), 
-#'  		MeanLine=list(var="lot", col="blue", lwd=2))
+#'          BG=list(var="calibration", 
+#'                  col=c("#f7fcfd","#e5f5f9","#ccece6","#99d8c9",
+#'                        "#66c2a4","#41ae76","#238b45","#006d2c","#00441b"), 
+#'                  col.table=TRUE), 
+#'          VLine=list(var=c("calibration", "lot"), 
+#'                     col=c("black", "darkgray"), lwd=c(2,1), col.table=TRUE), 
+#'          JoinLevels=list(var="lot", col=c("#ffffb2","orangered","#feb24c"), 
+#'                          lwd=c(2,2,2)), 
+#'          MeanLine=list(var="lot", col="blue", lwd=2))
 #' 
 #' # same plot demonstrating additional features applicable via 'Points' 
 #'  varPlot(y~calibration/lot/day/run, Data, 
-#' 		BG=list(var="calibration", 
-#' 				col=c("#f7fcfd","#e5f5f9","#ccece6","#99d8c9",
-#' 				"#66c2a4","#41ae76","#238b45","#006d2c","#00441b"), 
-#' 				col.table=TRUE), 
-#'			VLine=list(var=c("calibration", "lot"), 
+#'          BG=list(var="calibration", 
+#'                  col=c("#f7fcfd","#e5f5f9","#ccece6","#99d8c9",
+#'                        "#66c2a4","#41ae76","#238b45","#006d2c","#00441b"), 
+#'                  col.table=TRUE), 
+#'          VLine=list(var=c("calibration", "lot"), 
 #'                     col=c("black", "mediumseagreen"), lwd=c(2,1), 
 #'                     col.table=c(TRUE,TRUE)), 
-#' 		JoinLevels=list(var="lot", col=c("lightblue", "cyan", "yellow"), 
-#' 				        lwd=c(2,2,2)), 
-#' 		MeanLine=list(var="lot", col="blue", lwd=2),
-#'		Points=list(pch=list(var="lot", pch=c(21, 22, 24)), 
-#'                  bg =list(var="lot", bg=c("lightblue", "cyan", "yellow")), 
-#'                  cex=1.25))
-#'
+#'          JoinLevels=list(var="lot", col=c("lightblue", "cyan", "yellow"), 
+#'                          lwd=c(2,2,2)), 
+#'          MeanLine=list(var="lot", col="blue", lwd=2),
+#'          Points=list(pch=list(var="lot", pch=c(21, 22, 24)), 
+#'                      bg =list(var="lot", bg=c("lightblue", "cyan", "yellow")), 
+#'                      cex=1.25))
+#' 
+#' # depict measurements as boxplots
+#' datS5 <- subset(VCAdata1, sample==5)
+#' varPlot(y~device/day, datS5, Boxplot=list()) 
+#' 
+#' # present points as jitter-plot around box-center
+#' varPlot(	y~device/day, datS5, 
+#'          Boxplot=list(jitter=1),
+#'          Points=list(pch=16, 
+#' 						col=list(var="run", col=c("blue", "red"))), 
+#' 			Mean=list(col="black", cex=1, lwd=2)) 
+#' legend( "topright", legend=c("run 1", "run 2"),
+#'         fill=c("blue", "red"), box.lty=0, border="white")
 #' }
 
 varPlot <- function(form, Data, keep.order=TRUE, 
-		type=c(1L, 2L, 3L)[1], VARtype="SD", htab=.5,
-		Title=NULL, VSpace=NULL,
-		VarLab=list(cex=.75, adj=c(.5, .5)),
-		YLabel=list(text="Value", side=2, line=2.5),
-		SDYLabel=list(side=2, line=2.5),
-		Points=list(pch=16, cex=.5, col="black"),
-		SDs=list(pch=16, col="blue", cex=.75),
-		SDline=list(lwd=1, lty=1, col="blue"),
-		BG=list(border="lightgray", col.table=FALSE),
-		VLine=NULL,
-		Join=list(lty=1, lwd=1, col="gray"),
-		JoinLevels=NULL,
-		Mean=list(pch=3, col="red", cex=.5),
-		MeanLine=NULL,
-		VCnam=list(cex=.75, col="black", line=0.25),
-		useVarNam=FALSE, 
-		ylim=NULL, max.level=25, ...)
+					type=c(1L, 2L, 3L)[1], VARtype="SD", htab=.5,
+					Title=NULL, VSpace=NULL,
+					VarLab=list(cex=.75, adj=c(.5, .5)),
+					YLabel=list(text="Value", side=2, line=3.5, cex=1.5),
+					SDYLabel=list(side=2, line=2.5),
+					Points=list(pch=16, cex=.5, col="black"),
+					SDs=list(pch=16, col="blue", cex=.75),
+					SDline=list(lwd=1, lty=1, col="blue"),
+					BG=list(border="lightgray", col.table=FALSE),
+					VLine=list(lty=1, lwd=1, col="gray90"),
+					HLine=NULL,
+					Join=list(lty=1, lwd=1, col="gray"),
+					JoinLevels=NULL,
+					Mean=list(pch=3, col="red", cex=.5),
+					MeanLine=NULL,
+					Boxplot=NULL,
+					VCnam=list(cex=.75, col="black", line=0.25),
+					useVarNam=FALSE, 
+					ylim=NULL, max.level=25, ...)
 {        
 	stopifnot(is.data.frame(Data))
 	stopifnot(class(form) == "formula")
@@ -625,11 +669,26 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		MFROW <- c(2,1)
 	#else
 	#	MFROW <- c(1,1)
+
+	if(!is.null(VCnam))
+	{
+		VCnam.default <- list(cex=.75, col="black", line=0.35, side=2)
+		VCnam.default[names(VCnam)] <- VCnam
+		VCnam <- VCnam.default
+		if(!VCnam$side %in% c(2, 4))
+			VCnam$side <- 2
+		VCnam$adj <- ifelse(VCnam$side == 2, 1, 0)
+	}
+
+	mar <- c(	1,
+				5.1, 
+				ifelse(is.null(Title), 1, 3.5),
+				ifelse(VCnam$side == 2, 1, 5.1))
 	
-	if(is.null(Title))
-		mar <- c(1,4.1,1,1) 
-	else
-		mar <- c(2,4.1,3.5,1)
+#	if(is.null(Title))
+#		mar <- c(1,4.1,1,1) 
+#	else
+#		mar <- c(2,4.1,3.5,1)
 	
 	if(!is.null(args))
 	{
@@ -685,7 +744,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 	}
 	VarLab <- VarLab.default
 	
-	YLabel.default <- list(text="Value", side=2, line=2, at=mean(Range))
+	YLabel.default <- list(text="Value", side=2, line=3.5, cex=1.5, at=mean(Range))
 	YLabel.default[names(YLabel)] <- YLabel
 	YLabel <- YLabel.default
 	
@@ -696,6 +755,16 @@ varPlot <- function(form, Data, keep.order=TRUE,
 	Points.default <- list(pch=16, cex=.5, col="black")
 	Points.default[names(Points)] <- Points
 	Points <- Points.default
+	
+	if(!is.null(Boxplot))
+	{
+		Boxplot.default <- list( col.box="gray65", col.median="white",
+								 col.whiskers="gray65", lwd=2, jitter=1e3)
+		Boxplot.default[names(Boxplot)] <- Boxplot
+		Boxplot <- Boxplot.default
+		if(!is.null(Boxplot$jitter) && Boxplot$jitter < 5)
+			Boxplot$jitter <- 5
+	}
 	
 	SDs.default <- list(pch=16, col="blue", cex=.75)
 	SDs.default[names(SDs)] <- SDs
@@ -725,12 +794,12 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		SDline <- SDline.default
 	}
 	
-	if(!is.null(VCnam))
-	{
-		VCnam.default <- list(cex=.75, col="black", line=0.25)
-		VCnam.default[names(VCnam)] <- VCnam
-		VCnam <- VCnam.default
-	}
+#	if(!is.null(VCnam))
+#	{
+#		VCnam.default <- list(cex=.75, col="black", line=0.25, side=2)
+#		VCnam.default[names(VCnam)] <- VCnam
+#		VCnam <- VCnam.default
+#	}
 	
 	if(!is.null(Join))
 	{
@@ -910,9 +979,9 @@ varPlot <- function(form, Data, keep.order=TRUE,
 				}
 				
 				StatsList <- processList(	lst=tmp, xlim=c(Xlower, Xupper), yval=yval[-1], Xdiff=Xdiff, type=type, 
-						VARtype=VARtype, StatsList=StatsList, index=index, VarLab=VarLab[-1],
-						MeanLine=MeanLine, VLine=VLine, Intercept=Intercept, JoinLevels=JoinLevels,
-						draw.vertical=tmp.draw.vertical)
+											VARtype=VARtype, StatsList=StatsList, index=index, VarLab=VarLab[-1],
+											MeanLine=MeanLine, VLine=VLine, Intercept=Intercept, JoinLevels=JoinLevels,
+											draw.vertical=tmp.draw.vertical)
 				index <- attr(StatsList, "index")
 			}
 			else                                                                    # leaf-node reached (numeric vector)
@@ -1002,6 +1071,10 @@ varPlot <- function(form, Data, keep.order=TRUE,
 				}
 				else
 					do.call("points", args=SDs)
+				
+#################
+				if(!is.null(Boxplot))
+					rec.env$BoxCollection <- Boxplot
 			}
 			
 			if( !is.null(MeanLine) && !is.null(Factor) && Factor %in% MeanLine$var)
@@ -1065,9 +1138,11 @@ varPlot <- function(form, Data, keep.order=TRUE,
 					for(e in 1:length(VLineClone))									# only keep parameter values for current factor-variable
 					{
 						VLineClone[e] <- VLineClone[[e]][var.ind]
+						if(is.na(VLineClone[e]))									# not enough arguments provided, use last value
+							VLineClone[e] <- tail(VLineClone[[e]])
 					}
 					
-					VLine.default <- list(lty=1, lwd=1, col="black")
+					VLine.default <- list(var=nest[1], lty=1, lwd=1, col="gray90")
 					VLine.default[names(VLineClone)] <- VLineClone
 					VLineClone <- VLine.default
 					
@@ -1190,10 +1265,20 @@ varPlot <- function(form, Data, keep.order=TRUE,
 	{
 		plot(1, axes=FALSE, xlab="", ylab="", ylim=YLim, xlim=c(0, length(lst)), type="n")
 		
+#		if(!is.null(Grid))
+#		{			
+#			USR	<- par("usr")
+#			Grid.def <- list(v=pretty(USR[1:2]), h=pretty(USR[3:4]), lty=3, col="gray90")
+#			Grid.def[names(Grid)] <- Grid
+#			Grid <- Grid.def
+#			do.call("abline", Grid)			
+#			rect(USR[1], USR[3], USR[2], Range[1], col="white", border="white")
+#		}
+#		
 		tmp.at <- pretty(Range)
 		if(any(tmp.at < min(Range)))
 			tmp.at <- tmp.at[-which(tmp.at < min(Range))]
-		axis(2, at=tmp.at) 
+		axis(2, at=tmp.at, las=1) 
 		#axis(2, at=pretty(Range))
 		
 		do.call("mtext", args=YLabel)
@@ -1205,7 +1290,22 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		
 		StatsList <- processList(lst=lst, xlim=range(Xbound), yval=Ybound, Xdiff=Xdiff, type=1, 
 				StatsList=StatsList, VARtype=VARtype, VarLab=VarLab, MeanLine=MeanLine, 
-				Intercept=Intercept, VLine=VLine, JoinLevels=JoinLevels)   		  											
+				Intercept=Intercept, VLine=VLine, JoinLevels=JoinLevels)   		  		
+		
+		if(!is.null(HLine))
+		{
+			HLine.def1 <- list(h=tmp.at, col="gray90", lty=3)
+			if(type == 3 && class(HLine[[1]]) == "list")
+				HLine.def1[names(HLine[[1]])] <- HLine[[1]]
+			else
+				HLine.def1[names(HLine)] <- HLine
+			HLine1 		<- HLine.def1
+			HLine1$v 	<- NULL
+			oor   		<- which(HLine1$h <= min(Range))
+			if(length(oor) > 0)
+				HLine1$h <- HLine1$h[-oor]
+			do.call("abline", HLine1)
+		}
 		
 		box()
 		
@@ -1244,11 +1344,51 @@ varPlot <- function(form, Data, keep.order=TRUE,
 			}
 		}
 		
+		if(length(rec.env$BoxCollection) > 0)
+		{
+			drawBox <- function(y, x, xdiff, col.box="gray65", col.median="white",
+								col.whiskers="gray65", lwd=3, jitter=FALSE)
+			{
+				bp 		<- boxplot(y, plot=F)									# get stats
+				Xlim 	<- x + c(-1, 1) * xdiff/3
+				rect(	Xlim[1], bp$stats[2,1], Xlim[2], bp$stats[4,1], 		# box
+						col=col.box, border=NA)
+				lines(	Xlim, rep(bp$stats[3,1], 2), col=col.median, lwd=lwd)	# median
+				lines(	rep(x, 2), bp$stats[1:2,1], col=col.whiskers, lwd=lwd)	# whiskers
+				lines(	rep(x, 2), bp$stats[4:5,1], col=col.whiskers, lwd=lwd)
+				lines(	x + c(-1, 1) * xdiff/5, rep(bp$stats[1,1], 2), 
+						col=col.whiskers, lwd=lwd)
+				lines(	x + c(-1, 1) * xdiff/5, rep(bp$stats[5,1], 2), 
+						col=col.whiskers, lwd=lwd)
+			}
+			for(i in 1:length(rec.env$PointsCollection))
+			{
+				tmp <- c(list(	y=rec.env$PointsCollection[[i]]$y, 
+						 		x=rec.env$PointsCollection[[i]]$x[1],
+								xdiff=Xdiff),
+						 rec.env$BoxCollection )
+
+				 do.call("drawBox", tmp)
+			}
+			rec.env$BoxCollection <- NULL
+		}
+		
 		if(length(rec.env$PointsCollection) > 0)									# observations
 		{
 			for(i in 1:length(rec.env$PointsCollection))
+			{
+				if(!is.null(Boxplot))
+				{
+					if(!is.null(Boxplot$jitter) && Boxplot$jitter)
+					{
+						jitter <- runif(length(rec.env$PointsCollection[[i]]$y),
+										-Xdiff/Boxplot$jitter, Xdiff/Boxplot$jitter)
+						jitter <- sample(jitter)
+						rec.env$PointsCollection[[i]]$x <-  rec.env$PointsCollection[[i]]$x + jitter
+					}
+				}
 				do.call("points", rec.env$PointsCollection[[i]])
-			
+			}
 			rec.env$PointsCollection <- NULL
 		}
 		
@@ -1276,12 +1416,13 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		
 		if(!is.null(VCnam))
 		{
-			VCnam$side=2
+	#		VCnam$side=2
 			VCnam$at <- Ybound[-length(Ybound)]+diff(Ybound[1:2])/2
 			if(is.null(VCnam$text))																			# do not overwrite user-specified text
 				VCnam$text <- nest
 			VCnam$las <- 1
-			VCnam$adj <- 1
+		#	VCnam$adj <- 1
+
 			do.call("mtext", args=VCnam)
 		}
 	}
@@ -1289,7 +1430,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 	if(type %in% c(2,3))                                                                        			# add a 2nd plot
 	{
 		plot(1, axes=FALSE, xlab="", ylab="", ylim=SDYLim, xlim=c(0, length(lst)), type="n")
-		
+				
 		if(SDrange[1] == 0)
 			abline(h=0, lty=2, col="gray")
 		
@@ -1297,6 +1438,22 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		if(any(tmp.at < min(SDrange)))
 			tmp.at <- tmp.at[-which(tmp.at < min(SDrange))]
 		axis(2, at=tmp.at[-1]) 
+		
+		if(!is.null(HLine))
+		{
+			HLine.def2 <- list(h=tmp.at, col="gray90", lty=3)
+			if(type == 3 && class(HLine[[2]]) == "list")
+				HLine.def2[names(HLine[[2]])] <- HLine[[2]]
+			else
+				HLine.def2[names(HLine)] <- HLine
+			HLine2 		<- HLine.def2
+			HLine2$v 	<- NULL
+			oor   		<- which(HLine2$h <= min(SDrange))
+			if(length(oor) > 0)
+				HLine2$h <- HLine2$h[-oor]
+
+			do.call("abline", HLine2)
+		}
 		
 		#axis(2, at=pretty(SDrange)[-1])   
 		
@@ -1308,8 +1465,8 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		StatsList <- list(SDvec=numeric(), Nobs=integer())
 		#SDvec <- numeric()
 		StatsList <- processList(	lst=lst, xlim=range(Xbound), yval=SDYbound, Xdiff=Xdiff, type=2, StatsList=StatsList, 
-				VARtype=VARtype, VarLab=VarLab, MeanLine=MeanLine, Intercept=Intercept, VLine=VLine,
-				JoinLevels=JoinLevels)   
+									VARtype=VARtype, VarLab=VarLab, MeanLine=MeanLine, Intercept=Intercept, VLine=VLine,
+									JoinLevels=JoinLevels)   
 		
 		if(length(rec.env$VLineCollection) > 0)
 		{
@@ -1330,7 +1487,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		
 		if(!is.null(VCnam))
 		{
-			VCnam$side=2
+#			VCnam$side=2
 			VCnam$at <- SDYbound[-length(SDYbound)]+diff(SDYbound[1:2])/2
 			if(is.null(VCnam$text))																			# do not overwrite user-specified text
 				VCnam$text <- nest
@@ -1640,6 +1797,206 @@ plot.VCA <- function(x, ...)
 	varPlot(form=form, Data=Data, ...)
 }
 
+
+
+#' Add Legend to Margin.
+#' 
+#' This function accepts all parameters applicable in and forwards them to function \code{\link{legend}}.
+#' There will be only made some modifications to the X-coordinate ensuring that the legend is plotted in
+#' the right margin of the graphic device. Make sure that you have reserved sufficient space in the right
+#' margin, e.g. 'plot.VFP(....., mar=c(4,5,4,10))'.
+#' 
+#' @param x			(character, numeric) either one of the character strings "center","bottomright", "bottom", "bottomleft", 
+#' 					"left", "topleft", "top", "topright", "right" or a numeric values specifying the X-coordinate in user
+#' 					coordinates
+#' @param y			(numeric) value specifying the Y-coordiante in user coordinates, only used in case 'x' is numeric
+#' @param margin	(character) string specifying in which part of the margin the legend shall be added, choices are
+#' 					"right", "bottomright", "bottom", "bottomleft", 
+#' 					"left", "topleft", "top", "topright" with "right" being the default
+#' @param offset	(numeric) value in [0, 0.5] specifying the offset as fraction in regard to width of the right margin
+#' @param ...		all parameters applicable in function \code{\link{legend}}
+#' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @examples 
+#' \dontrun{
+#' 
+#' par( mar=c(10,10,10,10) )
+#' plot(1, type="n", axes=FALSE, xlab="", ylab="")
+#' box()
+#' # add legend to different regions within the 'margin'
+#' legend.m(margin="topleft", 		fill="black",	legend=c("topleft"))
+#' legend.m(margin="top", 			fill="red", 	legend=c("top"))
+#' legend.m(margin="topright", 		fill="blue",	legend=c("topright"))
+#' legend.m(margin="right", 		fill="green",	legend=c("right"))
+#' legend.m(margin="bottomright", 	fill="yellow",	legend=c("bottomright"))
+#' legend.m(margin="bottom", 		fill="orange",	legend=c("bottom"))
+#' legend.m(margin="bottomleft", 	fill="cyan",	legend=c("bottomleft"))
+#' legend.m(margin="left", 			fill="magenta", legend=c("left"))
+#' 
+#' data(dataEP05A2_3)
+#' dataEP05A2_3$user <- sample(rep(c(1,2), 40))
+#'  
+#' varPlot( y~day+day:run, dataEP05A2_3, mar=c(1,5,1,7), VCnam=list(side=4), 
+#' 	        Points=list(pch=list(var="user", pch=c(2, 8))) )
+#' # always check order of factor levels before annotating
+#' order(unique(dataEP05A2_3$user))
+#' legend.m(pch=c(8,2), legend=c("User 1", "User 2"))
+#' 
+#' # using different colors 
+#' varPlot( y~day+day:run, dataEP05A2_3, mar=c(1,5,1,7), VCnam=list(side=4),
+#'          Points=list(col=list(var="user", col=c("red", "green"))) )
+#' legend.m(fill=c("green", "red"), legend=c("User 1", "User 2"))
+#' 
+#' # now combine point-coloring and plotting symbols
+#' # to indicate two additional classification variables
+#' varPlot( y~day+day:run, dataEP05A2_3, mar=c(1,5,1,10),
+#'          VCnam=list(side=4, cex=1.5),
+#'          Points=list(col=list(var="user", col=c("red", "darkgreen")),
+#'                      pch=list(var="cls2", pch=c(21, 22)),
+#'                      bg =list(var="user", bg =c("orange", "green"))) )
+#'
+#' # two additional classification variables
+#' dataEP05A2_3$user <- sample(rep(c(1,2), 40))
+#' dataEP05A2_3$cls2 <- sample(rep(c(1,2), 40))
+#'
+#' # add legend to (right) margin
+#' legend.m(margin="right", pch=c(21, 22, 22, 22), 
+#'          pt.bg=c("white", "white", "orange", "green"),  
+#'          col=c("black", "black", "white", "white"), 
+#'          pt.cex=c(1.75, 1.75, 2, 2),
+#'          legend=c("Cls2=1", "Cls2=2", "User=2", "User=1"), 
+#'          cex=1.5)
+#' }
+
+legend.m <- function(	x=c("center","bottomright", "bottom", "bottomleft", 
+							"left", "topleft", "top", "topright", "right"), 
+						y=NULL, 
+						margin=c(	"right", "bottomright", "bottom", "bottomleft", 
+									"left", "topleft", "top", "topright"),
+						offset=.05, ...)
+{
+	stopifnot(	is.numeric(x) || is.character(x) )
+	if(is.character(x))
+	{
+		x <- match.arg(x[1], choices=c("center","bottomright", "bottom", "bottomleft", 
+						"left", "topleft", "top", "topright", "right"))
+	}else
+	{
+		stopifnot(is.numeric(y))
+	}
+	margin <- match.arg(margin[1], 
+						choices=c(	"right", "bottomright", "bottom", "bottomleft", 
+									"left", "topleft", "top", "topright"))
+	
+	par(xpd=TRUE)
+	args <- list(...)
+	
+	USR  <- par("usr")
+	PLT  <- par("plt")
+	FIG  <- par("fig")
+	
+	if(margin == "right")
+	{
+		wm 		<- FIG[2] - PLT[2]			# width of the margin
+		hm 		<- PLT[4] - PLT[3]			# height of the margin
+		Left	<- PLT[2]
+		Bottom	<- PLT[3]
+	}
+	else if(margin == "topright")
+	{
+		wm 		<- FIG[2] - PLT[2]						
+		hm 		<- FIG[4] - PLT[4]
+		Left	<- PLT[2]
+		Bottom	<- PLT[4]
+	}
+	else if(margin == "bottomright")
+	{
+		wm 		<- FIG[2] - PLT[2]						
+		hm 		<- PLT[3] - FIG[3]
+		Left	<- PLT[2]
+		Bottom	<- FIG[3]
+	}
+	else if(margin == "bottomleft")
+	{
+		wm 		<- PLT[1] - FIG[1]						
+		hm 		<- PLT[3] - FIG[3]
+		Left	<- FIG[1]
+		Bottom	<- FIG[3]
+	}
+	else if(margin == "bottom")
+	{
+		wm 		<- PLT[2] - PLT[1]						
+		hm 		<- PLT[3] - FIG[3]
+		Left	<- PLT[1] 
+		Bottom	<- FIG[3]
+	}
+	else if(margin == "top")
+	{
+		wm 		<- PLT[2] - PLT[1]
+		hm 		<- FIG[4] - PLT[4]
+		Left	<- PLT[1]
+		Bottom	<- PLT[4]
+	}
+	else if(margin == "left")
+	{
+		wm 		<- PLT[1] - FIG[1]	
+		hm 		<- PLT[3] - FIG[3]
+		Left	<- FIG[1]
+		Bottom	<- PLT[3]
+	}
+	else if(margin == "topleft")
+	{
+		wm 		<- PLT[1] - FIG[1]
+		hm 		<- FIG[4] - PLT[4]
+		Left	<- FIG[1]
+		Bottom	<- PLT[4]
+	}	
+	
+	if(is.character(x))
+	{
+		X.orig	<- x
+		xjust 	<- 0.5							# defaults to center
+		x 		<- Left + 0.5 * wm
+		yjust   <- 0.5
+		y		<- Bottom + 0.5 * hm
+		
+		if(grepl("left", X.orig))
+		{
+			xjust 	<- 0
+			x 		<- Left + offset * wm
+		}		
+		if(grepl("right", X.orig))
+		{
+			xjust 	<- 1
+			x 		<- Left + (1-offset) * wm
+		}
+		if(grepl("top", X.orig))
+		{
+			yjust 	<- 1
+			y 		<- Bottom + (1-offset) * hm
+		}
+		if(grepl("bottom", X.orig))
+		{
+			yjust 	<- 0
+			y 		<- Bottom + offset * hm
+		}
+	}
+	
+	x <- grconvertX(x, from="nic", to="user")
+	y <- grconvertY(y, from="nic", to="user")
+	
+	args$x 		<- x
+	args$y 		<- y
+	
+	if(!"xjust" %in% names(args))
+		args$xjust 	<- xjust
+	if(!"yjust" %in% names(args))
+		args$yjust 	<- yjust
+	
+	do.call(legend, args)
+	par(xpd=FALSE)
+}
 
 
 
