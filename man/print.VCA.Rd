@@ -2,7 +2,7 @@
 % Please edit documentation in R/vca.R
 \name{print.VCA}
 \alias{print.VCA}
-\title{Standard Printing Method for Objects of Class 'VCA'.}
+\title{Standard Printing Method for Objects of Class 'VCA'}
 \usage{
 \method{print}{VCA}(x, digits = 6L, ...)
 }
@@ -16,3 +16,4 @@
 \description{
 Function prints 'VCA' objects as returned e.g. by function \code{\link{anovaVCA}}.
 }
+

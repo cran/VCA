@@ -9,10 +9,10 @@
   is the top-level random factor (variance component), factor 'run' is nested within
   'day'.
 }
-\usage{dataEP05A2_2}
+\usage{data(dataEP05A2_2)}
 \format{data.frame with 80 rows and 3 variables.}
 \references{
        CLSI EP05-A2 - Evaluation of Precision Performance of Quantitative Measurement Methods.
-       \href{www.clsi.org}{www.clsi.org}
+       \href{https://clsi.org}{CLSI}
 }
 \keyword{datasets}

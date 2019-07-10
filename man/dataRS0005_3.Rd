@@ -7,6 +7,6 @@
   measured on 5 days with 3 measurements on each day. This small
   experiment is suitable to quantify between-day variability on the same device.
 }
-\usage{dataRS0005_3}
+\usage{data(dataRS0005_3)}
 \format{data.frame with 15 rows and 2 variables.}
 \keyword{datasets}

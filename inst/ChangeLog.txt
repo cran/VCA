@@ -1,3 +1,15 @@
+Version 1.4.0
+-------------
+
+- ANOVA-TypeI estimation is now implemented as fast FORTRAN implementation of the sweep-operator
+- whenever ANOVA is used for fitting models, the variance-covariance matrix of variance components will
+  automatically be constructed as a side product of sweeping as well as the coefficient matrix C
+- the new sweeping routine reduces the computation time dramatically and no other method is provided for
+  ANOVA-estimation any more, i.e. sum of squares generated from quadratic forms were removed
+- in all REML-based model fitting functions based on the lme4-package, the optimizer is explicitly set to "bobyqa"
+  for backward compatibility, the new default-optimizer does not generate results being consistent to using ANOVA-
+  estimation (see UnitTests sub-folder)
+
 Version 1.3.4
 -------------
 

@@ -2,7 +2,7 @@
 % Please edit documentation in R/vca.R
 \name{Solve}
 \alias{Solve}
-\title{Solve System of Linear Equations using Inverse of Cholesky-Root.}
+\title{Solve System of Linear Equations using Inverse of Cholesky-Root}
 \usage{
 Solve(X, quiet = FALSE)
 }
@@ -47,3 +47,4 @@ all.equal(V1i, V2i)
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
+

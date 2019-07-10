@@ -9,6 +9,6 @@
   corresponds to the day a (re-) calibration was performed, all other variables are more or less
   self-explaining.
 }
-\usage{realData}
+\usage{data(realData)}
 \format{data.frame with 2268 rows and 6 variables.}
 \keyword{datasets}

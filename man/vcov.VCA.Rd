@@ -2,7 +2,7 @@
 % Please edit documentation in R/vca.R
 \name{vcov.VCA}
 \alias{vcov.VCA}
-\title{Calculate Variance-Covariance Matrix of Fixed Effects for an 'VCA' Object.}
+\title{Calculate Variance-Covariance Matrix of Fixed Effects for an 'VCA' Object}
 \usage{
 \method{vcov}{VCA}(object, quiet = FALSE, ...)
 }
@@ -34,7 +34,8 @@ data(dataEP05A2_1)
 fit1 <- anovaMM(y~day/(run), dataEP05A2_1)
 vcov(fit1)
 
-fit2 <- anovaVCAy~day/run, dataEP05A2_1)
+fit2 <- anovaVCA(y~day/run, dataEP05A2_1)
 vcov(fit2)
 }
 }
+

@@ -2,7 +2,7 @@
 % Please edit documentation in R/vca.R
 \name{predict.VCA}
 \alias{predict.VCA}
-\title{Predictions from a Model Fitted by \code{fitLMM}.}
+\title{Predictions from a Model Fitted by \code{fitLMM}}
 \usage{
 \method{predict}{VCA}(object, newdata = NULL, re = NULL,
   allow.new.levels = FALSE, ...)
@@ -97,3 +97,4 @@ predict(fit.fitLMM, newdata, re="age2:Subject")
 \author{
 Andre Schuetzenmeister \email{andre.schuetzeneister@roche.com}
 }
+

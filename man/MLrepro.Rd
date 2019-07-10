@@ -7,6 +7,6 @@
   21 days (Days) per lab-lot combination, and 2 runs per day. The response variable is Result.
   This dataset is used in examples and unit-tests (see subdir 'UnitTests' of the package-dir). 
 }
-\usage{MLrepro}
+\usage{data(MLrepro)}
 \format{data.frame with 754 rows and 5 variables.}
 \keyword{datasets}

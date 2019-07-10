@@ -21,6 +21,11 @@ testSuite <- defineTestSuite(name="VCA", dirs=".",
 							 testFuncRegexp = "^TF[[:digit:]]{3}.+",					# use custom regexpr for test functions
                              rngKind="default",
                              rngNormalKind="default")
+#testSuite <- defineTestSuite(name="VCA", dirs=".",
+#                             testFileRegexp="runit.*\\.R$",
+#							 testFuncRegexp = "^TF[[:digit:]]{3}.+",					# use custom regexpr for test functions
+#                             rngKind="default",
+#                             rngNormalKind="default")
                      
 testData <- runTestSuite(testSuite, verbose=0L)
 

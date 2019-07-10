@@ -2,8 +2,7 @@
 % Please edit documentation in R/vca.R
 \name{reScale}
 \alias{reScale}
-\title{Re-Scale results of 'VCA' or 'VCAinference' objects which were constructed using
-scaled values of the response variable.}
+\title{Re-Scale results of 'VCA' or 'VCAinference'}
 \usage{
 reScale(obj, VarVC = TRUE)
 }
@@ -18,7 +17,7 @@ use this option if computation time really matters!}
 }
 \value{
 (object) either of class 'VCA' or 'VCAinference', where results have been 
-        transformed back to the original scale of the response variable
+transformed back to the original scale of the response variable
 }
 \description{
 Function adjusts variance components (VC) and standard deviations (SD) and their respective
@@ -63,9 +62,10 @@ print(inf0, what="CV")
 print(inf1, what="CV")
 }
 }
-\seealso{
-\code{\link{Scale}}
-}
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
+\seealso{
+\code{\link{Scale}}
+}
+

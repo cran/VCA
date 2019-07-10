@@ -2,7 +2,7 @@
 % Please edit documentation in R/vca.R
 \name{VCAinference}
 \alias{VCAinference}
-\title{Inferential Statistics for VCA-Results.}
+\title{Inferential Statistics for VCA-Results}
 \usage{
 VCAinference(obj, alpha = 0.05, total.claim = NA, error.claim = NA,
   claim.type = "VC", VarVC = FALSE, excludeNeg = TRUE,
@@ -27,7 +27,7 @@ If set to "SD" or "CV", claim-values will be converted to variances before apply
 
 \item{VarVC}{(logical) TRUE = if element "Matrices" exists (see \code{\link{anovaVCA}}), the covariance
 matrix of the estimated VCs will be computed (see \code{\link{vcovVC}}, which is used in CIs for 
-   intermediate VCs if 'method.ci="sas"'. 
+intermediate VCs if 'method.ci="sas"'. 
 Note, this might take very long for larger datasets, since there are many matrix operations involved. 
 FALSE (Default) = computing covariance matrix of VCs is omitted, as well as CIs for intermediate VCs.}
 
@@ -48,10 +48,12 @@ fitted by ANOVA) and all Cis are based on the Chi-Squared distribution. This app
 \item{quiet}{(logical) TRUE = will suppress any warning, which will be issued otherwise}
 }
 \value{
-(VCAinference) object, a list with elements:
-         \item{ChiSqTest}{(data.frame) with results of the Chi-Squared test}
-         \item{ConfInt}{(list) with elements \code{VC}, \code{SD}, \code{CV}, all lists themselves containing (data.frame) objects \code{OneSided} and \code{TwoSided}}
-         \item{VCAobj}{(VCA) object specified as input, if \code{VarVC=TRUE}, the 'aov.tab' element will have an extra column "Var(VC)" storing variances of VC-estimates"}
+(VCAinference) object, a list with elements: \cr
+\itemize{
+\item{ChiSqTest}{(data.frame) with results of the Chi-Squared test}
+\item{ConfInt}{(list) with elements \code{VC}, \code{SD}, \code{CV}, all lists themselves containing (data.frame) objects \code{OneSided} and \code{TwoSided}}
+\item{VCAobj}{(VCA) object specified as input, if \code{VarVC=TRUE}, the 'aov.tab' element will have an extra column "Var(VC)" storing variances of VC-estimates"}
+}
 }
 \description{
 Function \code{VCAinference} constructs one- and two-sided confidence intervals, and performs Chi-Squared tests for total
@@ -77,9 +79,9 @@ to their expected values, and \eqn{(C^{-1})^{T}}{Ci'} indicating the transpose o
 
 An input \code{VCA}-object can be in one of three states:\cr 
 \cr
-  State (1) corresponds to the situation, where all VC > 0.\cr 
-  State (2) corresponds to the situation, where at least one VC < 0.\cr
-  State (3) corresponds to situations, where negative VC estimates occured but were set to 0, i.e. \code{NegVC=FALSE} - the Default.\cr
+State (1) corresponds to the situation, where all VC > 0.\cr 
+State (2) corresponds to the situation, where at least one VC < 0.\cr
+State (3) corresponds to situations, where negative VC estimates occured but were set to 0, i.e. \code{NegVC=FALSE} - the Default.\cr
 
 State (2) occurs when parameter \code{NegVC} was set to TRUE in \code{\link{anovaVCA}}, state (3) represents the default-setting in 
 function \code{\link{anovaVCA}}. If a \code{VCA}-object is in state (1), parameter \code{excludeNeg} has no effect (there are no negative VCs),
@@ -91,8 +93,8 @@ of variance components. The default is only to compute and report CIs for total 
 }
 \note{
 Original CIs will always be available independent of parameter-settings of \code{excludeNeg} and
-                         \code{constrainCI}. Original CIs are stored in attribute "CIoriginal" of the returned 'VCAinference'-object, e.g.
-							'attr(obj$ConfInt$SD$OneSided, "CIoriginal")' or 'attr(obj$ConfInt$CV$TwoSided, "CIoriginal")'.
+						\code{constrainCI}. Original CIs are stored in attribute "CIoriginal" of the returned 'VCAinference'-object, e.g.
+						'attr(obj$ConfInt$SD$OneSided, "CIoriginal")' or 'attr(obj$ConfInt$CV$TwoSided, "CIoriginal")'.
 }
 \examples{
 \dontrun{
@@ -128,7 +130,7 @@ VCAinference(res, total.claim=sqrt(4.5), error.claim=sqrt(3.5), claim.type="SD")
 
 # now using Satterthwaite methodology for CIs
 VCAinference(res, total.claim=sqrt(4.5), error.claim=sqrt(3.5), 
-				claim.type="SD", ci.method="satt")
+claim.type="SD", ci.method="satt")
 
 # now add random error to example data forcing the ANOVA-estimate of the 
 # day-variance to be negative
@@ -159,10 +161,10 @@ VCAinference(res2, VarVC=TRUE, excludeNeg=FALSE)
 # one has to re-fit the model allowing the VCs to be negative
 res3 <- anovaVCA(y~day/run, tmpData, NegVC=TRUE, MME=TRUE)
 VCAinference(res3, VarVC=TRUE, excludeNeg=FALSE, constrainCI=FALSE)
- 
+
 ### use the numerical example from the CLSI EP05-A2 guideline (p.25)
-data(Glucose)
-res.ex <- anovaVCA(conc~day/run, Glucose)
+data(Glucose,package="VCA")
+res.ex <- anovaVCA(result~day/run, Glucose)
 
 ### also perform Chi-Squared tests
 ### Note: in guideline claimed SD-values are used, here, claimed variances are used
@@ -207,6 +209,9 @@ inf.all <- VCAinference(fit.all, total.claim=c(.1,.75,.8,1,.5,.5,2.5,20,.1,1))
 print.VCAinference(inf.all, what="VC")
 }
 }
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}
 \references{
 Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components., Wiley New York
 
@@ -216,8 +221,6 @@ Satterthwaite, F.E. (1946), An Approximate Distribution of Estimates of Variance
 Biometrics Bulletin 2, 110-114
 }
 \seealso{
-\code{\link{print.VCAinference}}, \code{\link{getVCvar}}, \code{\link{anovaVCA}}
+\code{\link{print.VCAinference}}, \code{\link{anovaVCA}}
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
+

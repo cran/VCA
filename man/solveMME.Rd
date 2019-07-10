@@ -2,7 +2,7 @@
 % Please edit documentation in R/vca.R
 \name{solveMME}
 \alias{solveMME}
-\title{Solve Mixed Model Equations.}
+\title{Solve Mixed Model Equations}
 \usage{
 solveMME(obj)
 }
@@ -11,9 +11,9 @@ solveMME(obj)
 }
 \value{
 (VCA) object, which has additional elements "RandomEffects" corresponding to the column vector 
-		   	of estimated random effects, "FixedEffects" being the column vector of estimated fixed effects. 
-			Element "Matrices" has additional elements referring to the elements of the MMEs and element
-			"VarFixed" corresponds to the variance-covariance matrix of fixed effects.
+of estimated random effects, "FixedEffects" being the column vector of estimated fixed effects. 
+Element "Matrices" has additional elements referring to the elements of the MMEs and element
+"VarFixed" corresponds to the variance-covariance matrix of fixed effects.
 }
 \description{
 Function solves the Mixed Model Equations (MME) to estimate fixed and random effects.
@@ -32,3 +32,4 @@ ranef(fit)
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
+

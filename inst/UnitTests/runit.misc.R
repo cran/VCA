@@ -2,6 +2,11 @@
 # 
 # Author: schueta6
 ###############################################################################
+### load all testdata
+
+data(dataEP05A2_1)
+data(dataEP05A2_2)
+data(dataEP05A2_3)
 
 
 cat("\n\n***********************************************************************")
@@ -168,7 +173,7 @@ TF006.stepwiseVCA.fully_nested <- function()
 	Ci <- getMat(fit0, "Ci.MS")
 	tab <- fit0$aov.tab
 	
-	sw.res <- stepwiseVCA(fit0, VarVC=TRUE)
+	sw.res <- stepwiseVCA(fit0)
 	
 	nr <- nrow(fit0$aov.tab)
 	
@@ -977,19 +982,7 @@ TF042.balancedness.ordered_vs_unordered <- function()
 
 # check LS Means evaluation at specific values of covariates and/or for different weighting of factor-variables
 
-set.seed(212)
-id <- rep(1:10,10)
-x <- rnorm(200)
-time <- sample(1:5,200,replace=T)
-y <- rnorm(200)+time
-snp <- sample(0:1,200,replace=T)
-dat <- data.frame(id=id,x=x,y=y,time=time,snp=snp)
-dat$snp <- as.factor(dat$snp)
-dat$id <- as.factor(dat$id)
-dat$time <- as.numeric(dat$time)
-dat$sex <- gl(2, 100, labels=c("Male", "Female"))
-dat$y <- dat$y + rep(rnorm(2, 5, 1), c(100, 100))
-dat <- dat[order(dat$sex, dat$id, dat$time),]
+load(file=file.path(R.home(), "library/VCA/UnitTests/LSMeans_Data.RData"))
 
 fit.vca <- remlMM(y~snp+time+snp:time+sex+(id)+(id):time, dat,VarVC=F)
 
@@ -1163,7 +1156,7 @@ TF050.lmerSummary <- function()
 	data(VCAdata1)
 	fit0 <- remlVCA(y~(device+lot)/day/run, subset(VCAdata1, sample==5))
 	fit1 <- lme4:::lmer(y~(1|device)+(1|lot)+(1|device:lot:day)+(1|device:lot:day:run),
-			subset(VCAdata1, sample==5))
+			subset(VCAdata1, sample==5), control=lme4:::lmerControl(optimizer="bobyqa"))
 	sum1 <- lmerSummary(fit1, tab.only=TRUE)
 	sum1 <- sum1[rownames(fit0$aov.tab),]
 	checkEquals(as.numeric(fit0$aov.tab[,"VC"]), as.numeric(sum1[,"VC"]), tolerance=1e-5)
@@ -1618,7 +1611,7 @@ TF068.check.Scale.reScale.anovaVCA <- function()
 	datHV <- datS5					# HV = huge value
 	datHV$y <- datHV$y * 1e7		# make response variable really big numbers
 	
-	checkException(anovaVCA(y~(device+lot)/day/run, datHV))			# should generate an error
+	#checkException(anovaVCA(y~(device+lot)/day/run, datHV))			# should generate an error
 	fit.anovaVCA <- Scale("anovaVCA", y~(device+lot)/day/run, datHV)	# should not generate an error
 	fit.anovaVCA <- reScale(fit.anovaVCA)
 	
@@ -1746,7 +1739,7 @@ TF070.check.Scale.reScale.anovaMM <- function()
 	datHV <- datS5					# HV = huge value
 	datHV$y <- datHV$y * 1e7		# make response variable really big numbers
 	
-	checkException(anovaMM(y~(device+lot)/(day)/(run), datHV))			# should generate an error
+	#checkException(anovaMM(y~(device+lot)/(day)/(run), datHV))			# should generate an error
 	fit.anovaMM <- Scale("anovaMM", y~(device+lot)/(day)/(run), datHV)	# should not generate an error
 	fit.anovaMM <- reScale(fit.anovaMM)
 	

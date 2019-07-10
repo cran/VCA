@@ -2,7 +2,7 @@
 % Please edit documentation in R/vca.R
 \name{vcovVC}
 \alias{vcovVC}
-\title{Calculate Variance-Covariance Matrix of Variance Components of 'VCA' objects.}
+\title{Calculate Variance-Covariance Matrix of Variance Components of 'VCA' objects}
 \usage{
 vcovVC(obj, method = NULL, quiet = FALSE)
 }
@@ -24,24 +24,22 @@ applying the approach given in the \eqn{1^{st}}{1st} reference ('method="scm"') 
 the approximation given in the \eqn{2^{nd}}{2nd} reference ('method="gb"').
 }
 \details{
-When 'method="scm"' is used function \code{\link{getVCvar}} is called implementing this rather
-time-consuming algorithm. Both approaches, respectively the results they generate, diverge for
-increasing degree of unbalancedness. For balanced designs, they seem to differ only due to 
-numerical reasons (error propagation).
-
 This function is called on a 'VCA' object, which can be the sole argument. In this case the value
-assigned to element 'VarVC.method' of the 'VCA' object will be used
-(see \code{\link{getVCvar}} for computational details).
+assigned to element 'VarVC.method' of the 'VCA' object will be used.
 }
 \examples{
 \dontrun{
 data(realData)
 dat1 <- realData[realData$PID==1,]
-fit  <- anovaVCA(y~lot/calibration/day/run, dat1, SSQ.method="qf") 
+fit  <- anovaVCA(y~lot/calibration/day/run, dat1) 
 vcovVC(fit)
 vcovVC(fit, "scm")		# Searle-Casella-McCulloch method (1st reference)
 vcovVC(fit, "gb")		# Giesbrecht and Burns method (2nd reference)
 }
+}
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com},
+Florian Dufey \email{florian.dufey@contractors.roche.com}
 }
 \references{
 Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York
@@ -49,7 +47,4 @@ Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New
 Giesbrecht, F.G. and Burns, J.C. (1985), Two-Stage Analysis Based on a Mixed Model: Large-Sample
 Asymptotic Theory and Small-Sample Simulation Results, Biometrics 41, p. 477-486
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com},
-			Florian Dufey \email{florian.dufey@contractors.roche.com}
-}
+

@@ -60,6 +60,10 @@ varPlot( y~day+day:run, dataEP05A2_3, mar=c(1,5,1,7), VCnam=list(side=4),
          Points=list(col=list(var="user", col=c("red", "green"))) )
 legend.m(fill=c("green", "red"), legend=c("User 1", "User 2"))
 
+# two additional classification variables
+dataEP05A2_3$user <- sample(rep(c(1,2), 40))
+dataEP05A2_3$cls2 <- sample(rep(c(1,2), 40))
+
 # now combine point-coloring and plotting symbols
 # to indicate two additional classification variables
 varPlot( y~day+day:run, dataEP05A2_3, mar=c(1,5,1,10),
@@ -67,10 +71,6 @@ varPlot( y~day+day:run, dataEP05A2_3, mar=c(1,5,1,10),
          Points=list(col=list(var="user", col=c("red", "darkgreen")),
                      pch=list(var="cls2", pch=c(21, 22)),
                      bg =list(var="user", bg =c("orange", "green"))) )
-
-# two additional classification variables
-dataEP05A2_3$user <- sample(rep(c(1,2), 40))
-dataEP05A2_3$cls2 <- sample(rep(c(1,2), 40))
 
 # add legend to (right) margin
 legend.m(margin="right", pch=c(21, 22, 22, 22), 
@@ -84,3 +84,4 @@ legend.m(margin="right", pch=c(21, 22, 22, 22),
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
+

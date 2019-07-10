@@ -7,6 +7,6 @@
   10 samples, 21 days, 2 runs within day. This simulated dataset is used in 
   examples and unit-tests (see subdir 'UnitTests' of the package-dir).
 }
-\usage{VCAdata1}
+\usage{data(VCAdata1)}
 \format{data.frame with 2520 rows and 5 variables.}
 \keyword{datasets}

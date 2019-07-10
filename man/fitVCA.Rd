@@ -2,7 +2,7 @@
 % Please edit documentation in R/vca.R
 \name{fitVCA}
 \alias{fitVCA}
-\title{Fit Variance Component Model by ANOVA or REML.}
+\title{Fit Variance Component Model by ANOVA or REML}
 \usage{
 fitVCA(form, Data, method = c("anova", "reml"), scale = TRUE,
   VarVC = TRUE, ...)
@@ -43,9 +43,10 @@ fit0 <- fitVCA(y~day/run, dataEP05A2_2, "anova", scale=TRUE)
 fit1 <- fitVCA(y~day/run, dataEP05A2_2, "anova", scale=FALSE)
 }
 }
-\seealso{
-\code{\link{fitLMM}}, \code{\link{anovaVCA}}, \code{\link{remlVCA}}
-}
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
+\seealso{
+\code{\link{fitLMM}}, \code{\link{anovaVCA}}, \code{\link{remlVCA}}
+}
+

@@ -187,7 +187,7 @@ varPlot( y~day+day:run, dataEP05A2_3, mar=c(1,5,1,7), VCnam=list(side=4),
 order(unique(dataEP05A2_3$user))
 
 # add legend to right margin
-legend.m(fill=c("green", "red"), legend=c("User 1", "User 2")
+legend.m(fill=c("green", "red"), legend=c("User 1", "User 2"))
 
 # assign different plotting symbols according to a classification
 # variable not part of the model
@@ -243,8 +243,8 @@ varPlot( y~day/run, dataEP05A2_3, BG=list(col=c("lightgray", "wheat")),
          VarLab=list(col="magenta", font=3, srt=0))
 
 # create variability-chart of the example dataset in the CLSI EP05-A2 
-# guidline (listed on p.25)
-data(Glucose)
+# guideline (listed on p.25)
+data(Glucose,package="VCA")
 varPlot(result~day/run, Glucose, type=3)
 
 # use individual settings of 'VarLab' and 'VSpace' for each variance component
@@ -339,3 +339,4 @@ legend( "topright", legend=c("run 1", "run 2"),
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
+

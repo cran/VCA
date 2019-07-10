@@ -2,7 +2,7 @@
 % Please edit documentation in R/vca.R
 \name{fitLMM}
 \alias{fitLMM}
-\title{Fit Linear Mixed Model by ANOVA or REML.}
+\title{Fit Linear Mixed Model by ANOVA or REML}
 \usage{
 fitLMM(form, Data, method = c("anova", "reml"), scale = TRUE,
   VarVC = TRUE, ...)
@@ -59,9 +59,9 @@ remlVCA(y~day/run, dataEP05A2_2)
 # variance components (covariance parameters)
 # create unbalanced data
 dat.ub <- dataEP05A2_2[-c(11,12,23,32,40,41,42),]
-m1.ub <- fitLMM(y~day/(run), dat.ub, SSQ.method="qf", VarVC.method="scm")
+m1.ub <- fitLMM(y~day/(run), dat.ub, VarVC.method="scm")
 # VarVC.method="gb" is an approximation not relying on quadratic forms
-m2.ub <- fitLMM(y~day/(run), dat.ub, SSQ.method="qf", VarVC.method="gb")		
+m2.ub <- fitLMM(y~day/(run), dat.ub, VarVC.method="gb")		
 # REML-estimated variance components usually differ from ANOVA-estimates
 # and so do the variance-covariance matrices
 m3.ub <- fitLMM(y~day/(run), dat.ub, "reml", VarVC=TRUE)		
@@ -92,7 +92,7 @@ lst <- fitLMM(y~(lot+(device))/day/run, VCAdata1, by="sample")
 lst
 
 # fit mixed model originally from 'nlme' package
- 
+
 library(nlme)
 data(Orthodont)
 fit.lme <- lme(distance~Sex*I(age-11), random=~I(age-11)|Subject, Orthodont) 
@@ -118,7 +118,7 @@ fit.anovaMM3
 # are there a sex-specific differences?
 cmat <- getL(fit.anovaMM3, c("SexMale-SexFemale", "SexMale:age2-SexFemale:age2")) 
 cmat
-			 
+
 test.fixef(fit.anovaMM3, L=cmat)
 
 # fit LMM with fixed lot and device effects and test for lot-differences
@@ -136,9 +136,10 @@ res.tuk.cld <- cld(res.tuk, col=paste0("gray", c(90,60,75)))
 plot(res.tuk.cld)
 }
 }
-\seealso{
-\code{\link{fitVCA}}, \code{\link{anovaMM}}, \code{\link{remlMM}}
-}
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
+\seealso{
+\code{\link{fitVCA}}, \code{\link{anovaMM}}, \code{\link{remlMM}}
+}
+

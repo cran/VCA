@@ -2,7 +2,7 @@
 % Please edit documentation in R/vca.R
 \name{print.VCAinference}
 \alias{print.VCAinference}
-\title{Standard Print Method for Objects of Class 'VCAinference'.}
+\title{Standard Print Method for Objects of Class 'VCAinference'}
 \usage{
 \method{print}{VCAinference}(x, digits = 4L, what = c("all", "VC", "SD",
   "CV", "VCA"), ...)
@@ -49,9 +49,10 @@ CVmat
 print(inf, digit=12)
 }
 }
-\seealso{
-\code{\link{VCAinference}}, \code{\link{anovaVCA}}
-}
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
+\seealso{
+\code{\link{VCAinference}}, \code{\link{anovaVCA}}
+}
+

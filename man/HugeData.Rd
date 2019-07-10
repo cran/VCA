@@ -7,7 +7,7 @@
 	unit-test suite. It is an unbalanced dataset with three variables and 8070
 	observations.
 }
-\usage{HugeData}
+\usage{data(HugeData)}
 \format{A data frame with 8070 observations on the following 3 variables.
 \itemize{
 \item y\cr\cr

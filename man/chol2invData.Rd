@@ -8,7 +8,7 @@
 	This dataset and the associated mixed model are part of the unit-test collection of the
 	package.
 }
-\usage{chol2invData}
+\usage{data(chol2invData)}
 \format{A data frame with 158 observations on the following 3 variables.
 \itemize{
 \item value\cr\cr

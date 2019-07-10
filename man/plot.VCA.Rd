@@ -48,11 +48,13 @@ plot(fit2,
 		JoinLevels=list(var="lot", col=c("#ffffb2","orangered","#feb24c"),
 				        lwd=c(2,2,2)),
 		MeanLine=list(var="lot", col="blue", lwd=2))
-#' }
+
 }
-\seealso{
-\code{\link{varPlot}}, \code{\link{anovaVCA}},\code{\link{remlVCA}}, \code{\link{anovaMM}},\code{\link{remlMM}}
 }
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
+\seealso{
+\code{\link{varPlot}}, \code{\link{anovaVCA}},\code{\link{remlVCA}}, \code{\link{anovaMM}},\code{\link{remlMM}}
+}
+

@@ -9,10 +9,10 @@
   This dataset is described in Appendix B of this guideline consisting of 6 samples, each measured on one of three
   sites, at five days with five replicates per day.
 }
-\usage{CA19_9}
+\usage{data(CA19_9)}
 \format{data.frame with 450 rows and 4 variables.}
 \references{
        CLSI EP05-A3 - Evaluation of Precision of Quantitative Measurement Procedures; Approved Guideline - Third Edition.
-       \href{www.clsi.org}{www.clsi.org}
+       \href{https://clsi.org}{CLSI}
 }
 \keyword{datasets}

@@ -6,7 +6,6 @@ export(
 	"as.matrix.VCA",
 	"as.matrix.VCAinference",
 	"coef.VCA",
-	"getCmatrix",
 	"fixef",
 	"fixef.VCA",
 	"getDF",
@@ -57,7 +56,7 @@ import(
 	"Matrix"
 )
 
-importFrom("lme4", ranef, lmer, VarCorr)
+importFrom("lme4", ranef, lmer, lmerControl, VarCorr)
 importFrom("numDeriv", grad)
 importFrom("utils", capture.output)
 

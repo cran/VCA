@@ -2,7 +2,7 @@
 % Please edit documentation in R/vca.R
 \name{coef.VCA}
 \alias{coef.VCA}
-\title{Extract Fixed Effects from 'VCA' Object.}
+\title{Extract Fixed Effects from 'VCA' Object}
 \usage{
 \method{coef}{VCA}(object, quiet = FALSE, ...)
 }
@@ -27,3 +27,4 @@ fit2 <- anovaVCA(y~day/run, dataEP05A2_1)
 coef(fit2)
 }
 }
+

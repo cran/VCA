@@ -7,10 +7,10 @@
   reproducibility precision. Unlike in the CLSI EP05-A3 guideline, there are two runs per day with
   three replicated measurements per run. 
 }
-\usage{ReproData1}
+\usage{data(ReproData1)}
 \format{data.frame with 120 rows and 4 variables.}
 \references{
        Approved Guideline CLSI EP05-A3 - Evaluation of Precision Performance of Quantitative Measurement Methods.
-       \href{www.clsi.org}{www.clsi.org}
+       \href{https://clsi.org}{CLSI}
 }
 \keyword{datasets}

@@ -11,7 +11,7 @@
 	from age 8 until age 14. Every two years they measured the distance between the pituitary and the pterygomaxillary fissure, 
 	two points that are easily identified on x-ray exposures of the side of the head. 
 }
-\usage{Orthodont}
+\usage{data(Orthodont)}
 \format{data.frame with 80 rows and 3 variables.}
 \references{
 	Pinheiro, J. C. and Bates, D. M. (2000), Mixed-Effects Models in S and S-PLUS, Springer, New York. (Appendix A.17)		

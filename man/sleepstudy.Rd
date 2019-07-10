@@ -8,7 +8,7 @@
 	they were restricted to 3 hours of sleep per night. The observations represent 
 	the average reaction time on a series of tests given each day to each subject. 
 }
-\usage{sleepstudy}
+\usage{data(sleepstudy)}
 \format{A data frame with 180 observations on the following 3 variables.
 \itemize{
 \item Reaction\cr\cr

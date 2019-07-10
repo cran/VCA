@@ -333,7 +333,7 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' order(unique(dataEP05A2_3$user))
 #' 
 #' # add legend to right margin
-#' legend.m(fill=c("green", "red"), legend=c("User 1", "User 2")
+#' legend.m(fill=c("green", "red"), legend=c("User 1", "User 2"))
 #' 
 #' # assign different plotting symbols according to a classification
 #' # variable not part of the model
@@ -389,8 +389,8 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #'          VarLab=list(col="magenta", font=3, srt=0))
 #' 
 #' # create variability-chart of the example dataset in the CLSI EP05-A2 
-#' # guidline (listed on p.25)
-#' data(Glucose)
+#' # guideline (listed on p.25)
+#' data(Glucose,package="VCA")
 #' varPlot(result~day/run, Glucose, type=3)
 #' 
 #' # use individual settings of 'VarLab' and 'VSpace' for each variance component
@@ -1559,13 +1559,13 @@ varPlot <- function(form, Data, keep.order=TRUE,
 #' 
 #' @examples
 #' 
+#' \dontrun{
 #' # load data (CLSI EP05-A2 Within-Lab Precision Experiment)
 #' data(dataEP05A2_3)
 #' 
 #' # build a list representing the hierarichal structure of a fully-nested model
 #' # there needs to be a distinct hierarchy for being able to plot the data
 #' # as variability chart (this function is not exported)
-#' \dontrun{
 #' lst <- VCA:::buildList(Data=dataEP05A2_3, Nesting=c("day", "run"), Current="day", resp="y")
 #' }
 
@@ -1788,7 +1788,8 @@ buildList <- function(Data, Nesting, Current, resp, keep.order=TRUE, useVarNam=T
 #' 		JoinLevels=list(var="lot", col=c("#ffffb2","orangered","#feb24c"),
 #' 				        lwd=c(2,2,2)),
 #' 		MeanLine=list(var="lot", col="blue", lwd=2))
-#'#' }
+#'
+#' }
 
 plot.VCA <- function(x, ...)
 {
@@ -1847,6 +1848,10 @@ plot.VCA <- function(x, ...)
 #' varPlot( y~day+day:run, dataEP05A2_3, mar=c(1,5,1,7), VCnam=list(side=4),
 #'          Points=list(col=list(var="user", col=c("red", "green"))) )
 #' legend.m(fill=c("green", "red"), legend=c("User 1", "User 2"))
+#'
+#' # two additional classification variables
+#' dataEP05A2_3$user <- sample(rep(c(1,2), 40))
+#' dataEP05A2_3$cls2 <- sample(rep(c(1,2), 40))
 #' 
 #' # now combine point-coloring and plotting symbols
 #' # to indicate two additional classification variables
@@ -1855,10 +1860,6 @@ plot.VCA <- function(x, ...)
 #'          Points=list(col=list(var="user", col=c("red", "darkgreen")),
 #'                      pch=list(var="cls2", pch=c(21, 22)),
 #'                      bg =list(var="user", bg =c("orange", "green"))) )
-#'
-#' # two additional classification variables
-#' dataEP05A2_3$user <- sample(rep(c(1,2), 40))
-#' dataEP05A2_3$cls2 <- sample(rep(c(1,2), 40))
 #'
 #' # add legend to (right) margin
 #' legend.m(margin="right", pch=c(21, 22, 22, 22), 
