@@ -181,9 +181,6 @@ res.sw
 res.lm
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \references{
 Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York
 
@@ -206,4 +203,6 @@ SAS Help and Documentation PROC VARCOMP, SAS Institute Inc., Cary, NC, USA
 \code{\link{anovaMM}}, \code{\link{remlVCA}}, \code{\link{remlMM}}, \code{\link{print.VCA}}, \code{\link{VCAinference}}, 
 \code{\link{ranef}}, \code{\link{plotRandVar}}, \code{\link{stepwiseVCA}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

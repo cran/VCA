@@ -16,4 +16,3 @@
 \description{
 Function prints 'VCA' objects as returned e.g. by function \code{\link{anovaVCA}}.
 }
-

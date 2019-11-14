@@ -49,10 +49,9 @@ CVmat
 print(inf, digit=12)
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \seealso{
 \code{\link{VCAinference}}, \code{\link{anovaVCA}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

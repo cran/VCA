@@ -264,6 +264,9 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE,
 	{
 		for(i in vars)                                                          # convert all nested factors as factor-objects
 		{
+			if(length(unique(Data[,i])) == Ndata)
+				stop("Variable '", i,"': number of levels of each grouping factor must be < number of observations!")
+			
 			if( any(is.na(Data[,i])))
 			{
 				NAind <- which(is.na(Data[,i]))
@@ -689,6 +692,9 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c( "scm","gb"),
 	
 	for(i in rev(vars))														# check Data for consistency
 	{
+		if(length(unique(Data[,i])) == Ndata)
+			stop("Variable '", i,"': number of levels of each grouping factor must be < number of observations!")
+		
 		if( any(is.na(Data[,i])))
 		{
 			NAind <- which(is.na(Data[,i]))

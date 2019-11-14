@@ -58,4 +58,3 @@ VCA:::isBalanced(y~lot+lot:day, data1, FALSE)
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

@@ -130,11 +130,10 @@ fit2
 fit3
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \seealso{
 \code{\link{remlMM}}, \code{\link{VCAinference}}, \code{\link{ranef.VCA}}, \code{\link{residuals.VCA}},
 \code{\link{anovaVCA}}, \code{\link{anovaMM}}, \code{\link{plotRandVar}}, \code{\link{lmer}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

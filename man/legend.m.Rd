@@ -84,4 +84,3 @@ legend.m(margin="right", pch=c(21, 22, 22, 22),
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

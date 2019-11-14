@@ -51,10 +51,9 @@ plot(fit2,
 
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \seealso{
 \code{\link{varPlot}}, \code{\link{anovaVCA}},\code{\link{remlVCA}}, \code{\link{anovaMM}},\code{\link{remlMM}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

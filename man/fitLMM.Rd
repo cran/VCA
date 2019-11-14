@@ -136,10 +136,9 @@ res.tuk.cld <- cld(res.tuk, col=paste0("gray", c(90,60,75)))
 plot(res.tuk.cld)
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \seealso{
 \code{\link{fitVCA}}, \code{\link{anovaMM}}, \code{\link{remlMM}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

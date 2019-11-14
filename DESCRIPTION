@@ -1,6 +1,6 @@
 Package: VCA
-Version: 1.4.0
-Date: 2019-07-10
+Version: 1.4.1
+Date: 2019-11-14
 Title: Variance Component Analysis
 Author: Andre Schuetzenmeister [aut, cre], Florian Dufey [aut]
 Maintainer: Andre Schuetzenmeister <andre.schuetzenmeister@roche.com>
@@ -20,8 +20,7 @@ Description:
  values of covariables and with custom weighting schemes for factor variables. See ?VCA for a
  more comprehensive description of the features. 
 License: GPL (>= 3)
-RoxygenNote: 6.0.1
 NeedsCompilation: yes
-Packaged: 2019-07-10 16:00:34 UTC; schueta6
+Packaged: 2019-11-14 21:18:56 UTC; schueta6
 Repository: CRAN
-Date/Publication: 2019-07-10 16:32:42 UTC
+Date/Publication: 2019-11-14 22:40:06 UTC

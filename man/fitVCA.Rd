@@ -43,10 +43,9 @@ fit0 <- fitVCA(y~day/run, dataEP05A2_2, "anova", scale=TRUE)
 fit1 <- fitVCA(y~day/run, dataEP05A2_2, "anova", scale=FALSE)
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \seealso{
 \code{\link{fitLMM}}, \code{\link{anovaVCA}}, \code{\link{remlVCA}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

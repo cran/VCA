@@ -133,4 +133,3 @@ at=list(time=1:4, sex=c(Male=.3, Female=.7)))
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

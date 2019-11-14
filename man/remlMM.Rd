@@ -129,12 +129,11 @@ cmat
 test.fixef(fit.remlMM3, L=cmat)
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \seealso{
 \code{\link{remlVCA}}, \code{\link{VCAinference}}, \code{\link{ranef.VCA}}, \code{\link{residuals.VCA}},
 \code{\link{anovaVCA}}, \code{\link{anovaMM}}, \code{\link{plotRandVar}},  \code{\link{test.fixef}},  
 \code{\link{test.lsmeans}}, \code{\link{lmer}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

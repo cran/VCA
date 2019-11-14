@@ -74,10 +74,9 @@ test.lsmeans(fit.remlMM1, lc.mat)
 test.lsmeans(fit.remlMM2, lc.mat)
 }	
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \seealso{
 \code{\link{test.fixef}}, \code{\link{lsmeans}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

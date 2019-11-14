@@ -23,4 +23,3 @@ data as attribute 'scale'.
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmester@roche.com}
 }
-

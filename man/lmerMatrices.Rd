@@ -38,10 +38,9 @@ matrix-representations of the \code{Matrix}-package.
 
 This function is not intended to be called directly by users and therefore not exported.
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \seealso{
 \code{\link{remlVCA}}, \code{\link{remlMM}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

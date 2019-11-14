@@ -57,9 +57,6 @@ subset(VCAdata1, sample==5))
 lmerSummary(fit1, tab.only=TRUE)
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \references{
 Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York
 
@@ -69,4 +66,6 @@ Asymptotic Theory and Small-Sample Simulation Results, Biometrics 41, p. 477-486
 \seealso{
 \code{\link{remlVCA}}, \code{\link{remlMM}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

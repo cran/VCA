@@ -89,10 +89,9 @@ fit <- Scale(anovaVCA(y~(device+lot)/day/run, VCAdata1, by="sample"))
 reScale(fit)
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \seealso{
 \code{\link{reScale}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

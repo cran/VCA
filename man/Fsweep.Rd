@@ -44,10 +44,9 @@ the sum of squares and the Covariance matrix of the estimates are calculated.
 \details{
 This is an utility-function not intended to be called directly.
 }
-\author{
-Florian Dufey \email{florian.dufey@roche.com}
-}
 \references{
 Goodnight, J.H. (1979), A Tutorial on the SWEEP Operator, The American Statistician, 33:3, 149-158
 }
-
+\author{
+Florian Dufey \email{florian.dufey@roche.com}
+}

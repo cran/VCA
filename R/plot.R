@@ -253,6 +253,8 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' 						In case 'type=3', two separate lists can be specified where the first list applies to the variability chart and the second list
 #' 						to the SD-/CV-chart.
 #' @param ylim          (numeric) vector of length two, specifying the limits in Y-direction, if not set these values will be determined automatically.
+#' 						In case of plot 'type=3' this can also be a list of two ylim-vectors, first corresponding to the variability chart, second to the
+#' 						plot of error variability per replicate group
 #' @param Join          (list) specifying all parameter applicable in function \code{\link{lines}} controlling how observed values within lower-level factor-levels,
 #' 						are joined. Set to NULL to omit.
 #' @param JoinLevels	(list) specifying all arguments applicable in function \code{\link{lines}}, joining factor-levels nested within higher order factor levels,
@@ -318,11 +320,11 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' # use alternating backgrounds for each level of factor "day" 
 #' # (top-level factor is default) 
 #' # use a simplified model formula (NOTE: only valid for function 'varPlot')
-#' varPlot(y~day+run, dataEP05A2_3, BG=list(col=c("lightblue", "lightgray"), border=NA))
+#' varPlot(y~day+run, dataEP05A2_3, BG=list(col=c("gray70", "gray90"), border=NA))
 #' 
 #' # now also color the corresponding row in the table accordingly
 #' varPlot( y~day+run, dataEP05A2_3, 
-#'          BG=list(col=c("lightblue", "lightgray"), border=NA, col.table=TRUE))
+#'          BG=list(col=c("gray70", "gray90"), border=NA, col.table=TRUE))
 #' 
 #' # assign different point-colors according to a classification variable
 #' # not part of the model (artificial example in this case)
@@ -341,7 +343,7 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #'          Points=list(pch=list(var="user", pch=c(2, 8))) )
 #' 
 #' # add legend to right margin
-#' legend.m(pch=c(8,2), legend=c("User 1", "User 2")
+#' legend.m(pch=c(8,2), legend=c("User 1", "User 2"))
 #' 
 #' # assign custom plotting symbols by combining 'pch' and 'bg'
 #' varPlot( y~day+day:run, dataEP05A2_3, 
@@ -370,8 +372,8 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #'            legend=c("Cls2=1", "Cls2=2", "User=2", "User=1"),
 #'            cex=1.5)
 #' 
-#' # use magenta lines between each level of factor "run" 
-#' varPlot(y~day/run, dataEP05A2_3, BG=list(var="run", border="magenta"))
+#' # use blue lines between each level of factor "run" 
+#' varPlot(y~day/run, dataEP05A2_3, BG=list(var="run", border="blue"))
 #' 
 #' # plot SDs for each run
 #' varPlot(y~day+day:run, dataEP05A2_3, type=2)
@@ -383,10 +385,10 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' varPlot(y~day/run, dataEP05A2_3, type=3, useVarNam=TRUE)
 #' 
 #' # now further customize the plot
-#' varPlot( y~day/run, dataEP05A2_3, BG=list(col=c("lightgray", "wheat")),
-#'          YLabel=list(font=2, col="green", cex=1, text="Custom Y-Axis Label"),
-#'          VCnam=list(col="red", font=4),
-#'          VarLab=list(col="magenta", font=3, srt=0))
+#' varPlot( y~day/run, dataEP05A2_3, BG=list(col=c("lightgray", "gray")),
+#'          YLabel=list(font=2, col="blue", cex=1.75, text="Custom Y-Axis Label"),
+#'          VCnam=list(col="red", font=4, cex=2),
+#'          VarLab=list(list(col="blue", font=3, cex=2), list(cex=1.25, srt=-15)))
 #' 
 #' # create variability-chart of the example dataset in the CLSI EP05-A2 
 #' # guideline (listed on p.25)
@@ -399,9 +401,11 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #'         list(srt=90, col="blue", font=3)), VSpace=c(.25, .75))
 #' 
 #' # set individual titles for both plot when 'type=3'
+#' # and individual 'ylim' specifications
 #' varPlot(	result~day/run, Glucose, type=3, 
 #'          Title=list(list(main="Variability Chart"), 
-#'          list(main="Plot of SD-Values")))
+#'                     list(main="Plot of SD-Values")),
+#' 			ylim=list(c(230, 260), c(0, 10)))
 #' 
 #' # more complex experimental design
 #' data(realData)
@@ -474,7 +478,9 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' 
 #' # present points as jitter-plot around box-center
 #' varPlot(	y~device/day, datS5, 
-#'          Boxplot=list(jitter=1),
+#'          Boxplot=list(jitter=1, col.box="darkgreen"),
+#' 			BG=list(var="device", col=paste0("gray", c(60, 70, 80)),
+#' 					col.table=TRUE),
 #'          Points=list(pch=16, 
 #' 						col=list(var="run", col=c("blue", "red"))), 
 #' 			Mean=list(col="black", cex=1, lwd=2)) 
@@ -639,15 +645,33 @@ varPlot <- function(form, Data, keep.order=TRUE,
 	Nbin <- attr(lst, "Nbin")                                               # number of bins, i.e. scatterplots
 	Xdiff <- length(lst)/sum(Nelem)                                         # basic cell-width of the tabular        
 	
-	Range <- range(Data[, resp], na.rm=TRUE)                                # plotting limits (Y-direction) for the variability-plot    
-	Range[1] <- Range[1] - diff(Range) * .1
-	Range[2] <- Range[2] + diff(Range) * .1
-	Range <- range(pretty(Range))
-	
+	Range 		<- range(Data[, resp], na.rm=TRUE)                          # plotting limits (Y-direction) for the variability-plot    
+	Range[1] 	<- Range[1] - diff(Range) * .1
+	Range[2] 	<- Range[2] + diff(Range) * .1
+	Range 		<- range(pretty(Range))
+	Range2		<- NULL
+		
 	if( !is.null(ylim) )                                                    # user-defined Y-limits
 	{
-		if( is.numeric(ylim) && length(ylim) > 1)
-			Range <- ylim[1:2]
+		if (type == 1) {
+			if( is.numeric(ylim) && length(ylim) > 1)
+				Range <- ylim[1:2]
+		} else if(type == 2) {
+			Range2 <- ylim[1:2]
+		} else {
+			if(is.list(ylim))
+			{
+				if( is.numeric(ylim[[1]]) && length(ylim[[1]]) > 1)
+					Range <- ylim[[1]][1:2]
+				
+				if( is.numeric(ylim[[2]]) && length(ylim[[2]]) > 1)
+					Range2 <- ylim[[2]][1:2]
+				
+				ylim <- ylim[[1]]
+			} else {						# assume that only variability chart is meant
+				Range <- ylim[1:2]
+			}
+		}
 	}
 	
 	YLim <- Range
@@ -659,12 +683,20 @@ varPlot <- function(form, Data, keep.order=TRUE,
 	if(VARtype == "CV")
 		SDrange <- attr(lst, "CVrange")                                     # use CV instead of SD
 	
-	SDrange[1] <- SDrange[1] - diff(SDrange) * .05
-	SDrange[2] <- SDrange[2] + diff(SDrange) * .1
-	SDrange <- range(pretty(SDrange))
-	SDYLim <- SDrange
-	SDYLim[1] <- SDYLim[1] - diff(SDYLim) * htab
+	SDrange[1] 	<- SDrange[1] - diff(SDrange) * .05
+	SDrange[2] 	<- SDrange[2] + diff(SDrange) * .1
+	SDrange 	<- range(pretty(SDrange))
+	SDYLim 		<- SDrange
+	if(!is.null(Range2))
+	{
+		SDrange <- Range2
+		SDYLim  <- Range2
+	} else {
+		Range2 <- SDrange
+	}
 	
+	SDYLim[1] 	<- SDYLim[1] - diff(SDYLim) * htab
+
 	if(type == 3L)
 		MFROW <- c(2,1)
 	#else
@@ -1070,7 +1102,19 @@ varPlot <- function(form, Data, keep.order=TRUE,
 					rec.env$PointsCollection[[length(rec.env$PointsCollection) + 1]] <- Points
 				}
 				else
+				{
+					if(!is.null(Range2))					# SD-points outside ylim will not be plotted 
+					{
+						SD.idx <- which(SDs$y < Range2[1])
+						if(length(SD.idx) > 0)
+							{
+								SDs$x <- SDs$x[-SD.idx]
+								SDs$y <- SDs$y[-SD.idx]
+							}
+					}
+		
 					do.call("points", args=SDs)
+				}
 				
 #################
 				if(!is.null(Boxplot))
@@ -1416,12 +1460,10 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		
 		if(!is.null(VCnam))
 		{
-	#		VCnam$side=2
 			VCnam$at <- Ybound[-length(Ybound)]+diff(Ybound[1:2])/2
 			if(is.null(VCnam$text))																			# do not overwrite user-specified text
 				VCnam$text <- nest
 			VCnam$las <- 1
-		#	VCnam$adj <- 1
 
 			do.call("mtext", args=VCnam)
 		}
@@ -1434,10 +1476,13 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		if(SDrange[1] == 0)
 			abline(h=0, lty=2, col="gray")
 		
-		tmp.at <- pretty(SDrange)
-		if(any(tmp.at < min(SDrange)))
-			tmp.at <- tmp.at[-which(tmp.at < min(SDrange))]
-		axis(2, at=tmp.at[-1]) 
+		tmp.at <- pretty(Range2)
+		if(any(tmp.at < min(Range2)))
+			tmp.at <- tmp.at[-which(tmp.at < min(Range2))]
+		
+		axis(2, at=tmp.at, las=1) 
+		
+		abline(h=0, lty=2, col="gray")
 		
 		if(!is.null(HLine))
 		{
@@ -1478,12 +1523,26 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		
 		box()
 		
+
+
+		if(!is.null(Range2))
+		{
+			# adjust plotting region to user-specification by restricting the plotting region
+			USR 	<- par("usr")
+			PLT 	<- par("plt")
+			PLT2 	<- PLT
+			PLT2[3] <- PLT[4] - diff(Range2) * diff(PLT[3:4]) / (diff(USR[3:4]))
+			par(plt=PLT2)
+		}	
 		if(!is.null(SDline))
 		{
 			SDline$x <- as.numeric(names(StatsList$SDvec))
 			SDline$y <- StatsList$SDvec
 			do.call("lines", args=SDline)
 		}
+		
+		if(!is.null(Range2))			# 
+			par(plt=PLT)
 		
 		if(!is.null(VCnam))
 		{

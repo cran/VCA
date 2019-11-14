@@ -26,4 +26,3 @@ R-package.
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

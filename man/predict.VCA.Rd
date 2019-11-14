@@ -97,4 +97,3 @@ predict(fit.fitLMM, newdata, re="age2:Subject")
 \author{
 Andre Schuetzenmeister \email{andre.schuetzeneister@roche.com}
 }
-

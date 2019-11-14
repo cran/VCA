@@ -22,4 +22,3 @@ the one used in the remaining source-code of the package.
 \author{
 Authors of the Rprofile.site file in Microsoft R Open.
 }
-

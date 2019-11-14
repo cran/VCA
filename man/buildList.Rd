@@ -65,4 +65,3 @@ lst <- VCA:::buildList(Data=dataEP05A2_3, Nesting=c("day", "run"), Current="day"
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

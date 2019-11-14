@@ -1,3 +1,13 @@
+Version 1.4.1
+-------------
+- it is now checked in function 'anovaVCA' if a model is specified where the number of levels is equal to the
+  number of observation, in the new and fast FORTRAN implementation of the Sweep-operator this was not issuing
+  an error any more as in previous versions
+- some documentation elements were corrected and improved
+- in function 'varPlot' it is now possible to set plotting limits for both plots when using plot type=3, i.e.
+  having the usual variability chart and the plot of error variances per replicate-group
+
+
 Version 1.4.0
 -------------
 

@@ -40,10 +40,9 @@ PROC MIXED for details on this topic.
 The implementation of the Satterthwaite approximation was inspired by the code of function 
 'calcSatterth' of R-package 'lmerTest'.
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \seealso{
 \code{\link{test.fixef}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

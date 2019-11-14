@@ -39,4 +39,3 @@ getMat(fit2, "V")			 	# Var(y)
 getMat(fit2, "G")				# Var(re)
 }
 }
-

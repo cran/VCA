@@ -24,10 +24,9 @@ fit <- anovaVCA(y~day/run, dataEP05A2_1)
 as.matrix(fit)
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \seealso{
 \code{\link{as.matrix.VCAinference}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

@@ -39,10 +39,9 @@ as.matrix(inf, what="CV", digits=2)
 as.matrix(inf)
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \seealso{
 \code{\link{print.VCAinference}}, \code{\link{as.matrix.VCA}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

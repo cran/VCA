@@ -47,4 +47,3 @@ VCA:::lsmMat(fit2, c("lot", "device"))
 \author{
 Andre Schutzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

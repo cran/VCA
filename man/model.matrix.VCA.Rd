@@ -16,4 +16,3 @@ Function returns matrix \code{X} corresponding
 to the design matrix of fixed effects of the fitted
 model.
 }
-

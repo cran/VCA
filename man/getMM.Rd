@@ -53,4 +53,3 @@ model.matrix(~day*cov, tmpData2)
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
 }
-

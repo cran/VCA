@@ -165,9 +165,6 @@ anovaMM.Tab1
 }
 
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
-}
 \references{
 Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York	
 
@@ -191,4 +188,6 @@ SAS Help and Documentation PROC MIXED, SAS Institute Inc., Cary, NC, USA
 \code{\link{ranef}}, \code{\link{fixef}}, \code{\link{vcov}}, \code{\link{vcovVC}}, 
 \code{\link{test.fixef}}, \code{\link{test.lsmeans}}, \code{\link{plotRandVar}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+}

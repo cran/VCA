@@ -31,10 +31,6 @@ fit <- solveMME(fit)		# some additional matrices required
 getGB(fit)
 }
 }
-\author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com},
-Florian Dufey \email{florian.dufey@contractors.roche.com}
-}
 \references{
 Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York
 
@@ -44,4 +40,7 @@ Asymptotic Theory and Small-Sample Simulation Results, Biometrics 41, p. 477-486
 \seealso{
 \code{\link{vcovVC}}, \code{\link{remlVCA}}, \code{\link{remlMM}}
 }
-
+\author{
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com},
+Florian Dufey \email{florian.dufey@contractors.roche.com}
+}
