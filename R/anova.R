@@ -377,7 +377,7 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE,
 	Lmat$C.MS	<- C2
 	Lmat$Ci.SS  <- Ci
 	Lmat$Ci.MS  <- Ci2
-	Lmat$VCvar   <- CVC$VCvar
+	Lmat$VCvar  <- CVC$VCvar
 	Lmat$y      <- matrix(Data[, resp], ncol=1)								# column vector of observations
 	Lmat$X      <- matrix(ifelse(int, 1, 0), ncol=1, nrow=nrow(Data))		# design matrix of fixed effects
 	colnames(Lmat$X) <- "int"
@@ -692,7 +692,7 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c( "scm","gb"),
 	
 	for(i in rev(vars))														# check Data for consistency
 	{
-		if(length(unique(Data[,i])) == Ndata)
+		if(length(unique(Data[,i])) == Ndata && !is.numeric(Data[,i]))
 			stop("Variable '", i,"': number of levels of each grouping factor must be < number of observations!")
 		
 		if( any(is.na(Data[,i])))
@@ -953,7 +953,7 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c( "scm","gb"),
 stepwiseVCA <- function(obj, VarVC.method=c("scm", "gb"))
 {
 	stopifnot(obj$Type == "Random Model")					# only random models correspond to true VCA-analyses
-	stopifnot(obj$EstType == "ANOVA")
+	stopifnot(obj$EstMethod == "ANOVA")
 	VarVC.method <- match.arg(VarVC.method)
 	tab <- obj$aov.tab
 	Nstp  <- nrow(tab)-2

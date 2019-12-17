@@ -154,7 +154,7 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 	
 	plot(1:Nvec, vec, main=main, axes=FALSE, xlab=NA, ylab=Ylab, type="n", ...)
 	
-	axis(2)
+	axis(2, las=1)
 	axis(1, at=1:Nvec, labels=NA)
 	
 	if(!is.null(Vlines))

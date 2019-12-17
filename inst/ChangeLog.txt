@@ -1,3 +1,11 @@
+Version 1.4.2
+-------------
+
+- set up rmarkdown based vignette building
+- fixed bug in function 'stepwiseVCA' not catching that only ANOVA-models are supported
+- fixed bug in function 'fitVCA' that variance-covariance matrix was not correctly used in
+  function 'VCAinference' and no CI for intermediary VC were estimated
+
 Version 1.4.1
 -------------
 - it is now checked in function 'anovaVCA' if a model is specified where the number of levels is equal to the

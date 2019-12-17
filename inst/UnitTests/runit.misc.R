@@ -1892,3 +1892,28 @@ TF072.getMM.multi.covariables <- function()
 }
 
 
+# Check whether CI for intermediary VC are correctly estimated when fitting model 
+# using 'fitVCA' instead of 'anovaVCA'
+# In version 1.4.1 vcov for intermediary VC were not estimated.
+
+TF073.fitVCA_ANOVA_VarVC_TRUE <- function()
+{
+	data(dataEP05A2_3)
+	fit0 <- anovaVCA(y~day/run, dataEP05A2_3)
+	fit1 <- fitVCA(  y~day/run, dataEP05A2_3)
+	inf0 <- VCAinference(fit0, VarVC=TRUE)
+	inf1 <- VCAinference(fit1, VarVC=TRUE)
+	checkEquals(unlist(inf0$ConfInt), unlist(inf1$ConfInt))
+}
+
+
+TF074.fitVCA_REML_VarVC_TRUE <- function()
+{
+	fit0 <- remlVCA(y~day/run, dataEP05A2_3)
+	fit1 <- fitVCA(  y~day/run, dataEP05A2_3, "REML")
+	inf0 <- VCAinference(fit0, VarVC=TRUE)
+	inf1 <- VCAinference(fit1, VarVC=TRUE)
+	checkEquals(unlist(inf0$ConfInt), unlist(inf1$ConfInt), tol=1e-6)
+}
+
+

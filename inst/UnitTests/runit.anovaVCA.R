@@ -485,3 +485,10 @@ TF034.anovaVCA.zeroVariance <- function()
 }
 
 
+TF035.anovaVCA.MisspecifiedModel <- function()
+{
+	data(dataEP05A2_3)
+	checkException(anovaVCA(y~day, dataEP05A2_3[seq(1, 77, 4),]))
+}
+
+

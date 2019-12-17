@@ -585,11 +585,11 @@ reScale <- function(obj, VarVC=TRUE)
 	
 	scale <- VCAobj$scale	
 	
-	if(VarVC)						# estimate covariance-matrix of VCs before any re-scaling takes place
+	if(VarVC || VCAobj$EstMethod == "ANOVA")						# estimate covariance-matrix of VCs before any re-scaling takes place
 	{
 		VCAobj <- solveMME(VCAobj)
 		VCAobj$VarCov <- vcovVC(VCAobj)
-	}	
+	}
 	
 	VCAobj$aov.tab[,"VC"] 		<- VCAobj$aov.tab[,"VC"] * scale^2
 	VCAobj$aov.tab[,"SD"] 		<- VCAobj$aov.tab[,"SD"] * scale
@@ -694,7 +694,7 @@ Solve <- function(X, quiet=FALSE)
 	}
 	Xi <- try(chol2inv(chol(X)), silent=TRUE)
 	
-	if(class(Xi) == "try-error")			# use Moore-Penrose inverse instead in case of an error
+	if("try-error" %in% class(Xi))			# use Moore-Penrose inverse instead in case of an error
 	{										# using the Cholesky-decomposition approach
 		if(!quiet)
 			warning("\tMatrix inversion via 'chol2inv' failed!\n\tUse generalized (Moore-Penrose) inverse (MPinv)!", sep="\n")
@@ -1521,7 +1521,8 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 				if( !"VCAinference.obj.is.list" %in% names(as.list(msgEnv)) && !quiet )
 					message("Mixed model equations solved locally. Results could not be assigned to object!")
 			}
-		}
+		} else
+			obj$aov.tab <- cbind(obj$aov.tab, "Var(VC)"=c(NA, diag(obj$VarCov)))  
 	}
 	
 	if(!is.na(total.claim) && nrow(obj$aov.tab) == 1)                               # if error is the only VC no total variance exists (or is equal)
@@ -2140,7 +2141,7 @@ print.VCAinference <- function(x, digits=4L, what=c("all", "VC", "SD", "CV", "VC
 	ci.method <- attr(x, "ci.method")
 	
 	if( any(c("all", "vc", "sd", "cv") %in% what) )
-		cat( paste("\n\n", 100*(1-x$alpha), "% Confidence Level  ", ifelse(attr(x, "excludeNeg") && (VCAobj$aov.tab[,"VC"] <= 0), "|  CIs for negative VCs excluded  ", ""),
+		cat( paste("\n\n", 100*(1-x$alpha), "% Confidence Level  ", ifelse(attr(x, "excludeNeg") && any(VCAobj$aov.tab[,"VC"] <= 0), "|  CIs for negative VCs excluded  ", ""),
 						ifelse(!is.null(attr(x$ConfInt$VC$TwoSided, "LCLconstrained")), "| * CI-limits constrained to be >= 0", ""), 
 						ifelse(ci.method=="sas", "\nSAS PROC MIXED method used for computing CIs", "\nSatterthwaite methodology used for computing CIs"), sep=""), "\n\n")
 	
