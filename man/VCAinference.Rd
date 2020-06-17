@@ -4,9 +4,18 @@
 \alias{VCAinference}
 \title{Inferential Statistics for VCA-Results}
 \usage{
-VCAinference(obj, alpha = 0.05, total.claim = NA, error.claim = NA,
-  claim.type = "VC", VarVC = FALSE, excludeNeg = TRUE,
-  constrainCI = TRUE, ci.method = "sas", quiet = FALSE)
+VCAinference(
+  obj,
+  alpha = 0.05,
+  total.claim = NA,
+  error.claim = NA,
+  claim.type = "VC",
+  VarVC = FALSE,
+  excludeNeg = TRUE,
+  constrainCI = TRUE,
+  ci.method = "sas",
+  quiet = FALSE
+)
 }
 \arguments{
 \item{obj}{(object) of class 'VCA' or, alternatively, a list of 'VCA' objects, where all other argument can be 
@@ -194,7 +203,7 @@ inf1
 # print numerical values with more digits
 print(inf1, digit=12)
 
-# print only parts of the 'VCAinference' object (see \\code{\\link{print.VCAinference}})
+# print only parts of the 'VCAinference' object (see \code{\link{print.VCAinference}})
 print(inf1, digit=12, what=c("VCA", "VC"))
 
 # extract complete covariance matrix of variance components 

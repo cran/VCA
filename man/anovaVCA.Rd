@@ -4,8 +4,16 @@
 \alias{anovaVCA}
 \title{ANOVA-Type Estimation of Variance Components for Random Models}
 \usage{
-anovaVCA(form, Data, by = NULL, NegVC = FALSE, VarVC.method = c("scm",
-  "gb"), MME = FALSE, quiet = FALSE, order.data = TRUE)
+anovaVCA(
+  form,
+  Data,
+  by = NULL,
+  NegVC = FALSE,
+  VarVC.method = c("scm", "gb"),
+  MME = FALSE,
+  quiet = FALSE,
+  order.data = TRUE
+)
 }
 \arguments{
 \item{form}{(formula) specifying the model to be fit, a response variable left of the '~' is mandatory}

@@ -5,8 +5,13 @@
 \alias{resid}
 \title{Extract Residuals of a 'VCA' Object}
 \usage{
-\method{residuals}{VCA}(object, type = c("conditional", "marginal"),
-  mode = c("raw", "student", "standard", "pearson"), quiet = FALSE, ...)
+\method{residuals}{VCA}(
+  object,
+  type = c("conditional", "marginal"),
+  mode = c("raw", "student", "standard", "pearson"),
+  quiet = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{(VCA) object}

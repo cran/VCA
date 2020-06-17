@@ -4,8 +4,7 @@
 \alias{remlVCA}
 \title{Perform (V)ariance (C)omponent (A)nalysis via REML-Estimation}
 \usage{
-remlVCA(form, Data, by = NULL, VarVC = TRUE, quiet = FALSE,
-  order.data = TRUE)
+remlVCA(form, Data, by = NULL, VarVC = TRUE, quiet = FALSE, order.data = TRUE)
 }
 \arguments{
 \item{form}{(formula) specifying the model to be fit, a response variable left of the '~' is mandatory}

@@ -4,8 +4,14 @@
 \alias{fitLMM}
 \title{Fit Linear Mixed Model by ANOVA or REML}
 \usage{
-fitLMM(form, Data, method = c("anova", "reml"), scale = TRUE,
-  VarVC = TRUE, ...)
+fitLMM(
+  form,
+  Data,
+  method = c("anova", "reml"),
+  scale = TRUE,
+  VarVC = TRUE,
+  ...
+)
 }
 \arguments{
 \item{form}{(formula) specifiying the linear mixed model, random effects need to be identified by enclosing

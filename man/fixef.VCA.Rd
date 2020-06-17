@@ -4,9 +4,14 @@
 \alias{fixef.VCA}
 \title{Extract Fixed Effects from 'VCA' Object}
 \usage{
-\method{fixef}{VCA}(object, type = c("simple", "complex"),
-  ddfm = c("contain", "residual", "satterthwaite"), tol = 1e-12,
-  quiet = FALSE, ...)
+\method{fixef}{VCA}(
+  object,
+  type = c("simple", "complex"),
+  ddfm = c("contain", "residual", "satterthwaite"),
+  tol = 1e-12,
+  quiet = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{(VCA) object where fixed effects shall be extracted}

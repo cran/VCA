@@ -4,8 +4,7 @@
 \alias{as.matrix.VCAinference}
 \title{Standard 'as.matrix' Method for 'VCAinference' S3-Objects}
 \usage{
-\method{as.matrix}{VCAinference}(x, what = c("VC", "SD", "CV"), digits = 6,
-  ...)
+\method{as.matrix}{VCAinference}(x, what = c("VC", "SD", "CV"), digits = 6, ...)
 }
 \arguments{
 \item{x}{(VCAinference) object}

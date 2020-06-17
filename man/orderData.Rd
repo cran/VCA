@@ -4,8 +4,7 @@
 \alias{orderData}
 \title{Re-Order Data.Frame}
 \usage{
-orderData(Data, trms, order.data = TRUE, exclude.numeric = TRUE,
-  quiet = FALSE)
+orderData(Data, trms, order.data = TRUE, exclude.numeric = TRUE, quiet = FALSE)
 }
 \arguments{
 \item{Data}{(data.frame) with input data intented to put into standard-order}

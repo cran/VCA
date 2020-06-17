@@ -4,8 +4,7 @@
 \alias{predict.VCA}
 \title{Predictions from a Model Fitted by \code{fitLMM}}
 \usage{
-\method{predict}{VCA}(object, newdata = NULL, re = NULL,
-  allow.new.levels = FALSE, ...)
+\method{predict}{VCA}(object, newdata = NULL, re = NULL, allow.new.levels = FALSE, ...)
 }
 \arguments{
 \item{object}{(VCA) object fitted via function \code{\link{fitLMM}}}

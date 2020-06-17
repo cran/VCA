@@ -4,8 +4,15 @@
 \alias{getDDFM}
 \title{Degrees of Freedom for Testing Linear Contrasts of Fixed Effects and Least Square Means}
 \usage{
-getDDFM(obj, L, ddfm = c("contain", "residual", "satterthwaite"),
-  tol = 1e-12, method.grad = "simple", opt = TRUE, items = NULL)
+getDDFM(
+  obj,
+  L,
+  ddfm = c("contain", "residual", "satterthwaite"),
+  tol = 1e-12,
+  method.grad = "simple",
+  opt = TRUE,
+  items = NULL
+)
 }
 \arguments{
 \item{obj}{(VCA) object}

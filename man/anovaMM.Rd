@@ -4,8 +4,15 @@
 \alias{anovaMM}
 \title{ANOVA-Type Estimation of Mixed Models}
 \usage{
-anovaMM(form, Data, by = NULL, VarVC.method = c("scm", "gb"),
-  NegVC = FALSE, quiet = FALSE, order.data = TRUE)
+anovaMM(
+  form,
+  Data,
+  by = NULL,
+  VarVC.method = c("scm", "gb"),
+  NegVC = FALSE,
+  quiet = FALSE,
+  order.data = TRUE
+)
 }
 \arguments{
 \item{form}{(formula) specifying the linear mixed model (fixed and random part of the model),
@@ -72,7 +79,7 @@ and \eqn{VC} is the column-vector of adapted variance components. The Satterthwa
 (DF for total variance) will use adapted \eqn{MS}-values.
 
 Note, that setting negative VCs equal to zero results in a conservative estimate of the total variance, i.e. it will be larger than
-the estimate including the negative VC(s). Use parameter 'NegVC=TRUE' to explicitly allow negative variance estimates.
+the estimate including the negative VC(s). Use parameter 'NegVC=TRUE' to explicitly allow negative variance estimates. 
 
 For further details on ANOVA Type-I estimation methods see \code{\link{anovaVCA}}.
 }

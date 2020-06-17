@@ -4,9 +4,17 @@
 \alias{plotRandVar}
 \title{Plot Random Variates of a Mixed Model ('VCA' Object).}
 \usage{
-plotRandVar(obj, term = NULL, mode = c("raw", "student", "standard",
-  "pearson"), main = NULL, Xlabels = list(), Points = list(),
-  Vlines = list(), pick = FALSE, ...)
+plotRandVar(
+  obj,
+  term = NULL,
+  mode = c("raw", "student", "standard", "pearson"),
+  main = NULL,
+  Xlabels = list(),
+  Points = list(),
+  Vlines = list(),
+  pick = FALSE,
+  ...
+)
 }
 \arguments{
 \item{obj}{(VCA) object}

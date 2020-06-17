@@ -1,3 +1,13 @@
+Version 1.4.3
+-------------
+
+- fixed issue of 'ylim' not having any effect in function 'varPlot' in case 'type=3', now a list
+  of two ylim-vectors can be provided
+- fixed bug in function 'fitVCA' which did not correctly handle varianc-covariance matrix processing
+  of variance components
+- an error is issued in case number of levels = number of observations
+- fixed CRAN package-check issues
+
 Version 1.4.2
 -------------
 

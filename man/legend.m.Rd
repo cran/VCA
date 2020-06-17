@@ -4,10 +4,15 @@
 \alias{legend.m}
 \title{Add Legend to Margin.}
 \usage{
-legend.m(x = c("center", "bottomright", "bottom", "bottomleft", "left",
-  "topleft", "top", "topright", "right"), y = NULL, margin = c("right",
-  "bottomright", "bottom", "bottomleft", "left", "topleft", "top", "topright"),
-  offset = 0.05, ...)
+legend.m(
+  x = c("center", "bottomright", "bottom", "bottomleft", "left", "topleft", "top",
+    "topright", "right"),
+  y = NULL,
+  margin = c("right", "bottomright", "bottom", "bottomleft", "left", "topleft", "top",
+    "topright"),
+  offset = 0.05,
+  ...
+)
 }
 \arguments{
 \item{x}{(character, numeric) either one of the character strings "center","bottomright", "bottom", "bottomleft", 

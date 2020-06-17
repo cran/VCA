@@ -4,8 +4,15 @@
 \alias{remlMM}
 \title{Fit Linear Mixed Models via REML}
 \usage{
-remlMM(form, Data, by = NULL, VarVC = TRUE, cov = TRUE, quiet = FALSE,
-  order.data = TRUE)
+remlMM(
+  form,
+  Data,
+  by = NULL,
+  VarVC = TRUE,
+  cov = TRUE,
+  quiet = FALSE,
+  order.data = TRUE
+)
 }
 \arguments{
 \item{form}{(formula) specifying the model to be fit, a response variable left of the '~' is mandatory, random terms
@@ -47,7 +54,7 @@ estimated variance. The variance of total variability, i.e. the sum of all VC is
 up all elements of the variance-covariance matrix of the VC.
 One can constrain the variance-covariance matrix of random effects \eqn{G} to be either diagonal ('cov=FALSE'), i.e.
 all random effects are indpendent of each other (covariance is 0). If 'cov=TRUE' (the default) matrix \eqn{G} will be
-constructed as implied by the model returned by function \code{\link{lmer}}.
+constructed as implied by the model returned by function \code{\link{lmer}}. 
 
 As for objects returned by function \code{\link{anovaMM}} linear hypotheses of fixed effects or LS Means can be
 tested with functions \code{\link{test.fixef}} and \code{\link{test.lsmeans}}. Note, that option "contain" does

@@ -62,10 +62,10 @@ importFrom("utils", capture.output)
 
 
 ### exported classes
-
-exportClasses( 	"VCA",
-		"VCAinference"
-	     )
+#
+#exportClasses( 	"VCA",
+#		"VCAinference"
+#	     )
 
 S3method(print, VCA)
 S3method(coef, VCA)

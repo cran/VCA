@@ -4,9 +4,15 @@
 \alias{lsmeans}
 \title{Least Squares Means of Fixed Effects}
 \usage{
-lsmeans(obj, var = NULL, type = c("simple", "complex"),
-  ddfm = c("contain", "residual", "satterthwaite"), at = NULL,
-  contr.mat = FALSE, quiet = FALSE)
+lsmeans(
+  obj,
+  var = NULL,
+  type = c("simple", "complex"),
+  ddfm = c("contain", "residual", "satterthwaite"),
+  at = NULL,
+  contr.mat = FALSE,
+  quiet = FALSE
+)
 }
 \arguments{
 \item{obj}{(VCA) object having at least one fixed effect}
@@ -58,7 +64,7 @@ fixed effects.
 Argument \code{at} can be used to modify the values of covariables when computing LS Means and/or
 to apply different weighting schemes for (fixed) factor varialbes in the model, e.g. when the prevelance
 of factor-levels differs from a uniform distribution. Usually, if the weighting scheme is not modified,
-each factor-level will contribute \eqn{1/N} to the LS Mean, where \eqn{N} corresponds to the number of factor-levels.
+each factor-level will contribute \eqn{1/N} to the LS Mean, where \eqn{N} corresponds to the number of factor-levels. 
 
 Covariables have to be specified as 'name=value', where value can be a vector of length > 1. 
 Each value will be evaluated for each row of the original LS Means contrast matrix. 

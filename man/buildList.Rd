@@ -4,9 +4,17 @@
 \alias{buildList}
 \title{Build a Nested List.}
 \usage{
-buildList(Data, Nesting, Current, resp, keep.order = TRUE, useVarNam = TRUE,
-  sep = "", na.rm = TRUE, Points = list(pch = 16, cex = 0.5, col =
-  "black"))
+buildList(
+  Data,
+  Nesting,
+  Current,
+  resp,
+  keep.order = TRUE,
+  useVarNam = TRUE,
+  sep = "",
+  na.rm = TRUE,
+  Points = list(pch = 16, cex = 0.5, col = "black")
+)
 }
 \arguments{
 \item{Data}{(data.frame) with the data}

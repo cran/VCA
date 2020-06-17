@@ -4,8 +4,7 @@
 \alias{print.VCAinference}
 \title{Standard Print Method for Objects of Class 'VCAinference'}
 \usage{
-\method{print}{VCAinference}(x, digits = 4L, what = c("all", "VC", "SD",
-  "CV", "VCA"), ...)
+\method{print}{VCAinference}(x, digits = 4L, what = c("all", "VC", "SD", "CV", "VCA"), ...)
 }
 \arguments{
 \item{x}{(VCAinference) object}

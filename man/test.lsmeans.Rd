@@ -4,8 +4,12 @@
 \alias{test.lsmeans}
 \title{Perform t-Tests for Linear Contrasts on LS Means}
 \usage{
-test.lsmeans(obj, L, ddfm = c("contain", "residual", "satterthwaite"),
-  quiet = FALSE)
+test.lsmeans(
+  obj,
+  L,
+  ddfm = c("contain", "residual", "satterthwaite"),
+  quiet = FALSE
+)
 }
 \arguments{
 \item{obj}{(VCA) object}

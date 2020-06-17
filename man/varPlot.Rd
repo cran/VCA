@@ -4,18 +4,35 @@
 \alias{varPlot}
 \title{Variability Chart for Hierarchical Models.}
 \usage{
-varPlot(form, Data, keep.order = TRUE, type = c(1L, 2L, 3L)[1],
-  VARtype = "SD", htab = 0.5, Title = NULL, VSpace = NULL,
-  VarLab = list(cex = 0.75, adj = c(0.5, 0.5)), YLabel = list(text =
-  "Value", side = 2, line = 3.5, cex = 1.5), SDYLabel = list(side = 2, line =
-  2.5), Points = list(pch = 16, cex = 0.5, col = "black"), SDs = list(pch =
-  16, col = "blue", cex = 0.75), SDline = list(lwd = 1, lty = 1, col =
-  "blue"), BG = list(border = "lightgray", col.table = FALSE),
-  VLine = list(lty = 1, lwd = 1, col = "gray90"), HLine = NULL,
-  Join = list(lty = 1, lwd = 1, col = "gray"), JoinLevels = NULL,
-  Mean = list(pch = 3, col = "red", cex = 0.5), MeanLine = NULL,
-  Boxplot = NULL, VCnam = list(cex = 0.75, col = "black", line = 0.25),
-  useVarNam = FALSE, ylim = NULL, max.level = 25, ...)
+varPlot(
+  form,
+  Data,
+  keep.order = TRUE,
+  type = c(1L, 2L, 3L)[1],
+  VARtype = "SD",
+  htab = 0.5,
+  Title = NULL,
+  VSpace = NULL,
+  VarLab = list(cex = 0.75, adj = c(0.5, 0.5)),
+  YLabel = list(text = "Value", side = 2, line = 3.5, cex = 1.5),
+  SDYLabel = list(side = 2, line = 2.5),
+  Points = list(pch = 16, cex = 0.5, col = "black"),
+  SDs = list(pch = 16, col = "blue", cex = 0.75),
+  SDline = list(lwd = 1, lty = 1, col = "blue"),
+  BG = list(border = "lightgray", col.table = FALSE),
+  VLine = list(lty = 1, lwd = 1, col = "gray90"),
+  HLine = NULL,
+  Join = list(lty = 1, lwd = 1, col = "gray"),
+  JoinLevels = NULL,
+  Mean = list(pch = 3, col = "red", cex = 0.5),
+  MeanLine = NULL,
+  Boxplot = NULL,
+  VCnam = list(cex = 0.75, col = "black", line = 0.25),
+  useVarNam = FALSE,
+  ylim = NULL,
+  max.level = 25,
+  ...
+)
 }
 \arguments{
 \item{form}{(formula) object specifying the model, NOTE: any crossed factors are reduced to last term of the crossing structure, i.e.

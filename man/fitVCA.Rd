@@ -4,8 +4,14 @@
 \alias{fitVCA}
 \title{Fit Variance Component Model by ANOVA or REML}
 \usage{
-fitVCA(form, Data, method = c("anova", "reml"), scale = TRUE,
-  VarVC = TRUE, ...)
+fitVCA(
+  form,
+  Data,
+  method = c("anova", "reml"),
+  scale = TRUE,
+  VarVC = TRUE,
+  ...
+)
 }
 \arguments{
 \item{form}{(formula) specifiying the variance component model (see \code{\link{anovaVCA}} and/or \code{\link{remlVCA}})}

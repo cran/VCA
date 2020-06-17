@@ -4,8 +4,15 @@
 \alias{lmerSummary}
 \title{Derive VCA-Summary Table from an Object Fitted via Function \code{\link{lmer}}}
 \usage{
-lmerSummary(obj, VarVC = TRUE, terms = NULL, Mean = NULL, cov = FALSE,
-  X = NULL, tab.only = FALSE)
+lmerSummary(
+  obj,
+  VarVC = TRUE,
+  terms = NULL,
+  Mean = NULL,
+  cov = FALSE,
+  X = NULL,
+  tab.only = FALSE
+)
 }
 \arguments{
 \item{obj}{(lmerMod) object as returned by function \code{\link{lmer}}}

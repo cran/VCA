@@ -4,9 +4,17 @@
 \alias{test.fixef}
 \title{Perform t-Tests for Linear Contrasts on Fixed Effects}
 \usage{
-test.fixef(obj, L, ddfm = c("contain", "residual", "satterthwaite"),
-  method.grad = "simple", tol = 1e-12, quiet = FALSE, opt = TRUE,
-  onlyDF = FALSE, ...)
+test.fixef(
+  obj,
+  L,
+  ddfm = c("contain", "residual", "satterthwaite"),
+  method.grad = "simple",
+  tol = 1e-12,
+  quiet = FALSE,
+  opt = TRUE,
+  onlyDF = FALSE,
+  ...
+)
 }
 \arguments{
 \item{obj}{(VCA) object}

@@ -4,8 +4,13 @@
 \alias{ranef.VCA}
 \title{Extract Random Effects from 'VCA' Object}
 \usage{
-\method{ranef}{VCA}(object, term = NULL, mode = c("raw", "student",
-  "standard"), quiet = FALSE, ...)
+\method{ranef}{VCA}(
+  object,
+  term = NULL,
+  mode = c("raw", "student", "standard"),
+  quiet = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{(VCA) object from which random effects shall be extracted}
