@@ -111,7 +111,7 @@ Original CIs will always be available independent of parameter-settings of \code
 # load data (CLSI EP05-A2 Within-Lab Precision Experiment) 
 data(dataEP05A2_1)
 
-# perform (V)variance (C)component (A)nalysis (also comute A-matrices)
+# perform (V)variance (C)component (A)nalysis (also compute A-matrices)
 res <- anovaVCA(y~day/run, dataEP05A2_1)
 
 # get confidence intervals for total and error (VC, SD, CV)

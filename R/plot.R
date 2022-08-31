@@ -412,6 +412,11 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' Data <- realData[realData$PID == 1,]
 #' varPlot(y~lot/calibration/day/run, Data, type=3)
 #' 
+#' # order levels in the tablular environment
+#' varPlot(y~lot/calibration/day/run, Data, keep.order=FALSE)
+#' # keeping the order as in the data set (default) was different
+#' varPlot(y~lot/calibration/day/run, Data, keep.order=TRUE)
+#' 
 #' # improve visual appearance of the plot
 #' varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
 #'         BG=list(var="calibration", col=c("white", "lightgray")))
@@ -473,6 +478,7 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #'                      cex=1.25))
 #' 
 #' # depict measurements as boxplots
+#' data(VCAdata1)
 #' datS5 <- subset(VCAdata1, sample==5)
 #' varPlot(y~device/day, datS5, Boxplot=list()) 
 #' 
@@ -509,7 +515,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 					useVarNam=FALSE, 
 					ylim=NULL, max.level=25, ...)
 {        
-	stopifnot(is.data.frame(Data))
+	stopifnot(identical(class(Data),"data.frame"))
 	stopifnot(class(form) == "formula")
 	stopifnot(nrow(Data) > 2)                                               # at least 2 observations for estimating a variance
 	
@@ -546,7 +552,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 	{
 		stopifnot(class(Title) == "list")
 		
-		if(class(Title[[1]]) == "list")
+		if(is(Title[[1]], "list"))
 			stopifnot( class(Title[[2]]) == "list" )
 		else																# replicate title settings for both possible plots
 			Title <- list(Title, Title)
@@ -560,10 +566,21 @@ varPlot <- function(form, Data, keep.order=TRUE,
 	if( !is.null(BG) && is.null(BG$var) )
 		BG$var <- nest[1]                                   				# use top-level factor for separating factor-levels if not otherwise specified 
 	
+	if(!keep.order)
+	{
+		expr <- "Data <- Data[order("
+		
+		for(i in 1:length(nest))
+			expr <- paste0(expr, "Data[,\"", nest[i],"\"]", ifelse(i < length(nest), ",", ""))
+		expr <- paste0(expr, "),]")
+		eval(parse(text=expr))
+	}
+		
 	if(nest[1] != "1")                                         				# travers nesting structure and build nested list
 	{
 		lst <- buildList(Data=Data, Nesting=nest, Current=nest[1], resp=resp,
-				keep.order=keep.order, useVarNam=useVarNam, Points=Points)
+				useVarNam=useVarNam, Points=Points)
+#				keep.order=keep.order, useVarNam=useVarNam, Points=Points)
 	}
 	else
 	{
@@ -763,7 +780,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 	{
 		for(i in 1:length(VarLab.default))
 		{
-			if(class(VarLab[[i]]) == "list")
+			if(is(VarLab[[i]], "list"))
 				VarLab.default[[i]][names(VarLab[[i]])] <- VarLab[[i]]
 		}
 	}
@@ -1339,7 +1356,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		if(!is.null(HLine))
 		{
 			HLine.def1 <- list(h=tmp.at, col="gray90", lty=3)
-			if(type == 3 && class(HLine[[1]]) == "list")
+			if(type == 3 && is(HLine[[1]], "list"))
 				HLine.def1[names(HLine[[1]])] <- HLine[[1]]
 			else
 				HLine.def1[names(HLine)] <- HLine
@@ -1487,7 +1504,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 		if(!is.null(HLine))
 		{
 			HLine.def2 <- list(h=tmp.at, col="gray90", lty=3)
-			if(type == 3 && class(HLine[[2]]) == "list")
+			if(type == 3 && is(HLine[[2]], "list"))
 				HLine.def2[names(HLine[[2]])] <- HLine[[2]]
 			else
 				HLine.def2[names(HLine)] <- HLine
@@ -1628,7 +1645,9 @@ varPlot <- function(form, Data, keep.order=TRUE,
 #' lst <- VCA:::buildList(Data=dataEP05A2_3, Nesting=c("day", "run"), Current="day", resp="y")
 #' }
 
-buildList <- function(Data, Nesting, Current, resp, keep.order=TRUE, useVarNam=TRUE, sep="", na.rm=TRUE, Points=list(pch=16, cex=.5, col="black"))
+buildList <- function(	Data, Nesting, Current, resp, keep.order=TRUE, 
+						useVarNam=TRUE, sep="", na.rm=TRUE, 
+						Points=list(pch=16, cex=.5, col="black"))
 {
 	lev <- unique(as.character(Data[,Current]))
 	
@@ -1705,14 +1724,14 @@ buildList <- function(Data, Nesting, Current, resp, keep.order=TRUE, useVarNam=T
 		Points <- NULL
 	}
 	
-	if(!keep.order)
-	{
-		suppressWarnings(levInt <- as.integer(lev))
-		if(!any(is.na(levInt)))
-			lev <- lev[sort(levInt, index.return=TRUE)$ix]
-		else
-			lev <- sort(lev)
-	}
+#	if(!keep.order)
+#	{
+#		suppressWarnings(levInt <- as.integer(lev))
+#		if(!any(is.na(levInt)))
+#			lev <- lev[sort(levInt, index.return=TRUE)$ix]
+#		else
+#			lev <- sort(lev)
+#	}
 	
 	lst <- vector("list", length=length(lev))
 	attr(lst, "factor") <- Current
@@ -1769,8 +1788,10 @@ buildList <- function(Data, Nesting, Current, resp, keep.order=TRUE, useVarNam=T
 		}   
 		else
 		{   
-			lst[[i]] <- buildList(Data=tmpData, Nesting=Nesting, Current=Nesting[which(Nesting == Current)+1], 
-					resp=resp, keep.order=keep.order, useVarNam, Points=Points)
+			lst[[i]] <- buildList(	Data=tmpData, Nesting=Nesting, 
+									Current=Nesting[which(Nesting == Current)+1], 
+									resp=resp, #keep.order=keep.order, 
+									useVarNam, Points=Points)
 			Nelem[i] <- sum(attr(lst[[i]], "Nelem"))
 			Nbin <- Nbin + attr(lst[[i]], "Nbin")
 			
@@ -1951,6 +1972,16 @@ legend.m <- function(	x=c("center","bottomright", "bottom", "bottomleft",
 	
 	par(xpd=TRUE)
 	args <- list(...)
+	
+	if(!"xjust" %in% names(args))
+		xjust <- 0.5
+	else
+		xjust <- args$xjust
+	
+	if(!"yjust" %in% names(args))
+		yjust <- 0.5
+	else
+		yjust <- args$yjust
 	
 	USR  <- par("usr")
 	PLT  <- par("plt")

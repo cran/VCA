@@ -189,7 +189,7 @@ fitLMM <- function(	form, Data, method=c("anova", "reml"), scale=TRUE, VarVC=TRU
 	
 	wasVCA <- FALSE								# record that result was VCA-object
 	
-	if(class(fit) == "VCA")						# if by-processing was not used 			
+	if(is(fit, "VCA"))						# if by-processing was not used 			
 	{
 		fit <- list(fit)
 		wasVCA <- TRUE
@@ -465,7 +465,7 @@ fitVCA <- function(form, Data, method=c("anova", "reml"), scale=TRUE, VarVC=TRUE
 	
 	wasVCA <- FALSE								# record that result was VCA-object
 	
-	if(class(fit) == "VCA")						# if by-processing was not used 			
+	if(is(fit, "VCA"))						# if by-processing was not used 			
 	{
 		fit <- list(fit)
 		wasVCA <- TRUE
@@ -556,9 +556,8 @@ fitVCA <- function(form, Data, method=c("anova", "reml"), scale=TRUE, VarVC=TRUE
 
 reScale <- function(obj, VarVC=TRUE)
 {
-	if(is.list(obj) && !class(obj) %in% c("VCA", "VCAinference"))
-	{
-		
+	if(is.list(obj) && !is(obj, "VCA") && !is(obj, "VCAinference"))
+	{		
 		if(!all(sapply(obj, class) %in% c("VCA", "VCAinference")))
 			stop("Only lists of 'VCA' or 'VCAinference' objects are accepted!")
 		
@@ -578,7 +577,7 @@ reScale <- function(obj, VarVC=TRUE)
 	
 	stopifnot(class(obj) %in% c("VCA", "VCAinference"))
 	
-	if(class(obj) == "VCAinference")
+	if(is(obj, "VCAinference"))
 		VCAobj <- obj$VCAobj
 	else
 		VCAobj <- obj
@@ -614,7 +613,7 @@ reScale <- function(obj, VarVC=TRUE)
 	if(!is.null(VCAobj$VarCov))
 		VCAobj$VarCov			<- try(VCAobj$VarCov * scale^4, 	 silent=TRUE)
 	
-	if(class(obj) == "VCAinference")
+	if(is(obj, "VCAinference"))
 	{
 		obj$VCAobj <- VCAobj
 		
@@ -694,7 +693,7 @@ Solve <- function(X, quiet=FALSE)
 	}
 	Xi <- try(chol2inv(chol(X)), silent=TRUE)
 	
-	if("try-error" %in% class(Xi))			# use Moore-Penrose inverse instead in case of an error
+	if(inherits(Xi, "try-error"))			# use Moore-Penrose inverse instead in case of an error
 	{										# using the Cholesky-decomposition approach
 		if(!quiet)
 			warning("\tMatrix inversion via 'chol2inv' failed!\n\tUse generalized (Moore-Penrose) inverse (MPinv)!", sep="\n")
@@ -897,16 +896,16 @@ vcov.VCA <- function(object, quiet=FALSE, ...)
 #'
 #'@param obj			(VCA) object
 #'@param L				(numeric) vector specifying the linear combination of the fixed effect or
-#'LS Means
+#'						LS Means
 #'@param ddfm			(character) string specifying the method used for computing the denominator
-#'degrees of freedom for tests of fixed effects or LS Means. Available methods are
-#'"contain", "residual", and "satterthwaite".
+#'						degrees of freedom for tests of fixed effects or LS Means. Available methods are
+#'						"contain", "residual", and "satterthwaite".
 #'@param tol			(numeric) value specifying the numeric tolerance for testing equality to zero
 #'@param method.grad	(character) string specifying the method to be used for approximating the gradient
-#'of the variance-covariance matrix of fixed effects at the estimated covariance parameter
-#'estimates (see function 'grad' (numDeriv) for details)
+#'						of the variance-covariance matrix of fixed effects at the estimated covariance parameter
+#'						estimates (see function 'grad' (numDeriv) for details)
 #'@param opt			(logical) TRUE = tries to optimize computation time by avoiding unnecessary computations
-#'for balanced datasets (see \code{\link{test.fixef}}). 
+#'						for balanced datasets (see \code{\link{test.fixef}}). 
 #'@param items			(list) of pre-computed values
 #'
 #'@return (numeric) vector with the specified type of degrees of freedom
@@ -929,27 +928,28 @@ getDDFM <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"), tol=
 	{		
 		cn <- colnames(L)										# fe or LS Means names
 		cn <- cn[which(L[1,] != 0)]
-		
+
 		if(length(cn) == 1 && cn == "int")						# handle intercept fixed effect
 		{
-			return(DF <- min(obj$aov.org[obj$random, "DF"]))
+			return(min(obj$aov.org[obj$random, "DF"]))
 		}
 		fe <- obj$fixed
+
 		tmp <- sapply(fe, function(x) gregexpr(x, cn))			# can names of fixed terms be found in column names of L?
-		
-		if(class(tmp) == "list")								# there was only a single non-zero column in L --> list returned
+
+		if(is(tmp, "list")) {								# there was only a single non-zero column in L --> list returned
 			fe <- sapply(tmp, function(x) x != -1)
-		else													# mulitple non-zero columns in L
-		{
+		} else {												# mulitple non-zero columns in L
 			fe <- apply(tmp, 2, function(y) any(y==1))
 		}		
-		
+
 		if(any(fe))
 		{
 			fe <- fe[which(fe)]
 			fe <- names(fe)
 			rn <- obj$random
 			rn <- sapply(rn, function(x) all(sapply(fe, grepl, x)))
+
 			if(any(rn))
 			{
 				DF <- min(obj$aov.org[names(rn), "DF"])
@@ -1026,7 +1026,7 @@ getDDFM <- function(obj, L, ddfm=c("contain", "residual", "satterthwaite"), tol=
 #'@return (matrix) corresponding to variance-covariance matrix of variance components
 #'
 #'@author 	Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com},
-#'Florian Dufey \email{florian.dufey@@contractors.roche.com}
+#'Florian Dufey \email{florian.dufey@@roche.com}
 #'
 #'@references
 #'Searle, S.R, Casella, G., McCulloch, C.E. (1992), Variance Components, Wiley New York
@@ -1314,7 +1314,7 @@ print.VCA <- function(x, digits=6L, ...)
 #'# load data (CLSI EP05-A2 Within-Lab Precision Experiment) 
 #'data(dataEP05A2_1)
 #'
-#'# perform (V)variance (C)component (A)nalysis (also comute A-matrices)
+#'# perform (V)variance (C)component (A)nalysis (also compute A-matrices)
 #'res <- anovaVCA(y~day/run, dataEP05A2_1)
 #'
 #'# get confidence intervals for total and error (VC, SD, CV)
@@ -1427,7 +1427,7 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 {
 	Call <- match.call()
 	
-	if(is.list(obj) && class(obj) != "VCA")
+	if(is.list(obj) && !is(obj, "VCA"))
 	{
 		if(!all(sapply(obj, class) == "VCA"))
 			stop("Only lists of 'VCA' object are accepted!")
@@ -1958,7 +1958,7 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 
 print.VCAinference <- function(x, digits=4L, what=c("all", "VC", "SD", "CV", "VCA"), ...)
 {
-	if(is.list(x) && class(x) != "VCAinference")
+	if(is.list(x) && !is(x, "VCAinference"))
 	{
 		if(!all(sapply(x, class) == "VCAinference"))
 			stop("Only lists of 'VCAinference' objects can printed!")
@@ -2228,7 +2228,7 @@ residuals.VCA <- function(object, type=c("conditional", "marginal"), mode=c("raw
 	Call <- match.call()
 	obj <- object
 	
-	if(is.list(obj) && class(obj) != "VCA")
+	if(is.list(obj) && !is(obj, "VCA"))
 	{
 		if(!all(sapply(obj, class) == "VCA"))
 			stop("Only lists of 'VCA' object are accepted!")

@@ -114,7 +114,7 @@ dat$y <- dat$y + rep(rnorm(2, 5, 1), c(100, 100))
 
 fit3 <- remlMM(y~snp+time+snp:time+sex+(id)+(id):time, dat)
 
-# comute standard LS Means for variable "snp"
+# compute standard LS Means for variable "snp"
 lsmeans(fit3, var="snp")
 lsmeans(fit3, var="snp", type="c")    # comprehensive output
 

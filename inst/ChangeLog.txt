@@ -1,9 +1,22 @@
+Version 1.4.4
+-------------
+
+- in function 'anovaVCA' bug fixed where data without replicates lead to singular C-matrix
+  which was not reported
+- bug fixed checking whether or not input data object is identical to a data.frame
+- in function 'anovaVCA' bug fixed, checking whether or not sweeping was successful was
+  not correctly implemented in ANOVA Type-1 estimation of variance components
+- bug fixed in by-processing, whenever a single by-level produced an error, the complete
+  computation was stopped, try-statement included securing all other computations to proceed
+- function getIP.remlVCA added 
+
+
 Version 1.4.3
 -------------
 
 - fixed issue of 'ylim' not having any effect in function 'varPlot' in case 'type=3', now a list
   of two ylim-vectors can be provided
-- fixed bug in function 'fitVCA' which did not correctly handle varianc-covariance matrix processing
+- fixed bug in function 'fitVCA' which did not correctly handle variance-covariance matrix processing
   of variance components
 - an error is issued in case number of levels = number of observations
 - fixed CRAN package-check issues
@@ -489,7 +502,7 @@ Version 0.3.2
 Version 0.3.1
 -------------
 
-- an improved standard print-method for objects returned by funtion 'VCAinference' was implemented. Previously, 
+- an improved standard print-method for objects returned by function 'VCAinference' was implemented. Previously, 
   the list-object was printed. Now, class'VCAinference' was introduced to dispatch the print-method handling.
 
 

@@ -206,13 +206,18 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE,
 		stopifnot(is.factor(by) || is.character(by))
 		
 		levels  <- unique(Data[,by])
-		res <- lapply(levels, function(x) anovaVCA(form=form, Data[Data[,by] == x,], NegVC=NegVC, VarVC.method=VarVC.method, MME=MME, quiet=quiet))
+		res <- lapply(levels, function(x) {
+					tmp.res <- try(anovaVCA(form=form, Data[Data[,by] == x,], NegVC=NegVC, VarVC.method=VarVC.method, MME=MME, quiet=quiet), silent=TRUE)
+					if(is(tmp.res, "try-error") && !quiet)
+						warning(paste0("Error for '", by, ".", x, "':\n\t", attr(tmp.res, "condition")$message))
+					tmp.res
+		})
 		names(res) <- paste(by, levels, sep=".")
 		return(res)
 	}
 	
 	stopifnot(class(form) == "formula")
-	stopifnot(is.data.frame(Data))
+	stopifnot(identical(class(Data),"data.frame"))
 	stopifnot(nrow(Data) > 2)                                               # at least 2 observations for estimating a variance
 	stopifnot(is.logical(NegVC))
 	
@@ -304,7 +309,7 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE,
 	}
 	
 	tmp.res <- getSSQsweep(Data, tobj)									# determine ANOVA Type-1 sum of squares using sweeping
-	
+
 	gc(verbose=FALSE)
 	
 	Lmat    <- tmp.res$Lmat
@@ -332,7 +337,7 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE,
 	
 	C2  <- apply(C, 2, function(x) x/DF)                                    # coefficient matrix for mean squares (MS)
 	Ci2 <- solve(C2)
-	colnames(aov.tab) <- c("DF", "SS", "MS", "VC")
+#	colnames(aov.tab) <- c("DF", "SS", "MS", "VC")
 	
 	IndNegVC <- 1:nrow(aov.tab)                                             # should negative VC-estimates contribute to total variance 
 	NegVCmsg <- ""                                                          # message text in case that VC is negative
@@ -346,13 +351,12 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE,
 			NegVCmsg <- "* VC set to 0"
 		}
 	}    
-	totVC  <- sum(aov.tab$VC)
-	
-	aov.tab <- rbind(total=c(NA, NA, NA, totVC), aov.tab)    
+	totVC   <- sum(aov.tab$VC)
+	aov.tab <- rbind(total=c(NA, NA, NA, totVC, sqrt(totVC)), aov.tab)    
 	
 	aov.tab["total", "DF"] <- SattDF(c(C2 %*% aov.tab[-1,"VC"]), Ci=Ci2, DF=DF)   	# will automatically adapt ANOVA-MS if any VCs were set to 0 
 	
-	suppressWarnings(aov.tab <- cbind(aov.tab, SD=sqrt(aov.tab[,"VC"])))    			# warnings suppressed because sqrt of negative numbers doese not exists
+#	suppressWarnings(aov.tab <- cbind(aov.tab, SD=sqrt(aov.tab[,"VC"])))    			# warnings suppressed because sqrt of negative numbers doese not exists
 	aov.tab <- cbind(aov.tab, "CV[%]"=aov.tab[,"SD"]*100/Mean)
 	aov.tab <- cbind(aov.tab, "%Total"=aov.tab[,"VC"]*100/totVC)
 	aov.tab <- aov.tab[,c("DF", "SS", "MS", "VC", "%Total", "SD", "CV[%]")]    
@@ -591,13 +595,18 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c( "scm","gb"),
 		stopifnot(is.factor(by) || is.character(by))
 		
 		levels  <- unique(Data[,by])
-		res <- lapply(levels, function(x) anovaMM(form=form, Data[Data[,by] == x,], NegVC=NegVC, VarVC.method=VarVC.method, quiet=quiet))
+		res <- lapply(levels, function(x) {
+					tmp.res <- try(anovaMM(form=form, Data[Data[,by] == x,], NegVC=NegVC, VarVC.method=VarVC.method, quiet=quiet), silent=TRUE)
+					if(is(tmp.res, "try-error") && !quiet)
+						warning(paste0("Error for '", by, ".", x, "':\n\t", attr(tmp.res, "condition")$message))
+					tmp.res
+		})
 		names(res) <- paste(by, levels, sep=".")
 		return(res)
 	}
 	
 	stopifnot(class(form) == "formula")
-	stopifnot(is.data.frame(Data))
+	stopifnot(identical(class(Data),"data.frame"))
 	stopifnot(nrow(Data) > 2)                                               	# at least 2 observations for estimating a variance
 	
 	if(is.null(.GlobalEnv$msgEnv))												# may removed after loading the package
@@ -738,7 +747,7 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c( "scm","gb"),
 	VC <- aov.tab[,"VC"]
 	C <-CVC$C
 	Ci<-CVC$Ci
-	colnames(aov.tab) <- c("DF", "SS", "MS", "VC")
+#	colnames(aov.tab) <- c("DF", "SS", "MS", "VC")
 	
 	if(allObsEqual)
 	{
@@ -790,9 +799,8 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c( "scm","gb"),
 		}
 	} 
 	
-	totVC  <- sum(aov.tab$VC)
-	
-	aov.tab <- rbind(total=c(NA, NA, NA, totVC), aov.tab) 	
+	totVC   <- sum(aov.tab$VC)
+	aov.tab <- rbind(total=c(NA, NA, NA, totVC, sqrt(totVC)), aov.tab) 	
 	aov.tab["total", "DF"] <- SattDF(c(C2[rf.ind, rf.ind] %*% aov.tab[-1, "VC"]), 	# will automatically adapt ANOVA-MS if any VCs were set to 0 
 			Ci=Ci2[rf.ind, rf.ind, drop=F], DF=DF[rf.ind])  
 	
@@ -891,6 +899,7 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c( "scm","gb"),
 	{
 		res$Type <- "Linear Model"
 		tmp      <- res$aov.org
+		tmp		 <- tmp[,-which(colnames(tmp) %in% c("VC", "SD"))]
 		tmp 	 <- cbind(tmp, "F value" = tmp[,"MS"]/tmp[nrow(tmp),"MS"])
 		tmp		 <- cbind(tmp, "Pr(>F)" = pf(tmp[,"F value"]/tmp[nrow(tmp), "F value"], tmp[, "DF"], tmp[nrow(tmp), "DF"], lower.tail=FALSE))
 		tmp[nrow(tmp), c("F value", "Pr(>F)")] <- NA	
@@ -1054,10 +1063,18 @@ Fsweep <- function(M, asgn,  thresh=1e-10, tol=1e-10, Ncpu=1)
 	swept <- .Fortran("Gsweep", M=as.double(M), NumK=as.integer(length(asgn)), k=as.integer(asgn), thresh=as.double(thresh), 
 			nr=as.integer(nr), LC=as.integer(LC), 
 			tol=as.double(tol),nSSQ=as.integer(nSSQ), SSQ=as.double(rep(0.0, nSSQ)),DF=as.integer(rep(0,nSSQ)),VC=as.double(VC), SD=as.double(SD),C=as.double(C),Ci=as.double(Ci),Var=as.double(Var),info=as.integer(info),PACKAGE="VCA")
-	if(info!=0) stop("Calculation of C Matrix failed!")
+
+	info <- swept$info
 	
+	if(info!=0)
+		stop("Inverting the C Matrix failed! Double check the specified model! Are there replicates?")
+		
 	res <- list(SSQ=swept$SSQ,sweptLC = swept$LC, DF = swept$DF,
-			LC=tapply(swept$LC, asgn, function(x) length(which(x==1))),VC=swept$VC, SD=swept$SD,C=matrix(swept$C,ncol=nSSQ,nrow=nSSQ),Ci=matrix(swept$Ci,ncol=nSSQ,nrow=nSSQ),Var=matrix(swept$Var,ncol=nSSQ,nrow=nSSQ))
+				LC=tapply(swept$LC, asgn, function(x) length(which(x==1))),
+				VC=swept$VC, SD=swept$SD,C=matrix(swept$C,ncol=nSSQ,nrow=nSSQ),
+				Ci=matrix(swept$Ci,ncol=nSSQ,nrow=nSSQ),
+				Var=matrix(swept$Var,ncol=nSSQ,nrow=nSSQ))
+	
 	#dyn.unload('vca.dll')
 	return(res)
 }
@@ -1091,7 +1108,8 @@ Fsweep <- function(M, asgn,  thresh=1e-10, tol=1e-10, Ncpu=1)
 #'\item{Lmat}{(list) with components 'Z' and 'A'}
 #'}
 #'
-#'@author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#'@author 	Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com},
+#' 			Florian Dufey \email{florian.dufey@@roche.com}
 #'
 #'@seealso \code{\link{Fsweep}}
 #'
@@ -1190,19 +1208,19 @@ getSSQsweep <- function(Data, tobj, random=NULL)
 	SS <- LC <- NULL
 	nr <- nrow(M)
 	if (!int) M[1,1]=N
-	V <- rep(1, ncol(M))
-	swept <- Fsweep(M, asgn=asgn)					# sweep matrix M
-	LC    <- swept$LC
-	SS	  <- swept$SSQ
-	SSQ   <- swept$SSQ
-	DF    <- swept$DF
-	C     <- swept$C
-	Ci    <-swept$Ci
-	VC    <-swept$VC
-	SD    <-swept$SD
-	VCvar  <-swept$Var
-	CVC$C <- C
-	CVC$Ci <- Ci
+	V 		<- rep(1, ncol(M))
+	swept 	<- Fsweep(M, asgn=asgn)					# sweep matrix M
+	LC    	<- swept$LC
+	SS	  	<- swept$SSQ
+	SSQ   	<- swept$SSQ
+	DF    	<- swept$DF
+	C     	<- swept$C
+	Ci    	<- swept$Ci
+	VC    	<- swept$VC
+	SD    	<- swept$SD
+	VCvar 	<- swept$Var
+	CVC$C 	<- C
+	CVC$Ci 	<- Ci
 	CVC$VCvar <- VCvar
 	aov.tab <- data.frame(DF=DF, SS=SSQ, MS=SSQ/DF, VC=VC, SD=SD)	# basic ANOVA-table
 	

@@ -95,9 +95,9 @@ load_if_installed <- function(package)
 
 orderData <- function(Data, trms, order.data=TRUE, exclude.numeric=TRUE, quiet=FALSE)
 {
-	stopifnot(is.data.frame(Data))
+	stopifnot(identical(class(Data),"data.frame"))
 	stopifnot("formula" %in% class(trms))
-	if(!"terms" %in% class(trms))
+	if(!is(trms, "terms"))
 		trms <- terms(trms)
 	vars <- rownames(attr(trms, "factors"))[-1]
 	if(length(vars) == 0)
@@ -271,9 +271,9 @@ model.matrix.VCA <- function(object, ...)
 
 Scale <- function(Fun, form, Data, ...)
 {
-	call <- as.list(match.call())			# check whether a complete funtion call was the sole argument
+	call <- as.list(match.call())			# check whether a complete function call was the sole argument
 	
-	if(class(call$Fun) == "call")
+	if(is(call$Fun, "call"))
 	{
 		call <- as.list(call$Fun)
 		Fun  <- as.character(call[[1]])
@@ -306,7 +306,7 @@ Scale <- function(Fun, form, Data, ...)
 		Fun <- deparse(substitute(Fun))
 	fun  <- match.arg(Fun, choices=c("anovaVCA", "anovaMM", "remlVCA", "remlMM"))
 	stopifnot(class(form) == "formula")
-	stopifnot(is.data.frame(Data))
+	stopifnot(identical(class(Data),"data.frame"))
 	
 	tobj <- terms(form)
 	stopifnot(attr(tobj, "response")==1)
@@ -384,7 +384,7 @@ check4MKL <- function()
 #'@return 	(matrix) corresponding to the Giesbrecht & Burns approximation
 #'of the variance-covariance matrix of variance components
 #'@author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com},
-#'Florian Dufey \email{florian.dufey@@contractors.roche.com}
+#'Florian Dufey \email{florian.dufey@@roche.com}
 #'
 #'@seealso \code{\link{vcovVC}}, \code{\link{remlVCA}}, \code{\link{remlMM}}
 #'
@@ -528,7 +528,7 @@ ranef.VCA <- function(object, term=NULL, mode=c("raw", "student", "standard"), q
 	
 	obj <- object
 	
-	if(is.list(obj) && class(obj) != "VCA")
+	if(is.list(obj) && !is(obj, "VCA"))
 	{
 		if(!all(sapply(obj, class) == "VCA"))
 			stop("Only lists of 'VCA' object are accepted!")
@@ -726,7 +726,7 @@ fixef.VCA <- function(object, type=c("simple", "complex"), ddfm=c("contain", "re
 	
 	obj <- object
 	
-	if(is.list(obj) && class(obj) != "VCA")
+	if(is.list(obj) && !is(obj, "VCA"))
 	{
 		if(!all(sapply(obj, class) == "VCA"))
 			stop("Only lists of 'VCA' object are accepted!")
@@ -1406,7 +1406,7 @@ SattDF <- function(MS, Ci, DF, type=c("total", "individual"))
 getMM <- function(form, Data, keep.order=TRUE)
 {
 	stopifnot(class(form) == "formula")
-	stopifnot(is.data.frame(Data))
+	stopifnot(identical(class(Data),"data.frame"))
 	tform <- terms(form, simplify=TRUE, data=Data, keep.order=keep.order)
 	int   <- attr(tform, "intercept") == 1
 	form  <- as.character(tform)
@@ -1669,7 +1669,7 @@ MPinv <- function (X, tol = sqrt(.Machine$double.eps))
 #'
 #'fit3 <- remlMM(y~snp+time+snp:time+sex+(id)+(id):time, dat)
 #'
-#'# comute standard LS Means for variable "snp"
+#'# compute standard LS Means for variable "snp"
 #'lsmeans(fit3, var="snp")
 #'lsmeans(fit3, var="snp", type="c")    # comprehensive output
 #'
@@ -1696,7 +1696,7 @@ lsmeans <- function(obj, var=NULL, type=c("simple", "complex"), ddfm=c("contain"
 {
 	Call <- match.call()
 	
-	if(is.list(obj) && class(obj) != "VCA")
+	if(is.list(obj) && !is(obj, "VCA"))
 	{
 		if(!all(sapply(obj, class) == "VCA"))
 			stop("Only lists of 'VCA' object are accepted!")
@@ -2598,7 +2598,7 @@ getL <- function(obj, s, what=c("fixef", "lsmeans"))
 	if(length(s) > 1)
 	{
 		L <- try(t(sapply(s, function(x) getL(obj, x, what=what))), silent=TRUE)
-		if(class(L) == "try-error")
+		if(is(L[1], "try-error"))
 			stop(L[1])
 		colnames(L) <- n
 		return(L)

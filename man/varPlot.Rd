@@ -283,6 +283,11 @@ data(realData)
 Data <- realData[realData$PID == 1,]
 varPlot(y~lot/calibration/day/run, Data, type=3)
 
+# order levels in the tablular environment
+varPlot(y~lot/calibration/day/run, Data, keep.order=FALSE)
+# keeping the order as in the data set (default) was different
+varPlot(y~lot/calibration/day/run, Data, keep.order=TRUE)
+
 # improve visual appearance of the plot
 varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
         BG=list(var="calibration", col=c("white", "lightgray")))
@@ -344,6 +349,7 @@ varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
                      cex=1.25))
 
 # depict measurements as boxplots
+data(VCAdata1)
 datS5 <- subset(VCAdata1, sample==5)
 varPlot(y~device/day, datS5, Boxplot=list()) 
 

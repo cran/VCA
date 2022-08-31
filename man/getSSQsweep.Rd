@@ -53,5 +53,6 @@ Goodnight, J.H., (1979), A Tutorial on the SWEEP Operator, The American Statisti
 \code{\link{Fsweep}}
 }
 \author{
-Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
+Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com},
+			Florian Dufey \email{florian.dufey@roche.com}
 }

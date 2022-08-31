@@ -22,7 +22,7 @@ double precision, dimension(NumK):: VClong
 integer, intent(out) :: info
 integer ::  i, j, n, l ! l runs over variables
 double precision :: B, CSS, D, ESS, Rsq 
-integer :: inter,rows,n1
+integer :: inter,rows,n1,nSSQred
 
 external dtrtri
 
@@ -113,8 +113,10 @@ C(:,nSSQ)=DF
 do l=1,nSSQ-1
     SSQ(l)=SSQ(l)-SSQ(l+1)
 end do
-Ci=C
-call dtrtri('U','N',nSSQ,Ci,nSSQ,info) !invert C matrix
+Ci = C
+nSSQred = nSSQ
+if (DF(nSSQ).eq.0) nSSQred = nSSQ-1
+call dtrtri('U','N',nSSQred,Ci,nSSQ,info) !invert C matrix
 ! calculate variances and SD's 
 VC = matmul(Ci,SSQ)
 do l=1,nSSQ

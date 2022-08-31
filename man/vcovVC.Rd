@@ -45,5 +45,5 @@ Asymptotic Theory and Small-Sample Simulation Results, Biometrics 41, p. 477-486
 }
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com},
-Florian Dufey \email{florian.dufey@contractors.roche.com}
+Florian Dufey \email{florian.dufey@roche.com}
 }

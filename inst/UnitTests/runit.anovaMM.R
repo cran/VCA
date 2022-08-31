@@ -305,3 +305,27 @@ TF017.anovaMM.zeroVariance <- function()
 	fit3 <- anovaMM(y~(day)/(run), dat1)
 	checkEquals(as.numeric(fit3$aov.tab[,"VC"]), rep(0,4))
 }
+
+
+TF018.anovaMM.byProcessing <- function()
+{
+# reproducible example taken from ticket 12818
+	set.seed(42)
+	dat <- expand.grid(group=c("group1", "group2"), day=rep(c("day1","day2"), times=3))
+	dat$value <- rnorm(nrow(dat))
+	
+	dat <- subset(dat, !(group=="group2" & day=="day1")) #dataset with valid vca input for group 1 but invalid input for group 2
+	
+#	VCA::anovaVCA(value~day, Data = subset(dat, group=="group1"), by="group") #valud result (as epcected)
+#	VCA::anovaVCA(value~day, Data = subset(dat, group=="group2"), by="group") #invalid result (as expected)
+	
+	# should generate a warning if quiet=FALSE
+	checkTrue(	tryCatch(
+					anovaMM(value~(day), Data = dat, by = "group", quiet=FALSE),
+					warning=function(w) TRUE) )
+	# should not generate a warning if quiet=TRUE
+	res <- anovaMM(value~(day), Data = dat, by = "group", quiet=TRUE)
+	checkTrue(	class(res) == "list" && 
+					length(res) == 2 &&  
+					all.equal(c("VCA", "try-error"), as.character(sapply(res, class))))
+}

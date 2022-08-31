@@ -3,7 +3,7 @@
 # Author: Andre Schützenmeister
 ###############################################################################
 
-library(VCA)
+#library(VCA)
 library(RUnit)
 
 # enable/disable time-consuming model 1 and model 2 testcases with real-world data

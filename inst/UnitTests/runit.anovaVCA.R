@@ -456,7 +456,7 @@ TF027.check.sweep_vs_SAS_computation <- function()
 
 TF033.check.equality.HugeData <- function()
 {
-	memory.limit(7500)
+	#memory.limit(7500)
 	data(HugeData)
 	try(fit <- anovaVCA(y~VC1/VC2, HugeData), silent=TRUE)
 	if(class(fit) == "try-error")
@@ -489,6 +489,30 @@ TF035.anovaVCA.MisspecifiedModel <- function()
 {
 	data(dataEP05A2_3)
 	checkException(anovaVCA(y~day, dataEP05A2_3[seq(1, 77, 4),]))
+}
+
+
+TF036.anovaVCA.byProcessing <- function()
+{
+	# reproducible example taken from ticket 12818
+	set.seed(42)
+	dat <- expand.grid(group=c("group1", "group2"), day=rep(c("day1","day2"), times=3))
+	dat$value <- rnorm(nrow(dat))
+	
+	dat <- subset(dat, !(group=="group2" & day=="day1")) #dataset with valid vca input for group 1 but invalid input for group 2
+	
+#	VCA::anovaVCA(value~day, Data = subset(dat, group=="group1"), by="group") #valud result (as epcected)
+#	VCA::anovaVCA(value~day, Data = subset(dat, group=="group2"), by="group") #invalid result (as expected)
+	
+	# should generate a warning if quiet=FALSE
+	checkTrue(	tryCatch(
+						anovaVCA(value~day, Data = dat, by = "group", quiet=FALSE),
+						warning=function(w) TRUE) )
+	# should not generate a warning if quiet=TRUE
+	res <- anovaVCA(value~day, Data = dat, by = "group", quiet=TRUE)
+	checkTrue(	class(res) == "list" && 
+				length(res) == 2 &&  
+				all.equal(c("VCA", "try-error"), as.character(sapply(res, class))))
 }
 
 

@@ -1542,7 +1542,7 @@ TF062.comparison.fitLMM.REML <- function()
 	fit.fitLMM <- fitLMM(distance~Sex*age2+(Subject)*age2, Ortho, "reml")  
 	fit.remlMM <- remlMM(distance~Sex*age2+(Subject)*age2, Ortho)
 	
-	checkEqualsNumeric(fit.fitLMM$aov.tab, fit.remlMM$aov.tab, tolerance=1e-7)
+	checkEqualsNumeric(unlist(fit.fitLMM$aov.tab), unlist(fit.remlMM$aov.tab), tolerance=1e-7)
 }
 
 TF063.comparison.fitLMM.ANOVA <- function()
@@ -1554,7 +1554,7 @@ TF063.comparison.fitLMM.ANOVA <- function()
 	fit.fitLMM <- fitLMM(distance~Sex*age2+(Subject)*age2, Ortho)  
 	fit.anovaMM <- anovaMM(distance~Sex*age2+(Subject)*age2, Ortho)
 	
-	checkEqualsNumeric(fit.fitLMM$aov.tab, fit.anovaMM$aov.tab, tolerance=1e-8)
+	checkEqualsNumeric(unlist(fit.fitLMM$aov.tab), unlist(fit.anovaMM$aov.tab), tolerance=1e-8)
 }
 
 TF064.Scale.reScale.response <- function()
@@ -1579,7 +1579,7 @@ TF065.comparison.fitVCA.REML <- function()
 	fit.fitVCA <- fitVCA(y~day/run, dataEP05A2_2, "reml") 
 	fit.remlVCA <- remlVCA(y~day/run, dataEP05A2_2)
 	
-	checkEqualsNumeric(fit.fitVCA$aov.tab, fit.remlVCA$aov.tab, tolerance=1e-8)
+	checkEqualsNumeric(unlist(fit.fitVCA$aov.tab), unlist(fit.remlVCA$aov.tab), tolerance=1e-8)
 }
 
 TF066.comparison.fitVCA.ANOVA <- function()
@@ -1903,7 +1903,9 @@ TF073.fitVCA_ANOVA_VarVC_TRUE <- function()
 	fit1 <- fitVCA(  y~day/run, dataEP05A2_3)
 	inf0 <- VCAinference(fit0, VarVC=TRUE)
 	inf1 <- VCAinference(fit1, VarVC=TRUE)
-	checkEquals(unlist(inf0$ConfInt), unlist(inf1$ConfInt))
+	res0 <- unlist(lapply(inf0$ConfInt, function(x) return(c(x$OneSided$LCL, x$OneSided$UCL, x$TwoSided$LCL, x$TwoSided$UCL))))
+	res1 <- unlist(lapply(inf1$ConfInt, function(x) return(c(x$OneSided$LCL, x$OneSided$UCL, x$TwoSided$LCL, x$TwoSided$UCL))))
+	checkEquals(res0, res1)
 }
 
 
@@ -1913,7 +1915,9 @@ TF074.fitVCA_REML_VarVC_TRUE <- function()
 	fit1 <- fitVCA(  y~day/run, dataEP05A2_3, "REML")
 	inf0 <- VCAinference(fit0, VarVC=TRUE)
 	inf1 <- VCAinference(fit1, VarVC=TRUE)
-	checkEquals(unlist(inf0$ConfInt), unlist(inf1$ConfInt), tol=1e-6)
+	res0 <- unlist(lapply(inf0$ConfInt, function(x) return(c(x$OneSided$LCL, x$OneSided$UCL, x$TwoSided$LCL, x$TwoSided$UCL))))
+	res1 <- unlist(lapply(inf1$ConfInt, function(x) return(c(x$OneSided$LCL, x$OneSided$UCL, x$TwoSided$LCL, x$TwoSided$UCL))))
+	checkEquals(res0, res1, tol=1e-6)
 }
 
 

@@ -43,7 +43,8 @@ export(
 	"model.matrix.VCA",
 	"fitLMM",
 	"fitVCA",
-	"scaleData"
+	"scaleData",
+	"getIP.remlVCA"
 )
 
 ### Packages which are imported (appearing in the Description->Imports enumeration)

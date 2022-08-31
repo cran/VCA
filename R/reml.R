@@ -134,7 +134,12 @@ remlVCA <- function(form, Data, by=NULL, VarVC=TRUE, quiet=FALSE, order.data=TRU
 		stopifnot(is.factor(by) || is.character(by))
 		
 		levels  <- unique(Data[,by])
-		res <- lapply(levels, function(x) remlVCA(form=form, Data[Data[,by] == x,], VarVC=VarVC, quiet=quiet))
+		res <- lapply(levels, function(x) {
+					tmp.res <- try(remlVCA(form=form, Data[Data[,by] == x,], VarVC=VarVC, quiet=quiet), silent=TRUE)
+					if(is(tmp.res, "try-error") && !quiet)
+						warning(paste0("Error for '", by, ".", x, "':\n\t", attr(tmp.res, "condition")$message))
+					tmp.res
+				})
 		names(res) <- paste(by, levels, sep=".")
 		return(res)
 	}
@@ -142,7 +147,7 @@ remlVCA <- function(form, Data, by=NULL, VarVC=TRUE, quiet=FALSE, order.data=TRU
 	stopifnot(class(form) == "formula")
 	stopifnot(is.logical(VarVC))
 	stopifnot(is.logical(quiet))
-	stopifnot(is.data.frame(Data))
+	stopifnot(identical(class(Data),"data.frame"))
 	stopifnot(nrow(Data) > 2)                                               # at least 2 observations for estimating a variance
 	
 	if(is.null(.GlobalEnv$msgEnv))											# may removed after loading the package
@@ -394,7 +399,12 @@ remlMM <- function(form, Data, by=NULL, VarVC=TRUE, cov=TRUE, quiet=FALSE, order
 		stopifnot(is.factor(by) || is.character(by))
 		
 		levels  <- unique(Data[,by])
-		res <- lapply(levels, function(x) remlMM(form=form, Data[Data[,by] == x,], VarVC=VarVC, cov=cov, quiet=quiet))
+		res <- lapply(levels, function(x) {
+					tmp.res <- try(remlMM(form=form, Data[Data[,by] == x,], VarVC=VarVC, cov=cov, quiet=quiet), silent=TRUE)
+					if(is(tmp.res, "try-error") && !quiet)
+						warning(paste0("Error for '", by, ".", x, "':\n\t", attr(tmp.res, "condition")$message))
+					tmp.res
+				})
 		names(res) <- paste(by, levels, sep=".")
 		return(res)
 	}
@@ -402,7 +412,7 @@ remlMM <- function(form, Data, by=NULL, VarVC=TRUE, cov=TRUE, quiet=FALSE, order
 	stopifnot(class(form) == "formula")
 	stopifnot(is.logical(VarVC))
 	stopifnot(is.logical(quiet))
-	stopifnot(is.data.frame(Data))
+	stopifnot(identical(class(Data),"data.frame"))
 	stopifnot(nrow(Data) > 2)                                               # at least 2 observations for estimating a variance
 	
 	if(is.null(.GlobalEnv$msgEnv))												# may removed after loading the package
@@ -831,7 +841,7 @@ lmerMatrices <- function(obj, tab=NULL, terms=NULL, cov=FALSE, X=NULL)
 	if(check4MKL())
 		Zt <- as.matrix(Zt)
 	
-	if(is.null(X) || class(X) != "matrix")
+	if(is.null(X) || !is(X, "matrix")) 
 		X <- model.matrix(obj, type="fixed")
 	
 	Xt <- t(X)
@@ -1033,3 +1043,50 @@ lmerSummary <- function(obj, VarVC=TRUE, terms=NULL, Mean=NULL, cov=FALSE, X=NUL
 }
 
 
+
+#' Intermediate Precision for remlVCA-fitted objects of class 'VCA'
+#' 
+#' Intermediate precision in this context here means any sum of variances
+#' below the full model originally fitted. A typical use case could be 
+#' reproducibility-experiments with a single lot or multiple lots, where
+#' a pooled version of within-lab precision shall be determined.
+#' 
+#' @param obj		(object) of class 'VCA' fitted by 'remlVCA'
+#' @param vc		(character) string specifying the variance component
+#' 					up to which an intermediate precision shall be derived
+#' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @examples 
+#' data(dataEP05A2_3)
+#' res <- remlVCA(y~day/run, dataEP05A2_3)
+#' IPday <- getIP.remlVCA(res, "day:run")
+#' VCAinference(IPday)
+
+getIP.remlVCA <- function(obj, vc){
+	stopifnot(class(obj) == "VCA")
+	stopifnot(obj$EstMethod == "REML")
+	stopifnot(vc %in% rownames(obj$aov.tab)[-1])
+	
+	vVC <- vcovVC(obj)
+	idx <- which(rownames(vVC) == vc)
+	tab <- obj$aov.tab[(idx+1):nrow(obj$aov.tab),]
+	vVC <- vVC[idx:nrow(vVC), idx:nrow(vVC)]			# restricted variance-covariance matrix of VC
+	tVC <- sum(tab[,"VC"])								# total variability
+	tSE <- sqrt(sum(vVC))								# standard error of total VC
+	wld <- tVC/tSE 
+	DF	<- 2*wld^2
+	tab[,"%Total"] <- 100 * tab[,"VC"]/tVC
+	tab <- rbind(total=c(DF, tVC, 100, sqrt(tVC), 100*sqrt(tVC)/obj$Mean, tSE^2), tab)
+	res <- list()
+	res$aov.tab <- tab
+	res$Mean <- obj$Mean
+	res$EstMethod <- obj$EstMethod
+	res$balanced  <- obj$balanced
+	res$Type <- "Random Model"
+	res$Nobs <- obj$Nobs
+	res$NegVCmsg <- ""
+	class(res) <- "VCA"
+
+	res
+}
