@@ -221,7 +221,7 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE,
 	stopifnot(nrow(Data) > 2)                                               # at least 2 observations for estimating a variance
 	stopifnot(is.logical(NegVC))
 	
-	if(is.null(.GlobalEnv$msgEnv))											# may removed after loading the package
+	if(is.null(.GlobalEnv$msgEnv))											# may be removed after loading the package
 		msgEnv <<- new.env(parent=emptyenv())
 	
 	VarVC.method <- match.arg(VarVC.method)
@@ -356,7 +356,7 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE,
 	
 	aov.tab["total", "DF"] <- SattDF(c(C2 %*% aov.tab[-1,"VC"]), Ci=Ci2, DF=DF)   	# will automatically adapt ANOVA-MS if any VCs were set to 0 
 	
-#	suppressWarnings(aov.tab <- cbind(aov.tab, SD=sqrt(aov.tab[,"VC"])))    			# warnings suppressed because sqrt of negative numbers doese not exists
+#	suppressWarnings(aov.tab <- cbind(aov.tab, SD=sqrt(aov.tab[,"VC"])))    		# warnings suppressed because sqrt of negative numbers doese not exists
 	aov.tab <- cbind(aov.tab, "CV[%]"=aov.tab[,"SD"]*100/Mean)
 	aov.tab <- cbind(aov.tab, "%Total"=aov.tab[,"VC"]*100/totVC)
 	aov.tab <- aov.tab[,c("DF", "SS", "MS", "VC", "%Total", "SD", "CV[%]")]    
@@ -804,7 +804,7 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c( "scm","gb"),
 	aov.tab["total", "DF"] <- SattDF(c(C2[rf.ind, rf.ind] %*% aov.tab[-1, "VC"]), 	# will automatically adapt ANOVA-MS if any VCs were set to 0 
 			Ci=Ci2[rf.ind, rf.ind, drop=F], DF=DF[rf.ind])  
 	
-	suppressWarnings(aov.tab <- cbind(aov.tab, SD=sqrt(aov.tab[,"VC"])))    		# warnings suppressed because sqrt of negative numbers doese not exists
+#	suppressWarnings(aov.tab <- cbind(aov.tab, SD=sqrt(aov.tab[,"VC"])))    		# warnings suppressed because sqrt of negative numbers doese not exists
 	aov.tab <- cbind(aov.tab, "CV[%]"=aov.tab[,"SD"]*100/Mean)
 	aov.tab <- cbind(aov.tab, "%Total"=aov.tab[,"VC"]*100/totVC)
 	aov.tab <- aov.tab[,c("DF", "SS", "MS", "VC", "%Total", "SD", "CV[%]")]    

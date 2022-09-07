@@ -476,7 +476,8 @@ fitVCA <- function(form, Data, method=c("anova", "reml"), scale=TRUE, VarVC=TRUE
 			fit[[i]] <- reScale(fit[[i]], VarVC=VarVC)				# first re-scale
         
 		fit[[i]]$call 			<- call								# prevent non-informative object-name, e.g. "form"
-		fe 						<- fixef(fit[[i]])
+		tmp.fit 				<- fit[[i]]							# fixing an error that first occurred testing with R-4.2.1
+		fe 						<- fixef(tmp.fit)#fixef(fit[[i]])
 		X  						<- getMat(fit[[i]], "X")		
 		fit[[i]]$fitted.values	<- as.numeric(as.matrix(X) %*% fe[,"Estimate", drop=F])
 		fixed 					<- fit[[i]]$fixed[!grepl(":", fit[[i]]$fixed)]	# no interactions

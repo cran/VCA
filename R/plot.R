@@ -314,8 +314,9 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' # notation of the nesting structure
 #' varPlot(y~day+day:run, dataEP05A2_3, useVarNam=TRUE)
 #' 
-#' # rotate names of 2nd VC
-#' varPlot(y~day+day:run, dataEP05A2_3, useVarNam=TRUE, VarLab=list(list(font=2), list(srt=60)))
+#' # rotate names of VCs to fit into cells
+#' varPlot(	y~day+day:run, dataEP05A2_3, useVarNam=TRUE, 
+#' 			VarLab=list(list(font=2, srt=60), list(srt=90)))
 #' 
 #' # use alternating backgrounds for each level of factor "day" 
 #' # (top-level factor is default) 
@@ -402,10 +403,10 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' 
 #' # set individual titles for both plot when 'type=3'
 #' # and individual 'ylim' specifications
-#' varPlot(	result~day/run, Glucose, type=3, 
-#'          Title=list(list(main="Variability Chart"), 
-#'                     list(main="Plot of SD-Values")),
-#' 			ylim=list(c(230, 260), c(0, 10)))
+#'  varPlot(result~day/run, Glucose, type=3, 
+#'			Title=list(	list(main="Variability Chart"), 
+#'						list(main="Plot of SD-Values")),
+#'			ylim=list(	c(230, 260), c(0, 10)))
 #' 
 #' # more complex experimental design
 #' data(realData)
@@ -417,35 +418,36 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' # keeping the order as in the data set (default) was different
 #' varPlot(y~lot/calibration/day/run, Data, keep.order=TRUE)
 #' 
-#' # improve visual appearance of the plot
+#' # improve visual appearance of the plot by alternating bg-colors
+#' # for variable "calibration"
 #' varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
 #'         BG=list(var="calibration", col=c("white", "lightgray")))
 #' 
 #' # add horizontal lines indicating mean-value for each factor-level of all variables
 #' varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
 #'         BG=list(var="calibration", 
-#'                 col=c("aquamarine","antiquewhite2","antiquewhite4",
+#'                 col=c("lightgray","antiquewhite2","antiquewhite4",
 #'                       "antiquewhite1","aliceblue","antiquewhite3",
 #'                       "white","antiquewhite","wheat" ), 
 #'                 col.table=TRUE),
 #'         MeanLine=list(var=c("lot", "calibration", "day", "int"), 
-#'                       col=c("orange", "blue", "darkgreen", "yellow"), 
+#'                       col=c("orange", "blue", "green", "magenta"), 
 #'                       lwd=c(2,2,2,2)))
 #' 
 #' # now also highlight bounds between factor levels of "lot" and "day" 
 #' # as vertical lines and extend them into the table (note that each 
 #' # variable needs its specific value for 'col.table')
-#' varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
-#'         BG=list(var="calibration", 
-#'                 col=c("aquamarine","antiquewhite2","antiquewhite4",
-#'                       "antiquewhite1","aliceblue","antiquewhite3",
-#'                       "white","antiquewhite","wheat" ), 
-#'                  col.table=TRUE),
-#'         MeanLine=list(var=c("lot", "calibration", "day", "int"), 
-#'                       col=c("orange", "blue", "darkgreen", "yellow"), 
-#'                       lwd=c(2,2,2,2)),
-#'         VLine=list(var=c("lot", "day"), col=c("black", "skyblue1"),
-#'                    lwd=c(2, 1), col.table=c(TRUE, TRUE)))
+#'  varPlot(y~lot/calibration/day/run, Data, type=3, keep.order=FALSE,
+#'			BG=list(var="calibration", 
+#'					col=c(	"aquamarine","antiquewhite2","antiquewhite4",
+#'							"antiquewhite1","aliceblue","antiquewhite3",
+#'                       	"white","antiquewhite","wheat" ), 
+#'					col.table=TRUE),
+#'			MeanLine=list(	var=c("lot", "calibration", "day", "int"), 
+#'							col=c("orange", "blue", "darkgreen", "magenta"), 
+#'							lwd=c(2,2,2,2)),
+#'			VLine=list(	var=c("lot", "day"), col=c("black", "skyblue1"),
+#'						lwd=c(2, 1), col.table=c(TRUE, TRUE)))
 #' 
 #' # one can use argument 'JoinLevels' to join factor-levels or a variable
 #' # nested within a higher-level factor, 'VLine' is used to separate levels
@@ -483,13 +485,15 @@ plotRandVar <- function(obj, term=NULL, mode=c("raw", "student", "standard", "pe
 #' varPlot(y~device/day, datS5, Boxplot=list()) 
 #' 
 #' # present points as jitter-plot around box-center
-#' varPlot(	y~device/day, datS5, 
-#'          Boxplot=list(jitter=1, col.box="darkgreen"),
-#' 			BG=list(var="device", col=paste0("gray", c(60, 70, 80)),
-#' 					col.table=TRUE),
-#'          Points=list(pch=16, 
-#' 						col=list(var="run", col=c("blue", "red"))), 
-#' 			Mean=list(col="black", cex=1, lwd=2)) 
+#' 	varPlot(y~device/day, datS5, 
+#'			Boxplot=list(jitter=1, col.box="darkgreen"),
+#'			BG=list(var="device", col=paste0("gray", c(60, 70, 80)),
+#'					col.table=TRUE),
+#'			Points=list(pch=16, 
+#'						col=list(var="run", col=c("blue", "red"))), 
+#'			Mean=list(col="black", cex=1, lwd=2),
+#' 			VLine=list(var="day", col="white")) 
+#' # add legend
 #' legend( "topright", legend=c("run 1", "run 2"),
 #'         fill=c("blue", "red"), box.lty=0, border="white")
 #' }
@@ -657,7 +661,7 @@ varPlot <- function(form, Data, keep.order=TRUE,
 			attr(lst, "CEX") <- rep(Points$cex, nrow(Data))
 		}
 	}
-	
+
 	Nelem <- attr(lst, "Nelem")                                             # number of bottom-level sub-classes per top-level factor-level  
 	Nbin <- attr(lst, "Nbin")                                               # number of bins, i.e. scatterplots
 	Xdiff <- length(lst)/sum(Nelem)                                         # basic cell-width of the tabular        
@@ -1724,14 +1728,14 @@ buildList <- function(	Data, Nesting, Current, resp, keep.order=TRUE,
 		Points <- NULL
 	}
 	
-#	if(!keep.order)
-#	{
-#		suppressWarnings(levInt <- as.integer(lev))
-#		if(!any(is.na(levInt)))
-#			lev <- lev[sort(levInt, index.return=TRUE)$ix]
-#		else
-#			lev <- sort(lev)
-#	}
+	if(!keep.order)
+	{
+		suppressWarnings(levInt <- as.integer(lev))
+		if(!any(is.na(levInt)))
+			lev <- lev[sort(levInt, index.return=TRUE)$ix]
+		else
+			lev <- sort(lev)
+	}
 	
 	lst <- vector("list", length=length(lev))
 	attr(lst, "factor") <- Current
@@ -1790,7 +1794,7 @@ buildList <- function(	Data, Nesting, Current, resp, keep.order=TRUE,
 		{   
 			lst[[i]] <- buildList(	Data=tmpData, Nesting=Nesting, 
 									Current=Nesting[which(Nesting == Current)+1], 
-									resp=resp, #keep.order=keep.order, 
+									resp=resp, keep.order=keep.order, 
 									useVarNam, Points=Points)
 			Nelem[i] <- sum(attr(lst[[i]], "Nelem"))
 			Nbin <- Nbin + attr(lst[[i]], "Nbin")

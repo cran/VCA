@@ -773,6 +773,7 @@ fixef.VCA <- function(object, type=c("simple", "complex"), ddfm=c("contain", "re
 		nam0 <- deparse(Call$object)
 		
 		nam1 <- sub("\\[.*", "", nam0)			# remove any index-operators 
+
 		if(length(nam1) == 1 && nam1 %in% names(as.list(.GlobalEnv)))
 		{
 			expr <- paste(nam0, "<<- obj")		# update object missing MME results
