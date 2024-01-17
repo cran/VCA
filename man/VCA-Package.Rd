@@ -9,6 +9,7 @@
  the typical VCA-table is derived, also containing the variances of VC, which are approximated by the method outlined in Giesbrecht & Burns (1985). 
  REML-estimation is available via functions \code{\link{remlVCA}} for variance component analysis (VCA) and \code{\link{remlMM}} for fitting
  general LMM.
+
  ANOVA-methodology is a special method of moments approach for estimating (predicting) variance components implemented in functions
  \code{\link{anovaMM}} and \code{\link{anovaVCA}}. The former represents a general, unrestricted approach to fitting
  linear mixed models, whereas the latter is tailored for performing a VCA on random models.
@@ -54,8 +55,8 @@
   \tabular{ll}{
     Package: \tab VCA\cr
     Type: \tab Package \cr
-    Version: \tab 1.4.5 \cr
-    Date: \tab 2022-09-07\cr
+    Version: \tab 1.4.6 \cr
+    Date: \tab 2024-01-16\cr
     License:  \tab GPL (>=3) \cr
     LazyLoad: \tab yes \cr
   }

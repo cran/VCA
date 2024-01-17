@@ -56,7 +56,7 @@ Estimate/Predict random effects employing ANOVA-type estimation and obtain gener
 of fixed effects for any linear mixed model including random models and linear models.
 }
 \details{
-A Linear Mixed Model, noted in standard matrix notation, can be written as {y = Xb + Zg + e}, where
+A Linear Mixed Model, noted in standard matrix notation, can be written as \eqn{y = Xb + Zg + e}, where
 \eqn{y} is the column vector of observations, \eqn{X} and \eqn{Z}{Z} are design matrices assigning fixed (\eqn{b}),
 respectively, random (\eqn{g}) effects to observations, and \eqn{e} is the column vector of residual errors.
 Whenever there is an intercept in the model, i.e. the substring "-1" is not part of the model formula, the same

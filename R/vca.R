@@ -1061,9 +1061,10 @@ vcovVC <- function(obj, method=NULL, quiet=FALSE)
 	{
 		if(is.null(VCvar))
 		{
-			if(!quiet)
-				warning("When fitting a model via REML, set 'VarVC=TRUE' for computing the variance-covariance matrix of variance components!")
-			return(NULL)
+#			if(!quiet)
+#				warning("When fitting a model via REML, set 'VarVC=TRUE' for computing the variance-covariance matrix of variance components!")
+#			return(NULL)
+			return(getGB(obj))
 		}
 		if(method == "scm" && !quiet)
 			warning("For models fitted by REML only the Giesbrecht & Burns method is applicable!")
@@ -1257,7 +1258,7 @@ print.VCA <- function(x, digits=6L, ...)
 #'of variance components. The default is only to compute and report CIs for total and error variance, which cannot become negative.
 #'
 #'
-#'@param obj				(object) of class 'VCA' or, alternatively, a list of 'VCA' objects, where all other argument can be 
+#'@param obj				(object) of class 'VCA' or, alternatively, a list of 'VCA' objects, where all other arguments can be 
 #'							specified as vectors, where the i-th vector element applies to the i-th element of 'obj' (see examples) 
 #'@param alpha				(numeric) value specifying the significance level for \eqn{100*(1-alpha)}\% confidence intervals.
 #'@param total.claim		(numeric) value specifying the claim-value for the Chi-Squared test for the total variance (SD or CV, see \code{claim.type}).
@@ -1268,10 +1269,9 @@ print.VCA <- function(x, digits=6L, ...)
 #'							"CV" = claim-values specified in terms of coefficient(s) of variation (CV)
 #'							and are specified as percentages.\cr
 #'							If set to "SD" or "CV", claim-values will be converted to variances before applying the Chi-Squared test (see examples).
-#'@param VarVC				(logical) TRUE = if element "Matrices" exists (see \code{\link{anovaVCA}}), the covariance
-#'							matrix of the estimated VCs will be computed (see \code{\link{vcovVC}}, which is used in CIs for 
+#'@param VarVC				(logical) TRUE = the covariance matrix of the estimated VCs will be computed (see \code{\link{vcovVC}}), where diagonal
+#' 							elements correspond to the variances of the individual VCs. This matrix is required for estimation of CIs for 
 #'							intermediate VCs if 'method.ci="sas"'. 
-#'							Note, this might take very long for larger datasets, since there are many matrix operations involved. 
 #'							FALSE (Default) = computing covariance matrix of VCs is omitted, as well as CIs for intermediate VCs.
 #'@param excludeNeg			(logical) TRUE = confidence intervals of negative variance estimates will not be reported. \cr
 #'							FALSE = confidence intervals for all VCs will be reported including those with negative VCs.\cr
@@ -1290,11 +1290,9 @@ print.VCA <- function(x, digits=6L, ...)
 #'							'attr(obj$ConfInt$SD$OneSided, "CIoriginal")' or 'attr(obj$ConfInt$CV$TwoSided, "CIoriginal")'.
 #'
 #'@return  (VCAinference) object, a list with elements: \cr
-#'\itemize{
 #'\item{ChiSqTest}{(data.frame) with results of the Chi-Squared test}
 #'\item{ConfInt}{(list) with elements \code{VC}, \code{SD}, \code{CV}, all lists themselves containing (data.frame) objects \code{OneSided} and \code{TwoSided}}
 #'\item{VCAobj}{(VCA) object specified as input, if \code{VarVC=TRUE}, the 'aov.tab' element will have an extra column "Var(VC)" storing variances of VC-estimates"}
-#'} 
 #'
 #'@author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #'
@@ -1482,32 +1480,36 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 			VCstate <- 1                            # zero-VC estimated as such                                      
 	}
 	
-	if( !is.null(obj$Matrices) && VarVC )
+	# add column with DF and Var(VC) in case of REML estimation
+	if(obj$EstMethod == "REML" && !"DF"%in%colnames(obj$aov.tab)) {
+		VCvar 		<- obj$VarCov <- getGB(obj)				# apply Giesbrecht & Burns approximation optimized for MKL
+		varVC 		<- diag(VCvar)
+		varVC 		<- c(sum(VCvar), varVC)					# variance of total is sum of all elements of the variance-covariance matrix
+		seVC  		<- sqrt(varVC)
+		Wald  		<- obj$aov.tab[,"VC"]/seVC				# Wald-statistic
+		DF	  		<- 2*Wald^2
+		obj$aov.tab <- cbind(DF=DF, obj$aov.tab)
+		obj$aov.tab <- cbind(obj$aov.tab, "Var(VC)"=c(sum(VCvar), diag(VCvar))) 
+	}
+	
+	if( !is.null(obj$Matrices) && VarVC && obj$EstMethod == "ANOVA")
 	{
 		if(is.null(obj$VarCov))						# solve mixed model equations first
 		{
-			# obj  <- solveMME(obj)
-			
-			Lmat  <- obj$Matrices                               # different matrices needed for VCA
-			
-			VCvar <- vcovVC(obj, method=obj$VarVC.method) 		# get variance-covariance matrix of VCs (p.176); do not pass total VC
-			
-			NegVCmsg    <- obj$NegVCmsg
-			VCoriginal  <- obj$VCoriginal
-			Nobs        <- obj$Nobs
-			Nrm         <- obj$Nrm
-			balanced    <- obj$balanced
-			
-			obj$aov.tab <- cbind(obj$aov.tab, "Var(VC)"=c(NA, diag(VCvar)))  
-			
-			class(obj) <- "VCA"
-			obj$NegVCmsg   <- NegVCmsg
-			obj$VCoriginal <- VCoriginal
-			obj$VarCov     <- VCvar                                    # store variance-covariance matrix of variance components
-			obj$Mean       <- Mean
-			obj$Nobs       <- Nobs
-			obj$Nrm        <- Nrm
-			obj$balanced   <- balanced
+			VCvar 			<- vcovVC(obj, method=obj$VarVC.method) 	# get variance-covariance matrix of VCs (p.176); do not pass total VC
+			NegVCmsg    	<- obj$NegVCmsg
+			VCoriginal  	<- obj$VCoriginal
+			Nobs        	<- obj$Nobs
+			Nrm         	<- obj$Nrm
+			balanced    	<- obj$balanced
+			class(obj) 		<- "VCA"
+			obj$NegVCmsg   	<- NegVCmsg
+			obj$VCoriginal 	<- VCoriginal
+			obj$VarCov     	<- VCvar                                    # store variance-covariance matrix of variance components
+			obj$Mean       	<- Mean
+			obj$Nobs       	<- Nobs
+			obj$Nrm        	<- Nrm
+			obj$balanced   	<- balanced
 			
 			nam0 <- deparse(Call$obj)
 			nam1 <- sub("\\[.*", "", nam0)
@@ -1522,8 +1524,10 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 				if( !"VCAinference.obj.is.list" %in% names(as.list(msgEnv)) && !quiet )
 					message("Mixed model equations solved locally. Results could not be assigned to object!")
 			}
-		} else
-			obj$aov.tab <- cbind(obj$aov.tab, "Var(VC)"=c(NA, diag(obj$VarCov)))  
+		} else {
+			VCvar <- obj$VarCov
+		}	
+		obj$aov.tab <- cbind(obj$aov.tab, "Var(VC)"=c(sum(VCvar), diag(VCvar))) 
 	}
 	
 	if(!is.na(total.claim) && nrow(obj$aov.tab) == 1)                               # if error is the only VC no total variance exists (or is equal)
@@ -1614,7 +1618,7 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 	
 	# CIs on VCs, SDs and CVs
 	
-	indCS <- which(rownames(obj$aov.tab) %in% c("total", "error"))				# Chi-Squred dist VCs
+	indCS <- which( rownames(obj$aov.tab) %in% c("total", "error"))				# Chi-Squred dist VCs
 	indN  <- which(!rownames(obj$aov.tab) %in% c("total", "error"))				# Normal dist VCs
 	
 	#####################
@@ -1645,7 +1649,7 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 		{
 			rind	<- obj$Matrices$rf.ind						# indices of random terms in the original ANOVA-table
 			aov.tab <- if(obj$Type == "Random Model")			# original ANOVA table
-						obj$aov.tab[-1,]					# remove row for total 
+						obj$aov.tab[-1,]						# remove row for total 
 					else	
 						obj$aov.org
 			MS  	<- aov.tab[rind, "MS"]
@@ -1880,28 +1884,28 @@ VCAinference <- function(obj, alpha=.05, total.claim=NA, error.claim=NA, claim.t
 	}
 	# SD and CV computed from VC
 	
-	CI_SD <- data.frame(Name=nam)
-	CI_SD$DF <- DFs											# add Satterthwaite DFs if available
-	SignLCL  <- sign(CI_VC$LCL)
-	CI_SD$LCL <- sqrt(abs(CI_VC$LCL)) * SignLCL
-	SignUCL  <- sign(CI_VC$UCL)
-	CI_SD$UCL <- sqrt(abs(CI_VC$UCL)) * SignUCL
+	CI_SD 			<- data.frame(Name=nam)
+	CI_SD$DF 		<- DFs											# add Satterthwaite DFs if available
+	SignLCL  		<- sign(CI_VC$LCL)
+	CI_SD$LCL 		<- sqrt(abs(CI_VC$LCL)) * SignLCL
+	SignUCL  		<- sign(CI_VC$UCL)
+	CI_SD$UCL 		<- sqrt(abs(CI_VC$UCL)) * SignUCL
 	rownames(CI_SD) <- CI_SD$Name
 	
 	if(any(is.na(obj$aov.tab[,"SD"])))
 		CI_SD[which(is.na(obj$aov.tab[,"SD"])),2:ncol(CI_SD)] <- NA 
 	
-	CI_CV <- data.frame(Name=nam)
-	CI_CV$DF <- DFs											# add Satterthwaite DFs if available
-	CI_CV$LCL <- CI_SD$LCL * 100/Mean
-	CI_CV$UCL <- CI_SD$UCL * 100/Mean
+	CI_CV 			<- data.frame(Name=nam)
+	CI_CV$DF 		<- DFs											# add Satterthwaite DFs if available
+	CI_CV$LCL 		<- CI_SD$LCL * 100/Mean
+	CI_CV$UCL 		<- CI_SD$UCL * 100/Mean
 	rownames(CI_CV) <- CI_CV$Name
 	
 	CI_one_sided <- list(CI_VC=CI_VC, CI_SD=CI_SD, CI_CV=CI_CV)
 	
 	CIs <- list(VC=list(OneSided=CI_one_sided$CI_VC, TwoSided=CI_two_sided$CI_VC),
-			SD=list(OneSided=CI_one_sided$CI_SD, TwoSided=CI_two_sided$CI_SD),
-			CV=list(OneSided=CI_one_sided$CI_CV, TwoSided=CI_two_sided$CI_CV))
+				SD=list(OneSided=CI_one_sided$CI_SD, TwoSided=CI_two_sided$CI_SD),
+				CV=list(OneSided=CI_one_sided$CI_CV, TwoSided=CI_two_sided$CI_CV))
 	
 	result <- list(ChiSqTest=CStest, ConfInt=CIs, VCAobj=obj, alpha=alpha)
 	class(result) <- "VCAinference"

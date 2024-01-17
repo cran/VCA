@@ -905,14 +905,14 @@ lmerMatrices <- function(obj, tab=NULL, terms=NULL, cov=FALSE, X=NULL)
 #'
 #'@param obj		(lmerMod) object as returned by function \code{\link{lmer}}
 #'@param VarVC		(logical) TRUE = the variance-covariance matrix of variance components will be approximated
-#'following the Giesbrecht & Burns approach, FALSE = it will not be approximated	
+#'					following the Giesbrecht & Burns approach, FALSE = it will not be approximated	
 #'@param terms		(character) vector, optionally defining the order of variance terms to be used
 #'@param Mean		(numeric) mean value used for CV-calculation
 #'@param cov		(logical) TRUE = in case of non-zero covariances a block diagonal matrix will be constructed,
-#'FALSE = a diagonal matrix with all off-diagonal elements being equal to zero will be contructed
+#'					FALSE = a diagonal matrix with all off-diagonal elements being equal to zero will be contructed
 #'@param X			(matrix) design matrix of fixed effects as constructed to meet VCA-package requirements
 #'@param tab.only	(logical) TRUE = will return only the VCA-results table as 'data.frame', argument 'VarVC' will 
-#'automatically set to 'FALSE' (see details)
+#'					be automatically set to 'FALSE' (see details)
 #'
 #'@return (list) still a premature 'VCA'-object but close to a "complete" 'VCA'-object
 #'

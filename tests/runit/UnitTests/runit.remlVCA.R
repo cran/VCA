@@ -228,3 +228,44 @@ TF010.remlVCA.byProcessing <- function()
 }
 
 
+# avoid error in VCAinference with VarVC=TRUE when VarVC=FALSE in remlVCA
+
+TF011.remlVCA.VCAinference <- function(x) {
+	data(dataEP05A2_3)
+	fit <- remlVCA(y~day/run, dataEP05A2_3, VarVC=FALSE)
+	inf <- try(VCAinference(fit, VarVC=TRUE), silent=TRUE)
+	# in case of an error object inf will be of class 'try-error',
+	# otherwise, it will be of the benign-class 'VCAinference'
+	checkTrue(is(inf, "VCAinference"))
+}
+
+# check equality of results for both options
+TF012.remlVCA.VCAinference <- function(x) {
+	data(dataEP05A2_3)
+	fit1 <- remlVCA(y~day/run, dataEP05A2_3, VarVC=FALSE)
+	fit2 <- remlVCA(y~day/run, dataEP05A2_3, VarVC=TRUE)
+	inf1 <- VCAinference(fit1, VarVC=TRUE)
+	inf2 <- VCAinference(fit2, VarVC=TRUE)
+	tab1 <- inf1$VCAobj$aov.tab
+	tab2 <- inf2$VCAobj$aov.tab
+	# all entries of the aov.tab-object need to be equal
+	for(i in 1:nrow(tab1)) {
+		for(j in 1:ncol(tab2)) {
+			checkIdentical(tab1[i,j], tab2[i,j])
+		}
+	}
+}
+
+# avoid doubling of column showing variance of variance components in 
+# VCAinference-object
+
+TF013.remlVCA.VCAinference <- function(x) {
+	data(dataEP05A2_3)
+	fit <- remlVCA(y~day/run, dataEP05A2_3, VarVC=TRUE)
+	inf <- try(VCAinference(fit, VarVC=TRUE), silent=TRUE)
+	# in case of an error object inf will be of class 'try-error',
+	# otherwise, it will be of the benign-class 'VCAinference'
+	checkTrue(length(which(colnames(inf$VCAobj$aov.tab)=="Var(VC)"))==1)
+}
+
+

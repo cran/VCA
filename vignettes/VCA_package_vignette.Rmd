@@ -28,8 +28,8 @@ output:
     toc_depth: 4
     smart: false
   vignette: >
-    %\VignetteEngine{knitr::rmarkdown}
     %\VignetteIndexEntry{Performing Variance Component Analyses using R-Package VCA}
+    %\VignetteEngine{knitr::rmarkdown}
     %\usepackage[utf8]{inputenc}
 ---
 
@@ -44,6 +44,7 @@ knitr::opts_chunk$set(fig.width=7, fig.height=5, fig.align='center', fig.path='f
 ```{r create_data, echo=FALSE}
 library(VCA)
 library(STB)
+library(VFP)
 data(VCAdata1)
 datS5 <- subset(VCAdata1, sample==5)
 # limit number of decimal places
@@ -53,39 +54,119 @@ options(digits=4)
 
 # Introduction  
 
-The main objective of R-package **VCA** is to perform variance component analyses (VCA). VCA are a way to
-assess how the variability of a dependent variable is structured taking into account its association with one
-or multiple random-effects variables. Proportions of the total variability found to be attributed to these
-random effects variables are called *variance components* (VC). Thus, VCA is the procedure of estimating
-the amount of the VCs' contribution to the total variability in the dependent variable. Moreover, there
-are methods provided for estimating confidence intervals (CI) of VCs along with different graphical tools
-to better understand the data and for detecting outliers. Also included, but usually of less importance
-in the field of VCA: Estimation of fixed effects and least square means (LS means) as well as testing linear
-hypotheses of fixed effects/LS means of linear mixed models (LMMs).
+The main objective of R-package **VCA** is to perform variance component
+analyses (VCA). VCA is a way to assess how the variability of a dependent
+variable is structured taking into account its association with one or multiple
+random-effects variables. Proportions of the total variability found to be
+attributed to these random effects variables are called *variance components*
+(VC). Thus, VCA is the procedure of estimating the amount of the VCs'
+contribution to the total variability in the dependent variable. Moreover, there
+are methods provided for estimating confidence intervals (CI) of VCs along with
+different graphical tools to better understand the data and for detecting
+outliers. Also included, but usually of less importance in the field of VCA:
+Estimation of fixed effects and least square means (LS means) as well as testing
+linear hypotheses of fixed effects/LS means of linear mixed models (LMMs).
 
-VCs can be predicted in random models (*random effects* or *variance component models*) and LMMs (*linear
-mixed -effects- models*) by application of either *analysis of variance* (ANOVA)-type estimation or *Restricted Maximum Likelihood*
-(REML). Experiments of this type frequently occur in performance evaluation analyses of diagnostic tests
-or analyzers (devices) quantifying various types of measurement (im)precision (see e.g. *CLSI EP05-A3*
-guideline). In this setting it is important to point out that precision and imprecision both refer to the
-variability of measurements and differ only by their respective point of view, i.e. the larger the precision of a
-measuring method the smaller is its imprecision and vice versa.
+VCs can be predicted in random models (*random effects* or *variance component
+models*) and LMMs (*linear mixed -effects- models*) by application of either
+*analysis of variance* (ANOVA)-type estimation or *Restricted Maximum
+Likelihood* (REML). Experiments of this type frequently occur in performance
+evaluation analyses of diagnostic tests or analyzers (devices) quantifying
+various types of measurement (im)precision (see e.g. *CLSI EP05-A3* guideline).
+In this setting it is important to point out that precision and imprecision both
+refer to the variability of measurements and differ only by their respective
+point of view, i.e. the larger the precision of a measuring method the smaller
+is its imprecision and vice versa. Not that (im)precision is the random error
+component in the total analytical error (TAE) concept, which is added to
+systematic error quanitified as bias to obtain TAE.
 
-In the course of the discussion of R-package **VCA**, several examples will be given to allow the user to better
-understand the application of the most important functions. For all of the examples, simulated data sets coming with
-the R-package will be used. One of these, **VCAdata1**, comprises 2520 observations. There are 6 variables for 3 devices
-(*device*), 3 lots (*lot*), 10 samples (*sample*), 21 days (*day*) and 2 runs within day (*run*) with 2 replicates per run. 
-This means, for each run two measurements (y) were performed under conditions which are as constant as they can get. 
-One commonly speaks of *repeatability* measurement conditions.  
+In the course of the discussion of R-package **VCA**, several examples will be
+given to allow the user to better understand the application of the most
+important functions. For all of the examples, simulated data sets coming with
+the R-package will be used. One of these, **VCAdata1**, comprises 2520
+observations. There are 6 variables for 3 devices (*device*), 3 lots (*lot*), 10
+samples (*sample*), 21 days (*day*) and 2 runs within day (*run*) with 2
+replicates per run. This means, for each run two measurements (y) were performed
+under conditions which are as constant as they can get. One commonly speaks of
+*repeatability* measurement conditions.  
   
   
 <!-- show structure of VCAdata1 -->
 ```{r str_VCAdata1, echo=FALSE} 
 str(VCAdata1)
 ```
+For all other data sets used in this document please refer to the description
+that can be found in R-package **VCA**. In the next section it is shown how
+easy it is to perform a VCA, including a compact summary and visualization of
+the variabiliy over the concentration range covered.
 
-For all other data sets used in this document please refer to the description that can be found in R-package **VCA**.  
+
+# Getting Started
+
+In this section we show how easy it is to perform a precision analysis using
+the R-package **VCA**. We will make use of the dataset **VCAdata1**. Here, we
+use function **anovaVCA** for Type-1 ANOVA-estimation of mean squares from which
+variance components can be derived, but one could also use function **remlVCA**
+which performs a VCA based on restricted maximum likelihood methodology.
+
+Dataset **VCAdata1** consists of 10 samples covering the range of some analyte
+of interest. For each of these 10 samples the same VCA-model has to be used. We
+can fit this model on all 10 samples using the argument **by** which accepts a
+grouping variable.
+
+<!-- show structure of VCAdata1 -->
+```{r anovaVCA_by, echo=TRUE} 
+fits <- anovaVCA(y~(device+lot)/day/run, Data=VCAdata1, by="sample")
+
+# which class is 'fits'?
+class(fits)
+
+# which class are the elements of this list
+sapply(fits, class)
+```
   
+At this point the easiest way to summarize the complete analysis for each
+sample is to use function **summarize.VCA**. This function will call function
+**VCAinference** on each VCA-object (sample) deriving 95% CI of variance
+components and extract all important information into a matrix. Note, that it
+can be configured to either restrict the extracted information to a subset that
+is of interest or to gather and tabulate all information available.
+
+<!-- show structure of VCAdata1 -->
+```{r summarize_VCA, echo=TRUE}
+# use default settings and suppress printing 
+smry <- summarize.VCA(fits, print=FALSE)
+
+# round results to 4 digits
+smry <- apply(smry, 1:2, round, digits=4)
+
+# show only the first 5 of 10 samples
+smry[,1:5]
+```
+
+One can summarize the entire VCA on all 10 samples also graphically. This is
+done using so called precision profiles which are non-linear functions of the
+mean concentrations of tested samples with variance as dependent variable.
+R-package **VFP** offers this functionality and seamlessly transforms the list
+of **VCA**-object into a precision-profile. Precision profiles are most
+commonly depicted on coefficient of variation scale. In fact they can be seen
+as visualization of the table above, closing the gaps in-between
+mean-concentrations of the 10 samples. More details can be found in the
+vignette of R-package **VFP**.
+
+```{r fit_precision_profile, echo=TRUE}
+# fit 9 models to list of VCA-objects, note that total is automatically selected,
+# use argument 'vc' to use e.g. repeatability as 'vc="error"'
+pp.total <- fit.vfp(fits, 1:9)
+```
+
+```{r precision_profile, fig.width=10, fig.height=7}
+# if no model is specified via 'model.no' the best-fitting model will be used
+# by 'type="cv"' the variability-scale is set to CV
+plot(pp.total, type="cv", ylim=c(0, 40))
+```
+
+In the next section you will see how to visualize precision-analysis data. 
   
 # Visualization of Variability via Function *varPlot*  
 
@@ -110,18 +191,21 @@ variability chart. The implementation of the variability chart cannot distinguis
 terms. The data that is used for drawing the variability chart is **datS5**, a subset of *VCAdata1* consisting
 only of 252 observations from sample number 5 from a total of 10 samples: 
 
-<!-- only print the code for loading VCA package, data set VCAdata1 and creating a subset of it -->
-```{r create_data_fake, eval=FALSE}
-library(VCA)
-data(VCAdata1)
-datS5 <- subset(VCAdata1, sample==5)
-```  
 
 Given the parameters **form** and **Data** only,
 *varPlot()* creates the variability chart in a plain design:  
 
 ```{r varPlot_plain, fig.width=10, fig.height=7}
 varPlot(form=y~(device+lot)/day/run, Data=datS5)
+```  
+
+Note, that using function **varPlot** is equivalent to plotting a fitted model
+via **plot(VCAobject)**. In fact, function **varPlot** is called but it is
+sometime more convenient to just use the standard plot-method for
+**VCA**-objects.
+
+```{r plot_VCA, fig.width=10, fig.height=7}
+plot(fits[[5]], Title=list(main="Variability Chart via 'plot.VCA'"))
 ```  
 
 The variability chart shows all 252 observations in *datS5* according to the nesting structure of the model formula. 

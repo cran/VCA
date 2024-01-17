@@ -221,7 +221,7 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE,
 	stopifnot(nrow(Data) > 2)                                               # at least 2 observations for estimating a variance
 	stopifnot(is.logical(NegVC))
 	
-	if(is.null(.GlobalEnv$msgEnv))											# may be removed after loading the package
+	if(is.null(.GlobalEnv$msgEnv))											# may removed after loading the package
 		msgEnv <<- new.env(parent=emptyenv())
 	
 	VarVC.method <- match.arg(VarVC.method)
@@ -356,7 +356,7 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE,
 	
 	aov.tab["total", "DF"] <- SattDF(c(C2 %*% aov.tab[-1,"VC"]), Ci=Ci2, DF=DF)   	# will automatically adapt ANOVA-MS if any VCs were set to 0 
 	
-#	suppressWarnings(aov.tab <- cbind(aov.tab, SD=sqrt(aov.tab[,"VC"])))    		# warnings suppressed because sqrt of negative numbers doese not exists
+#	suppressWarnings(aov.tab <- cbind(aov.tab, SD=sqrt(aov.tab[,"VC"])))    			# warnings suppressed because sqrt of negative numbers doese not exists
 	aov.tab <- cbind(aov.tab, "CV[%]"=aov.tab[,"SD"]*100/Mean)
 	aov.tab <- cbind(aov.tab, "%Total"=aov.tab[,"VC"]*100/totVC)
 	aov.tab <- aov.tab[,c("DF", "SS", "MS", "VC", "%Total", "SD", "CV[%]")]    
@@ -417,7 +417,7 @@ anovaVCA <- function(	form, Data, by=NULL, NegVC=FALSE,
 #'Estimate/Predict random effects employing ANOVA-type estimation and obtain generalized least squares estimates
 #'of fixed effects for any linear mixed model including random models and linear models.
 #'
-#'A Linear Mixed Model, noted in standard matrix notation, can be written as {y = Xb + Zg + e}, where
+#'A Linear Mixed Model, noted in standard matrix notation, can be written as \eqn{y = Xb + Zg + e}, where
 #'\eqn{y} is the column vector of observations, \eqn{X} and \eqn{Z}{Z} are design matrices assigning fixed (\eqn{b}),
 #'respectively, random (\eqn{g}) effects to observations, and \eqn{e} is the column vector of residual errors.
 #'Whenever there is an intercept in the model, i.e. the substring "-1" is not part of the model formula, the same
@@ -804,7 +804,7 @@ anovaMM <- function(form, Data, by=NULL, VarVC.method=c( "scm","gb"),
 	aov.tab["total", "DF"] <- SattDF(c(C2[rf.ind, rf.ind] %*% aov.tab[-1, "VC"]), 	# will automatically adapt ANOVA-MS if any VCs were set to 0 
 			Ci=Ci2[rf.ind, rf.ind, drop=F], DF=DF[rf.ind])  
 	
-#	suppressWarnings(aov.tab <- cbind(aov.tab, SD=sqrt(aov.tab[,"VC"])))    		# warnings suppressed because sqrt of negative numbers doese not exists
+	suppressWarnings(aov.tab <- cbind(aov.tab, SD=sqrt(aov.tab[,"VC"])))    		# warnings suppressed because sqrt of negative numbers doese not exists
 	aov.tab <- cbind(aov.tab, "CV[%]"=aov.tab[,"SD"]*100/Mean)
 	aov.tab <- cbind(aov.tab, "%Total"=aov.tab[,"VC"]*100/totVC)
 	aov.tab <- aov.tab[,c("DF", "SS", "MS", "VC", "%Total", "SD", "CV[%]")]    
@@ -1026,7 +1026,6 @@ stepwiseVCA <- function(obj, VarVC.method=c("scm", "gb"))
 #'@author Florian Dufey \email{florian.dufey@@roche.com}
 #'
 #'@return (list) with eight elements:\cr
-#'\itemize{
 #'\item{SSQ}{(numeric) vector of ANOVA sum of squares}
 #'\item{LC}{(integer) vector indicating linear dependence of each column}
 #'\item{DF}{(integer) degrees of freedom}
@@ -1035,7 +1034,6 @@ stepwiseVCA <- function(obj, VarVC.method=c("scm", "gb"))
 #'\item{VC}{(double precision)  variance}
 #'\item{SD}{(double precision) standard deviations}
 #'\item{Var}{(double precision) covariance matrix of the estimated variances}
-#'}
 #'
 #'@references 
 #'Goodnight, J.H. (1979), A Tutorial on the SWEEP Operator, The American Statistician, 33:3, 149-158
@@ -1103,10 +1101,8 @@ Fsweep <- function(M, asgn,  thresh=1e-10, tol=1e-10, Ncpu=1)
 #'model term, whether it is random or fixed (only used in mixed models)
 #'
 #'@return (list) representing the  with variables:\cr
-#'\itemize{
 #'\item{aov.tab}{basic ANOVA-table with degrees of freedom (DF), SS and MS}
 #'\item{Lmat}{(list) with components 'Z' and 'A'}
-#'}
 #'
 #'@author 	Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com},
 #' 			Florian Dufey \email{florian.dufey@@roche.com}

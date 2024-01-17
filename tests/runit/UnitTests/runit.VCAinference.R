@@ -553,7 +553,9 @@ TestPrecision <- 1e-12
 
 data(realData)
 
-SASrefModel1 <- read.delim("SASresultsRealData_Model1_by_PID_Lot.txt", header=TRUE)
+### note, "tc.path" defined in RunAllTests.R
+
+SASrefModel1 <- read.delim(paste(tc.path, "SASresultsRealData_Model1_by_PID_Lot.txt", sep="/"), header=TRUE)
 
 by_PID_Lot <- realData[,c("PID", "lot")]
 by_PID_Lot <- unique(by_PID_Lot)
@@ -687,7 +689,9 @@ if(realWorldModel1)
 
 model2 <- y~lot/calibration/day/run
 
-SASrefModel2 <- read.delim("SASresultsRealData_Model2_by_PID.txt", header=TRUE)
+### note, "tc.path" defined in RunAllTests.R
+
+SASrefModel2 <- read.delim(paste(tc.path, "SASresultsRealData_Model2_by_PID.txt", sep="/"), header=TRUE)
 
 PIDs <- unique(as.character(realData$PID))
 

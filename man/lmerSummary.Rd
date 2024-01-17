@@ -30,7 +30,7 @@ FALSE = a diagonal matrix with all off-diagonal elements being equal to zero wil
 \item{X}{(matrix) design matrix of fixed effects as constructed to meet VCA-package requirements}
 
 \item{tab.only}{(logical) TRUE = will return only the VCA-results table as 'data.frame', argument 'VarVC' will 
-automatically set to 'FALSE' (see details)}
+be automatically set to 'FALSE' (see details)}
 }
 \value{
 (list) still a premature 'VCA'-object but close to a "complete" 'VCA'-object

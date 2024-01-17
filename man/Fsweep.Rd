@@ -24,7 +24,6 @@ columns}
 }
 \value{
 (list) with eight elements:\cr
-\itemize{
 \item{SSQ}{(numeric) vector of ANOVA sum of squares}
 \item{LC}{(integer) vector indicating linear dependence of each column}
 \item{DF}{(integer) degrees of freedom}
@@ -33,7 +32,6 @@ columns}
 \item{VC}{(double precision)  variance}
 \item{SD}{(double precision) standard deviations}
 \item{Var}{(double precision) covariance matrix of the estimated variances}
-}
 }
 \description{
 Function calls a fast Fortran90-implementation of the SWEEP operator using the

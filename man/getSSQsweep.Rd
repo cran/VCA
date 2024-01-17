@@ -16,10 +16,8 @@ model term, whether it is random or fixed (only used in mixed models)}
 }
 \value{
 (list) representing the  with variables:\cr
-\itemize{
 \item{aov.tab}{basic ANOVA-table with degrees of freedom (DF), SS and MS}
 \item{Lmat}{(list) with components 'Z' and 'A'}
-}
 }
 \description{
 Compute ANOVA Type-1 sum of squares for linear models.

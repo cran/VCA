@@ -1,3 +1,28 @@
+Version 1.4.6
+-------------
+
+- function 'getCI' added to extract confidence intervals for variance components
+- functions 'summary.VCA' and 'summary.VCAinference' added to conveniently summarize
+  the outcome of a VCA for a single sample or a set of samples
+- fixed issue in VCAinference with VarVC=TRUE when having fitted a model via remlVCA with 
+  VarVC=FALSE, which lead to an error. When remlVCA was called with VarVC=TRUE and VCAinference
+  with VarVC=TRUE, the column with variances appeared twice. This was also fixed.  
+- added function 'protectedCall' for enclosing function-calls fitting VC- or LM-models,
+  intended to provide additional error-messages when errors occur during model-fitting
+- unit-test function based on RUnit were moved to the tests-folder, where they can be executed
+  automatically during R CMD check
+- package-vignette updated
+
+
+Version 1.4.5
+-------------
+
+- bug fixed in function 'varPlot', setting argument keep.order had no effect
+- fixing a problem in indexing a list of VCA-object first occurring in R-version
+  4.2.1
+- cosmetic changes in the documentation and in function 'anovaVCA'
+
+
 Version 1.4.4
 -------------
 
@@ -21,6 +46,7 @@ Version 1.4.3
 - an error is issued in case number of levels = number of observations
 - fixed CRAN package-check issues
 
+
 Version 1.4.2
 -------------
 
@@ -28,6 +54,7 @@ Version 1.4.2
 - fixed bug in function 'stepwiseVCA' not catching that only ANOVA-models are supported
 - fixed bug in function 'fitVCA' that variance-covariance matrix was not correctly used in
   function 'VCAinference' and no CI for intermediary VC were estimated
+
 
 Version 1.4.1
 -------------
@@ -50,6 +77,7 @@ Version 1.4.0
 - in all REML-based model fitting functions based on the lme4-package, the optimizer is explicitly set to "bobyqa"
   for backward compatibility, the new default-optimizer does not generate results being consistent to using ANOVA-
   estimation (see UnitTests sub-folder)
+
 
 Version 1.3.4
 -------------

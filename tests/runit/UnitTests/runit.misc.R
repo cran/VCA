@@ -982,9 +982,10 @@ TF042.balancedness.ordered_vs_unordered <- function()
 
 # check LS Means evaluation at specific values of covariates and/or for different weighting of factor-variables
 
-load(file=file.path(R.home(), "library/VCA/UnitTests/LSMeans_Data.RData"))
+#load(file=file.path(R.home(), "library/VCA/tests/runit/UnitTests/LSMeans_Data.RData"))
+data(LSMeans_Data)
 
-fit.vca <- remlMM(y~snp+time+snp:time+sex+(id)+(id):time, dat,VarVC=F)
+fit.vca <- remlMM(y~snp+time+snp:time+sex+(id)+(id):time, LSMeans_Data, VarVC=FALSE)
 
 # results differ from SAS PROC MIXED results after 2nd decimal place because covariance parameters
 # are slightly different as well
@@ -1918,6 +1919,129 @@ TF074.fitVCA_REML_VarVC_TRUE <- function()
 	res0 <- unlist(lapply(inf0$ConfInt, function(x) return(c(x$OneSided$LCL, x$OneSided$UCL, x$TwoSided$LCL, x$TwoSided$UCL))))
 	res1 <- unlist(lapply(inf1$ConfInt, function(x) return(c(x$OneSided$LCL, x$OneSided$UCL, x$TwoSided$LCL, x$TwoSided$UCL))))
 	checkEquals(res0, res1, tol=1e-6)
+}
+
+#####################################################################
+#### check protectedCAll functionality on all model-fitting functions
+
+TF075.protectedCall.anovaVCA <- function() {
+dat3 <- data.frame(	y=rnorm(8,10),
+					day=paste("day",rep(c(1,2),c(4,4)), sep="_"), 
+					run=rep(c(2,1), c(4,4)))
+assign("dat3", dat3, envir=.GlobalEnv)			
+smpl <- try(protectedCall(anovaVCA(y~day/run, dat3), ErrorType="Simple"), silent=TRUE)
+dtld <- try(protectedCall(anovaVCA(y~day/run, dat3), ErrorType="Detailed"), silent=TRUE)
+smpl <- attr(smpl, "condition")$message
+dtld <- attr(dtld, "condition")$message
+cat("\nTF075.protectedCall.anovaVCA\nsmpl:",smpl)
+cat("\ndtld:", dtld)
+checkTrue(nchar(smpl)<nchar(dtld))
+}
+
+TF076.protectedCall.remlVCA <- function() {
+	data(dataEP05A2_1)            
+	dat0 <- dataEP05A2_1[1:16,]   
+	# data identical response for all obs 
+	dat2 <- dat0                                 
+	dat2$y <- dat2$y[rep(seq(1,7,2), rep(2,4))] 
+	assign("dat2", dat2, envir=.GlobalEnv)	
+	smpl <- try(protectedCall(remlVCA(y~day/run, dat2), ErrorType="Simple"), silent=TRUE)
+	dtld <- try(protectedCall(remlVCA(y~day/run, dat2), ErrorType="Detailed"), silent=TRUE)
+	smpl <- attr(smpl, "condition")$message
+	dtld <- attr(dtld, "condition")$message
+	cat("\nTF076.protectedCall.remlVCA\nsmpl:",smpl)
+	cat("\ndtld:", dtld)
+	checkTrue(nchar(smpl)<nchar(dtld))
+}
+
+TF077.protectedCall.remlMM <- function() {
+	data(dataEP05A2_1)            
+	dat0 <- dataEP05A2_1[1:16,]   
+	# data identical response for all obs 
+	dat2 <- dat0                                 
+	dat2$y <- dat2$y[rep(seq(1,7,2), rep(2,4))]  
+	assign("dat2", dat2, envir=.GlobalEnv)	
+	smpl <- try(protectedCall(remlMM(y~day/(run), dat2), ErrorType="Simple"), silent=TRUE)
+	dtld <- try(protectedCall(remlMM(y~day/(run), dat2), ErrorType="Detailed"), silent=TRUE)
+	smpl <- attr(smpl, "condition")$message
+	dtld <- attr(dtld, "condition")$message
+	cat("\nTF077.protectedCall.remlMM\nsmpl:",smpl)
+	cat("\ndtld:", dtld)
+	checkTrue(nchar(smpl)<nchar(dtld))
+}
+
+TF078.protectedCall.anovaMM <- function() {
+	dat3 <- data.frame(	y=rnorm(8,10),
+			day=paste("day",rep(c(1,2),c(4,4))), 
+			run=rep(c(2,1), c(4,4)))
+	assign("dat3", dat3, envir=.GlobalEnv)	
+	smpl <- try(protectedCall(anovaMM(y~day/(run), dat3), ErrorType="Simple"), silent=TRUE)
+	dtld <- try(protectedCall(anovaMM(y~day/(run), dat3), ErrorType="Detailed"), silent=TRUE)
+	smpl <- attr(smpl, "condition")$message
+	dtld <- attr(dtld, "condition")$message
+	cat("\nTF078.protectedCall.anovaMM\nsmpl:",smpl)
+	cat("\ndtld:", dtld)
+	checkTrue(nchar(smpl)<nchar(dtld))
+}
+
+TF079.protectedCall.fitVCA.anova <- function() {
+	dat3 <- data.frame(	y=rnorm(8,10),
+			day=paste("day",rep(c(1,2),c(4,4))), 
+			run=rep(c(2,1), c(4,4)))
+	assign("dat3", dat3, envir=.GlobalEnv)	
+	smpl <- try(protectedCall(fitVCA(y~day/run, dat3), ErrorType="Simple"), silent=TRUE)
+	dtld <- try(protectedCall(fitVCA(y~day/run, dat3), ErrorType="Detailed"), silent=TRUE)
+	smpl <- attr(smpl, "condition")$message
+	dtld <- attr(dtld, "condition")$message
+	cat("\nTF079.protectedCall.fitVCA.anova\nsmpl:",smpl)
+	cat("\ndtld:", dtld)
+	checkTrue(nchar(smpl)<nchar(dtld))
+}
+
+TF080.protectedCall.fitVCA.reml <- function() {
+	data(dataEP05A2_1)            
+	dat0 <- dataEP05A2_1[1:16,]   
+	# data identical response for all obs 
+	dat2 <- dat0                                 
+	dat2$y <- dat2$y[rep(seq(1,7,2), rep(2,4))]  
+	assign("dat2", dat2, envir=.GlobalEnv)	
+	smpl <- try(protectedCall(fitVCA(y~day/run, dat2, method="REML"), ErrorType="Simple"), silent=TRUE)
+	dtld <- try(protectedCall(fitVCA(y~day/run, dat2, method="REML"), ErrorType="Detailed"), silent=TRUE)
+	smpl <- attr(smpl, "condition")$message
+	dtld <- attr(dtld, "condition")$message
+	cat("\nTF080.protectedCall.fitVCA.reml\nsmpl:",smpl)
+	cat("\ndtld:", dtld)
+	checkTrue(nchar(smpl)<nchar(dtld))
+}
+
+TF081.protectedCall.fitLMM.anova <- function() {
+	dat3 <- data.frame(	y=rnorm(8,10),
+			day=paste("day",rep(c(1,2),c(4,4))), 
+			run=rep(c(2,1), c(4,4)))
+	assign("dat3", dat3, envir=.GlobalEnv)	
+	smpl <- try(protectedCall(fitLMM(y~day/(run), dat3), ErrorType="Simple"), silent=TRUE)
+	dtld <- try(protectedCall(fitLMM(y~day/(run), dat3), ErrorType="Detailed"), silent=TRUE)
+	smpl <- attr(smpl, "condition")$message
+	dtld <- attr(dtld, "condition")$message
+	cat("\nTF081.protectedCall.fitLMM.anova\nsmpl:",smpl)
+	cat("\ndtld:", dtld)
+	checkTrue(nchar(smpl)<nchar(dtld))
+}
+
+TF082.protectedCall.fitLMM.reml <- function() {
+	data(dataEP05A2_1)            
+	dat0 <- dataEP05A2_1[1:16,]   
+	# data identical response for all obs 
+	dat2 <- dat0                                 
+	dat2$y <- dat2$y[rep(seq(1,7,2), rep(2,4))]  
+	assign("dat2", dat2, envir=.GlobalEnv)	
+	smpl <- try(protectedCall(fitLMM(y~day/(run), dat2, method="REML"), ErrorType="Simple"), silent=TRUE)
+	dtld <- try(protectedCall(fitLMM(y~day/(run), dat2, method="REML"), ErrorType="Detailed"), silent=TRUE)
+	smpl <- attr(smpl, "condition")$message
+	dtld <- attr(dtld, "condition")$message
+	cat("\nTF082.protectedCall.fitLMM.remlss\nsmpl:",smpl)
+	cat("\ndtld:", dtld)
+	checkTrue(nchar(smpl)<nchar(dtld))
 }
 
 

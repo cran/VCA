@@ -18,7 +18,7 @@ VCAinference(
 )
 }
 \arguments{
-\item{obj}{(object) of class 'VCA' or, alternatively, a list of 'VCA' objects, where all other argument can be 
+\item{obj}{(object) of class 'VCA' or, alternatively, a list of 'VCA' objects, where all other arguments can be 
 specified as vectors, where the i-th vector element applies to the i-th element of 'obj' (see examples)}
 
 \item{alpha}{(numeric) value specifying the significance level for \eqn{100*(1-alpha)}\% confidence intervals.}
@@ -34,10 +34,9 @@ specified as vectors, where the i-th vector element applies to the i-th element 
 and are specified as percentages.\cr
 If set to "SD" or "CV", claim-values will be converted to variances before applying the Chi-Squared test (see examples).}
 
-\item{VarVC}{(logical) TRUE = if element "Matrices" exists (see \code{\link{anovaVCA}}), the covariance
-matrix of the estimated VCs will be computed (see \code{\link{vcovVC}}, which is used in CIs for 
+\item{VarVC}{(logical) TRUE = the covariance matrix of the estimated VCs will be computed (see \code{\link{vcovVC}}), where diagonal
+    elements correspond to the variances of the individual VCs. This matrix is required for estimation of CIs for 
 intermediate VCs if 'method.ci="sas"'. 
-Note, this might take very long for larger datasets, since there are many matrix operations involved. 
 FALSE (Default) = computing covariance matrix of VCs is omitted, as well as CIs for intermediate VCs.}
 
 \item{excludeNeg}{(logical) TRUE = confidence intervals of negative variance estimates will not be reported. \cr
@@ -58,11 +57,9 @@ fitted by ANOVA) and all Cis are based on the Chi-Squared distribution. This app
 }
 \value{
 (VCAinference) object, a list with elements: \cr
-\itemize{
 \item{ChiSqTest}{(data.frame) with results of the Chi-Squared test}
 \item{ConfInt}{(list) with elements \code{VC}, \code{SD}, \code{CV}, all lists themselves containing (data.frame) objects \code{OneSided} and \code{TwoSided}}
 \item{VCAobj}{(VCA) object specified as input, if \code{VarVC=TRUE}, the 'aov.tab' element will have an extra column "Var(VC)" storing variances of VC-estimates"}
-}
 }
 \description{
 Function \code{VCAinference} constructs one- and two-sided confidence intervals, and performs Chi-Squared tests for total

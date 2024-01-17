@@ -1902,7 +1902,7 @@ plot.VCA <- function(x, ...)
 #' @param ...		all parameters applicable in function \code{\link{legend}}
 #' 
 #' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
-#' 
+#'  
 #' @examples 
 #' \dontrun{
 #' 

@@ -5,6 +5,230 @@
 
 
 
+#' Summarize Outcome of a Variance Component Analysis.
+#' 
+#' If a single 'VCA'-object is passed, the first step is to call 'VCAinference' for CI
+#' estimation. For each variance component (VC) the result of the VCA is summarized
+#' and can be configured by arguments 'type', 'tail', 'ends', and 'conf.level'. These
+#' define which information is returned by this summary function. In case of passing
+#' a list of 'VCA'- or 'VCAinference'-objects, a matrix will be returned where columns
+#' correspond to list-elements, usually samples, and rows to estimated values. This is 
+#' done as the number of estimated values usually exceeds the number of samples.
+#' 
+#' @param object		(object) of class \code{VCA} or \code{VCAinference} or a list of
+#' 						these objects to be summarized.
+#' @param type			(character) "sd" for standard devation, "cv" for coefficient of 
+#' 						variation, and "vc" for variance defining on which scale results
+#' 						shall be returned. Multiple can be specified.
+#' @param tail			(character) "one-sided" for one-sided CI, "two-sided" for two-sided CI,
+#' 						can be abbreviated
+#' @param ends			(character) "upper" or "lower" bounds of a e.g. 95\% CI, can be both
+#' @param conf.level	(numeric) confidence level of the CI
+#' @param DF			(logical) TRUE to include degrees of freedom, FALSE to omit them
+#' @param as.df			(logical) TRUE to transpose the returned object and convert into
+#' 						a data.frame, FALSE leve
+#' @param print			(logical) TRUE print summary, FALSE omit printing and just return
+#' 						matrix or data.frame
+#' 
+#' @return 	(matrix, data.frame) with VCA-results either with estimates in rows and sample(s)
+#' 			in columns, or vice versa
+#' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @aliases summarize.VCAinference
+#' 
+#' @examples 
+#' \dontrun{
+#' data(CA19_9)
+#' fit.all <- anovaVCA(result~site/day, CA19_9, by="sample")
+#' summary.VCA(fit.all)
+#' # complete set of results
+#' summary.VCA(	fit.all, type=c("vc", "sd", "cv"), tail=c("one", "two"),
+#' 				ends=c("lower", "upper"))
+#' # summarizing a single VCA-object
+#' summary(fit.all[[1]])
+#' }
+
+summarize.VCA <- summarize.VCAinference <- function(object, type=c("sd", "cv"), tail="one-sided", 
+		ends="upper", conf.level=0.95, DF=TRUE,
+		as.df=FALSE, print=TRUE) {
+	
+	obj <- object		# for S3 generic method consistency
+	
+	# apply function on each list-element, either of class VCA or VCAinference
+	if(is(obj, "list") && all(sapply(obj, class) %in% c("VCA", "VCAinference"))) {
+		out <- sapply(	obj, summarize.VCA, type=type, tail=tail, ends=ends, conf.level=conf.level,
+				DF=DF, print=FALSE)
+		if(as.df) {
+			out <- as.data.frame(t(out))
+		}
+		if(print) {
+			cat("\n\n(V)ariance (C)omponent (A)nalysis Summary:\n------------------------------------------\n\n")
+			if(is(obj[[1]], "VCA"))
+				print(obj[[1]]$formula)
+			else
+				print(obj[[1]]$VCAobj$formula)
+			cat("\n\n")
+			VCA.Model.Printed <- TRUE
+			print(out)
+			cat("\n\n")	
+		}
+		return(invisible(out))
+	}
+	
+	type <- match.arg(type, choices=c("vc", "sd", "cv"), several.ok=TRUE)
+	tail <- match.arg(tail, choices=c("one-sided", "two-sided"), several.ok=TRUE)
+	ends <- match.arg(ends, choices=c("lower", "upper"), several.ok=TRUE)
+	if(is(obj, "VCA"))
+		obj <- VCAinference(obj, VarVC=TRUE, alpha=1-conf.level, quiet=TRUE)
+	
+	
+	if(print) {
+		cat("\n\n(V)ariance (C)omponent (A)nalysis Summary:\n------------------------------------------\n\n")
+		print(obj$VCAobj$formula)
+		cat("\n\n")
+		VCA.Model.Printed <- TRUE
+	}
+	
+	tab  <- obj$VCAobj$aov.tab
+	vcs  <- rownames(tab)
+	VCOS <- obj$ConfInt$VC$OneSided
+	VCTS <- obj$ConfInt$VC$TwoSided
+	SDOS <- obj$ConfInt$SD$OneSided
+	SDTS <- obj$ConfInt$SD$TwoSided
+	CVOS <- obj$ConfInt$CV$OneSided
+	CVTS <- obj$ConfInt$CV$TwoSided
+	out  <- nam <- NULL
+	for(i in 1:length(vcs)) {
+		if(i == 1) {
+			nam <- c(nam, "Mean", "N")
+			out <- c(out, obj$VCAobj$Mean, obj$VCAobj$Nobs)
+		}
+		out <- c(	out, tab[i, "DF"],
+				tab[i,"VC"],    VCOS[i,"LCL"], VCOS[i,"UCL"], VCTS[i,"LCL"], VCTS[i,"UCL"],
+				tab[i,"SD"],    SDOS[i,"LCL"], SDOS[i,"UCL"], SDTS[i,"LCL"], SDTS[i,"UCL"],
+				tab[i,"CV[%]"], CVOS[i,"LCL"], CVOS[i,"UCL"], CVTS[i,"LCL"], CVTS[i,"UCL"])
+		nam <- c(	nam, paste0(vcs[i], "_DF"),
+				paste0(paste0(vcs[i], "_"), c("VC", "VC_OS_LCL", "VC_OS_UCL", "VC_TS_LCL", "VC_TS_UCL")),
+				paste0(paste0(vcs[i], "_"), c("SD", "SD_OS_LCL", "SD_OS_UCL", "SD_TS_LCL", "SD_TS_UCL")),
+				paste0(paste0(vcs[i], "_"), c("CV", "CV_OS_LCL", "CV_OS_UCL", "CV_TS_LCL", "CV_TS_UCL")))
+	}
+	names(out) <- nam
+	
+	ivc <- c(TRUE, TRUE, rep(c(TRUE, rep(TRUE,   5), rep(FALSE, 10)), length(vcs))) 				# VC = variance index
+	isd <- c(TRUE, TRUE, rep(c(TRUE, rep(FALSE,  5), rep(TRUE, 5), rep(FALSE, 5)), length(vcs))) 	# SD
+	icv <- c(TRUE, TRUE, rep(c(TRUE, rep(FALSE, 10), rep(TRUE, 5)), length(vcs))) 					# CV
+	ios <- c(TRUE, TRUE, rep(c(TRUE, rep(c( TRUE, TRUE, TRUE, FALSE, FALSE), 3)), length(vcs)))		# CI one-sided
+	its <- c(TRUE, TRUE, rep(c(TRUE, rep(c( TRUE, FALSE, FALSE,  TRUE, TRUE), 3)), length(vcs)))	# CI two-sided
+	ile <- c(TRUE, TRUE, rep(c(TRUE, rep(c(TRUE, TRUE, FALSE, TRUE, FALSE), 3)), length(vcs)))		# CI lower end 
+	iue <- c(TRUE, TRUE, rep(c(TRUE, rep(c(TRUE, FALSE, TRUE, FALSE, TRUE), 3)), length(vcs)))		# CI upper end
+	idf <- c(FALSE, FALSE, rep(c(TRUE, rep(FALSE, 15)), length(vcs)))
+	idx <- rep(FALSE, 2 + 16*length(vcs))
+	
+	# which type of variability measure should be included
+	if("vc" %in% type)
+		idx <- idx | ivc
+	if("sd" %in% type)
+		idx <- idx | isd
+	if("cv" %in% type)
+		idx <- idx | icv
+	
+	# which type of confidence interval should be included
+	ici <-  rep(FALSE, 2 + 16*length(vcs))
+	if("one-sided" %in% tail)
+		ici <- ici | ios
+	if("two-sided" %in% tail)
+		ici <- ici | its
+	
+	idx <- idx & ici
+	
+	# should lower, upper or both ends of CI be included
+	ien <- rep(FALSE, 2 + 16*length(vcs))
+	if("lower" %in% ends)
+		ien <- ien | ile
+	if("upper" %in% ends)
+		ien <- ien | iue
+	
+	idx <- idx & ien
+	
+	if(DF)
+		idx[idf] <- TRUE
+	else
+		idx[idf] <- FALSE
+	
+	out <- out[which(idx)]
+	
+	if(as.df) {
+		out <- as.data.frame(t(out))
+	}
+	
+	if(print) {
+		print(out)
+		cat("\n\n")	
+	}
+	invisible(out)
+}
+
+
+#' Extract Confidence Intervals from VCA-Objects. 
+#' 
+#' This utility function acutally calls function 'VCAinference' first and then extracts
+#' the requested confidence interval (CI) information from the resulting object. You
+#' can specify single variance components (VC) or multiple. Not specifying any specific
+#' VC will return all.
+#' 
+#' @param obj			(object) of class "VCA"
+#' @param vc			(integer, character) specifying which variance component to extract CI for
+#' @param type			(character) on which scale should results be returned
+#' @param tail			(character) should one- or two-sided CI be returned
+#' @param conf.level	(numeric) confidence-level to be used
+#' @param quiet			(logical) TRUE = suppress additional information to be printed 
+#' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @examples 
+#' data(dataEP05A2_3)
+#' fit <- remlVCA(y~day/run, dataEP05A2_3)
+#' getCI(fit)				# will return one-sided CI for all VC
+#' getCI(fit, type="cv")	# now on CV-scale
+#' getCI(fit, type="cv", conf.level=.9)
+#' # multiple row at once
+#' getCI(fit, vc=1:3, type="cv")
+#' getCI(fit, vc=c("total", "error"), type="cv")
+
+getCI <- function(	obj, vc=NULL, type=c("vc", "sd", "cv"), tail=c("one-sided", "two-sided"), 
+		conf.level=0.95, quiet=FALSE) {
+	stopifnot(is(obj, "VCA"))
+	stopifnot(0<conf.level && conf.level<1)
+	mat  <- as.matrix(obj)
+	inf  <- VCAinference(obj, VarVC=TRUE, alpha=1-conf.level, quiet=quiet)
+	Nvc  <- nrow(mat)
+	if(is.null(vc))
+		vc <- 1:Nvc
+	stopifnot(is.numeric(vc) || is.character(vc))
+	if(is.numeric(vc)) {
+		stopifnot(vc %in% 1:Nvc)
+		vc.char <- FALSE
+	} else  {
+		stopifnot(vc %in% rownames(mat))
+		vc.char <- TRUE
+	}
+	if(vc.char)
+		vc <- sapply(vc, function(x) paste0("\"",x,"\""))
+	if(length(vc)>1)
+		vc <- paste0("c(", paste(vc, collapse=","), ")")
+	
+	type <- match.arg(type[1], choices=c("vc", "sd", "cv"))
+	tail <- match.arg(tail[1], choices=c("one-sided", "two-sided"))
+	Ctal <- c("one-sided"="OneSided", "two-sided"="TwoSided")
+	expr <- paste0("inf$ConfInt$", toupper(type), "$", Ctal[tail],"[",vc,",]")
+	res  <- eval(parse(text=expr))
+	rownames(res) <- NULL
+	res
+}
+
+
+
 #'Scale Response Variable to Ensure Robust Numerical Calculations
 #'
 #'Function determines scaling factor for transforming the mean of the response to a range

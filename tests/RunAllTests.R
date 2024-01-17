@@ -1,9 +1,9 @@
 # Run all unit tests, i.e. all checks of all test-functions
 # 
-# Author: Andre Schützenmeister
+# Author: Andre Schuetzenmeister
 ###############################################################################
 
-#library(VCA)
+library(VCA)
 library(RUnit)
 
 # enable/disable time-consuming model 1 and model 2 testcases with real-world data
@@ -14,18 +14,21 @@ realWorldModel1 <- FALSE
 
 options(warn=1)
 
+# current working directory
+wd <- getwd()
+
+# set path from wd, where RunAllTests.R resided to RUnit test-scripts (scripts directory)
+sd <- "./runit/UnitTests"
+tc.path <- sub("\\./", "/", paste0(wd, sd))
+
 # test function regexpr fits to string "TFxyz" which are used as identifiers for easier referencing
 
-testSuite <- defineTestSuite(name="VCA", dirs=".",
+testSuite <- defineTestSuite(name="VCA", dirs=tc.path,
                              testFileRegexp="runit.*\\.R$",
 							 testFuncRegexp = "^TF[[:digit:]]{3}.+",					# use custom regexpr for test functions
                              rngKind="default",
                              rngNormalKind="default")
-#testSuite <- defineTestSuite(name="VCA", dirs=".",
-#                             testFileRegexp="runit.*\\.R$",
-#							 testFuncRegexp = "^TF[[:digit:]]{3}.+",					# use custom regexpr for test functions
-#                             rngKind="default",
-#                             rngNormalKind="default")
+
                      
 testData <- runTestSuite(testSuite, verbose=0L)
 
