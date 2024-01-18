@@ -28,8 +28,8 @@ output:
     toc_depth: 4
     smart: false
   vignette: >
-    %\VignetteIndexEntry{Performing Variance Component Analyses using R-Package VCA}
     %\VignetteEngine{knitr::rmarkdown}
+    %\VignetteIndexEntry{Performing Variance Component Analyses using R-Package VCA}
     %\usepackage[utf8]{inputenc}
 ---
 

@@ -1,4 +1,4 @@
-2d010b9f7d2ae64dd43beba5be088d78 *DESCRIPTION
+80d7bc2bb1ac42e2a6715159ca125f90 *DESCRIPTION
 9b58c4d210996609d6ab3501127b8245 *NAMESPACE
 be83897d65dd48dfb132095cc5d4b428 *R/anova.R
 c3769a833903f8a40e98708b00cabf62 *R/model_check.R
@@ -10,7 +10,7 @@ e79424357236eed8694c202dd8ec76bf *build/vignette.rds
 5dad30822795145f8a1f67b464788a73 *data/CA19_9.RData
 2edb99722bb114ba9f68c1628ee1ecbb *data/Glucose.RData
 7881f5f59e064ea2cb13f87e5fb5d9bb *data/HugeData.RData
-d0afa2d7b6c2f72c83bcdb477bc6c7d4 *data/LSMeans_Data.RData
+2da0f54158a96c839cb916b6a84b3876 *data/LSMeans_Data.RData
 c687941eaa9d710f025548277ddf82e1 *data/MLrepro.RData
 585b6e7925581f0c5b2acaed5eb2e1e1 *data/Orthodont.RData
 d3f1dbc1542e554d35c772dba0261a8e *data/ReproData1.RData
@@ -30,7 +30,7 @@ d7d833be64e7b21229a4c20d9b63aa30 *data/dataRS0005_1.RData
 3d07387e18ee92c60c8630391aaa748c *data/dataRS0005_3.RData
 7038467e7829ab5088c56a96c29bd27c *data/realData.RData
 7d98dab966518cf30f4b4abc4e560b99 *data/sleepstudy.RData
-0f58057d8749e09bbc406070512b0afa *inst/ChangeLog.txt
+fbfe184965aca16b7271d70f09beeb32 *inst/ChangeLog.txt
 84a3cb61ae2902f21b2bd6b53603035d *inst/doc/VCA_package_vignette.R
 0b88514a3172ca0035b030febee65212 *inst/doc/VCA_package_vignette.Rmd
 32cbc930b27b4b0f4bcc158c0f210633 *inst/doc/VCA_package_vignette.html
@@ -48,7 +48,7 @@ af3e72019314f3f4eb5acd5a66602e10 *man/ReproData1.Rd
 976be11ee4d5575da0f8be0b98b92126 *man/Scale.Rd
 504f3e3fcaed1ad0a946cc092c91f2fc *man/Solve.Rd
 0d53fe3a3db6cf8167e3f82c3ca4600d *man/Trace.Rd
-ac7f9e5ccc3f32e49267b626c35621c3 *man/VCA-Package.Rd
+c44ec4ce75645613494057849ed707fe *man/VCA-Package.Rd
 aa6e7682f93fabf1e041cbf5e97db59d *man/VCAdata1.Rd
 5827d3ebed45b3ab6cb42ae16903ee41 *man/VCAinference.Rd
 0b1996e5779b257d27c66c0eb0d4df29 *man/anovaMM.Rd
@@ -136,7 +136,7 @@ e729143f75c0890d5e5bc0b43fc9e315 *tests/runit/UnitTests/runit.anovaVCA.R
 514009ee2da0d7a0835e8ffe25af1bfd *tests/runit/UnitTests/runit.misc.R
 c5b7a0b8392eb1bbe4574b30ae833760 *tests/runit/UnitTests/runit.remlMM.R
 7e96dcfd8cb3fa5beaeeecf128522a17 *tests/runit/UnitTests/runit.remlVCA.R
-dd5f83fb3c4c5a7faa1a6f44138dd8df *vignettes/VCA_package_vignette.Rmd
+32e19da382d38e94beb5ed257dbef0fd *vignettes/VCA_package_vignette.Rmd
 ede6ca9ab25d0d156d32ba2498d928dd *vignettes/figures/Multi_Site_Design_1_Plot-1.png
 ed963250e1943f2c0d412abd1e9c00ee *vignettes/figures/Multi_Site_Design_2_Plot-1.png
 eecada3af2219be1631ad1e28fb20027 *vignettes/figures/RandomEffects_Day-1.png
