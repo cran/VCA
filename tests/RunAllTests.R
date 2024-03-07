@@ -11,6 +11,8 @@ library(RUnit)
 
 realWorldModel2 <- FALSE
 realWorldModel1 <- FALSE
+# large dataset leads to out of memory errors in many testing-environments
+runTF033.runit.anovaVCA.r  <- FALSE			
 
 options(warn=1)
 

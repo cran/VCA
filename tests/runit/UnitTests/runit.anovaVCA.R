@@ -454,21 +454,27 @@ TF027.check.sweep_vs_SAS_computation <- function()
 	checkEquals(R.res.sw, SAS.res)
 }
 
-#TF033.check.equality.HugeData <- function()
-#{
-#	#memory.limit(7500)
-#	data(HugeData)
-#	try(fit <- anovaVCA(y~VC1/VC2, HugeData), silent=TRUE)
-#	if(class(fit) == "try-error")
-#	{
-#		cat("\n\n########################################################################\n")
-#		cat(  "\n'TF033.check.equality.HugeData' cannot be run due to memory limitations!")
-#		cat(  "\n########################################################################\n\n")	
-#	}
-#	else
-#		checkEquals(round(as.numeric(fit$aov.tab[-1, "VC"]), 4), c(5173.4411, 12268.7307, 13197.6746))
-#}
+#####################################################################################
+# define test-function which will not automatically be recognized by RUnit test-suite
+placeholderFunction <- function()
+{
+	#memory.limit(7500)
+	data(HugeData)
+	try(fit <- anovaVCA(y~VC1/VC2, HugeData), silent=TRUE)
+	if(class(fit) == "try-error")
+	{
+		cat("\n\n########################################################################\n")
+		cat(  "\n'TF033.check.equality.HugeData' cannot be run due to memory limitations!")
+		cat(  "\n########################################################################\n\n")	
+	}
+	else
+		checkEquals(round(as.numeric(fit$aov.tab[-1, "VC"]), 4), c(5173.4411, 12268.7307, 13197.6746))
+}
 
+# in case RunAllTests.R defines T
+if(runTF033.runit.anovaVCA.r) {
+	assign("TF033.check.equality.HugeData", placeholderFunction)
+}
 
 
 TF034.anovaVCA.zeroVariance <- function()

@@ -2044,4 +2044,55 @@ TF082.protectedCall.fitLMM.reml <- function() {
 	checkTrue(nchar(smpl)<nchar(dtld))
 }
 
+### check correctness of functions getCI, summarize.VCA, and summarize.VCAinference
 
+TF083.getCI <- function() {
+	
+	data(dataEP05A2_3)
+	fit  	<- anovaVCA(y~day/run, dataEP05A2_3)
+	inf  	<- VCAinference(fit, VarVC=TRUE)
+	ref 	<- inf$ConfInt$CV$OneSided
+	rownames(ref) <- NULL
+	target	<- getCI(fit, vc=NULL, type="cv", tail="one-sided")
+	checkEquals(ref[1,], target[1,], tol=1e-12)
+	checkEquals(ref[2,], target[2,], tol=1e-12)
+	checkEquals(ref[3,], target[3,], tol=1e-12)
+	checkEquals(ref[4,], target[4,], tol=1e-12)
+	
+}
+
+
+TF084.summarize.VCA <- function() {
+	# generate list of VCA-objects
+	data(VCAdata1)
+	fits <- anovaVCA(y~(device+lot)/day/run, VCAdata1, by="sample")
+	infs <- VCAinference(fits, VarVC=TRUE)
+	smat <- summarize.VCA(fits, type="cv", tail="one-sided")
+	
+	# loop over all samples
+	for(i in 1:length(fits)) {
+		# check mean
+		checkIdentical(fits[[i]]$Mean, smat["Mean", i])
+		# loop over variance components
+		aov <- fits[[i]]$aov.tab
+		nam <- rownames(aov)
+		for(j in 1:nrow(aov)) {
+			checkIdentical(smat[paste0(nam[j], "_DF"),i], aov[j,"DF"])
+			checkIdentical(smat[paste0(nam[j], "_CV"),i], aov[j,"CV[%]"])
+			checkEquals(smat[paste0(nam[j], "_CV_OS_UCL"),i], infs[[i]]$ConfInt$CV$OneSided[j,"UCL"], tol=1e-12)
+		}
+	}
+}
+
+
+
+TF085.summarize.VCAinference <- function() {
+	# generate list of VCA-objects
+	data(VCAdata1)
+	fits 	<- anovaVCA(y~(device+lot)/day/run, VCAdata1, by="sample")
+	infs 	<- VCAinference(fits, VarVC=TRUE)
+	# summarize.VCAinference should generate the same as summarize.VCA
+	smat0 	<- summarize.VCA(fits)
+	smat1	<- summarize.VCAinference(infs)
+	checkEquals(smat0, smat1, tolerance=1e-12)
+}

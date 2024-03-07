@@ -55,8 +55,8 @@
   \tabular{ll}{
     Package: \tab VCA\cr
     Type: \tab Package \cr
-    Version: \tab 1.5.0 \cr
-    Date: \tab 2024-01-18\cr
+    Version: \tab 1.5.1 \cr
+    Date: \tab 2024-02-07\cr
     License:  \tab GPL (>=3) \cr
     LazyLoad: \tab yes \cr
   }

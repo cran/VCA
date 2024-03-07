@@ -537,7 +537,7 @@ TF021.VCAinference.VC_CI.balanced.REML <- function()
 
 # check test case collection against SAS PROC MIXED method=type1 results 
 
-noTF <- 22			# number of next test function
+noTF <- 21			# number of last test function
 
 
 

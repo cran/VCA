@@ -56,12 +56,16 @@ done as the number of estimated values usually exceeds the number of samples.
 \dontrun{
 data(CA19_9)
 fit.all <- anovaVCA(result~site/day, CA19_9, by="sample")
-summary.VCA(fit.all)
+summarize.VCA(fit.all)
 # complete set of results
-summary.VCA(	fit.all, type=c("vc", "sd", "cv"), tail=c("one", "two"),
+summarize.VCA(	fit.all, type=c("vc", "sd", "cv"), tail=c("one", "two"),
 				ends=c("lower", "upper"))
 # summarizing a single VCA-object
-summary(fit.all[[1]])
+summarize.VCA(fit.all[[1]])
+
+### summarizing list of 'VCAinference' objects
+infs <- VCAinference(fit.all)
+summarize.VCAinference(infs)
 }
 }
 \author{

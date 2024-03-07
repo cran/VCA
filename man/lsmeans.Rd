@@ -62,7 +62,7 @@ LS Means generating contrast matrix and \eqn{P} is the variance-covariance matri
 fixed effects.
 
 Argument \code{at} can be used to modify the values of covariables when computing LS Means and/or
-to apply different weighting schemes for (fixed) factor varialbes in the model, e.g. when the prevelance
+to apply different weighting schemes for (fixed) factor variables in the model, e.g. when the prevelance
 of factor-levels differs from a uniform distribution. Usually, if the weighting scheme is not modified,
 each factor-level will contribute \eqn{1/N} to the LS Mean, where \eqn{N} corresponds to the number of factor-levels. 
 
