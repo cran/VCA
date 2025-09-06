@@ -45,7 +45,7 @@ All terms appearing in the model (fixed or random) need to be compliant with the
 i.e. they may not start with a dot and may then only consist of alpha-numeric characters, 
 dot and underscore. Otherwise, an error will be issued.
 
-Here, a LMM is fitted by REML using the \code{\link{lmer}} function of the \code{lme4}-package. 
+Here, a LMM is fitted by REML using the \code{\link[lme4]{lmer}} function of the \code{lme4}-package. 
 For all models the Giesbrechnt & Burns (1985) approximation of the variance-covariance
 matrix of variance components (VC) can be applied ('VarVC=TRUE'). A Satterthwaite approximation of the degrees of freedom
 for all VC and total variance is based on this approximated matrix using \eqn{df=2Z^2}, where
@@ -54,7 +54,7 @@ estimated variance. The variance of total variability, i.e. the sum of all VC is
 up all elements of the variance-covariance matrix of the VC.
 One can constrain the variance-covariance matrix of random effects \eqn{G} to be either diagonal ('cov=FALSE'), i.e.
 all random effects are indpendent of each other (covariance is 0). If 'cov=TRUE' (the default) matrix \eqn{G} will be
-constructed as implied by the model returned by function \code{\link{lmer}}. 
+constructed as implied by the model returned by function \code{\link[lme4]{lmer}}. 
 
 As for objects returned by function \code{\link{anovaMM}} linear hypotheses of fixed effects or LS Means can be
 tested with functions \code{\link{test.fixef}} and \code{\link{test.lsmeans}}. Note, that option "contain" does
@@ -139,7 +139,7 @@ test.fixef(fit.remlMM3, L=cmat)
 \seealso{
 \code{\link{remlVCA}}, \code{\link{VCAinference}}, \code{\link{ranef.VCA}}, \code{\link{residuals.VCA}},
 \code{\link{anovaVCA}}, \code{\link{anovaMM}}, \code{\link{plotRandVar}},  \code{\link{test.fixef}},  
-\code{\link{test.lsmeans}}, \code{\link{lmer}}
+\code{\link{test.lsmeans}}, \code{\link[lme4]{lmer}}
 }
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}

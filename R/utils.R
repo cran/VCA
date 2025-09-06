@@ -5,6 +5,108 @@
 
 
 
+#' Combine Variance Components and Adjust Degrees of Freedom.
+#' 
+#' Combining variance estimates of multiple terms, mostly, effects
+#' of a full model containing a single source of variability. One
+#' example would be a precision experiment where three reagentlots
+#' are measured on one instrument in parallel, i.e. on the same days.
+#' As days are not independent of each other one needs the mean effect
+#' 'day' but as there is also interaction between reagentlot and day
+#' an interaction term 'lot:day' is needed. As the interaction term
+#' cannot be interpreted in a straight forward manner, effects 'day'
+#' and 'lot:day' need to be combined accounting for day-to-day
+#' variability.
+#' 
+#' @param obj			(object) of class 'VCA', either fitted by ANOVA
+#' 						or REML
+#' @param comb			(character) strings refering to variance components
+#' 						the shall be combined
+#' @return (object) of class 'VCA' with an updated 'aov.tab' element
+#' 
+#' @author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
+#' 
+#' @examples 
+#' \donttest{
+#' # assume interactions lot:day
+#' set.seed(323)
+#' dat <- data.frame(
+#' 	 lot = rep(1:3, c(25, 25, 25)),
+#' 	 day = rep(rep(1:5, rep(5,5)), 3),
+#'   res = 25)
+#' # mean value of measurements is 25
+#' # add variance component 'lot' (5% CV)
+#' dat$res <- dat$res + rep(rnorm(3,,1.25), c(25, 25, 25))
+#' # add variance component 'day' (4% CV)
+#' dat$res <- dat$res + rep(rep(rnorm(5,,1), rep(5,5)), 3)
+#' # add interaction variance 'lot:day' (4% CV)
+#' dat$res <- dat$res + rep(rnorm(15,,1), rep(5, 15))
+#' # add repeatability variance(2% CV)
+#' dat$res <- dat$res + rnorm(75,,0.5)
+#' 
+#' # data analysis
+#' # 3 lots were measured in parallel on the same 5 days
+#' # using main effects 'lot' and 'day' shifts interaction
+#' # variability 'lot:day' into 'error'
+#' fitW <- anovaVCA(res~lot+day, dat)
+#' fitW
+#' # use saturated model and combine variance components
+#' # 'day' and 'lot:day'
+#' fit0 <- anovaVCA(res~lot*day, dat)
+#' fit1 <- VCA:::combineVC(fit0, c("day", "lot:day"))
+#' fit0
+#' fit1
+#' fitW
+#' }
+
+combineVC <- function(obj, comb=NULL) {
+	stopifnot(identical(class(obj), "VCA"))
+	if(is.null(comb))
+		return()
+	stopifnot(all(comb %in% c(attr(obj$terms, "term.labels"),"error")))
+	#check whether shorter term is involved in longer term, e.g. "day" in "lot:day"
+	nc <- sapply(comb, nchar)
+	idx.t1 <- which.min(nc)
+	t1 <- comb[idx.t1]
+	if(!all(sapply(comb[-idx.t1], function(x) grepl(t1, x) )))
+		stop(paste0("Term ", t1, " is not part of all interaction terms!"))
+	
+	vc  <- obj$aov.tab[-1, "VC"]
+	
+	if(obj$EstMethod == "ANOVA") {			# ANOVA Type-1 estimation
+		ms	<- obj$aov.tab[-1,"MS"]        	# remove total
+		df  <- obj$aov.tab[-1,"DF"]        	# remove total
+		Ci  <- obj$Matrices$Ci.MS
+		Cm  <- solve(Ci)
+		idx <- which(names(ms) %in% comb)
+		Ci  <- Ci[idx, ,drop=FALSE]
+		sdf <- SattDF(ms, Ci, df, "total")
+	} else {								# REML-estimation
+		varVC 	<- obj$VarCov
+		idx		<- which(rownames(varVC) %in% comb)
+		varSum	<- sum(varVC[idx, idx])
+		seSum	<- sqrt(varSum)
+		wald	<- sum(vc[idx])/seSum
+		sdf		<- 2*wald^2 
+	}
+	
+	vc  <- sum(vc[idx])
+	sd  <- sqrt(vc)
+	cv  <- 100*sd/obj$Mean
+	tab <- obj$aov.tab
+	trm <- comb[which.min(sapply(comb, nchar))]     # select term to which interaction terms were added
+	rmt <- comb[-which(comb == trm)]                # terms to remove as they were added to trm
+	tab <- tab[-which(rownames(tab) %in% rmt),]
+	tab[trm,"DF"] <- sdf
+	tab[trm,"VC"] <- vc
+	tab[trm,"SD"] <- sd
+	tab[trm,"CV[%]"] <- cv
+	tab[, "%Total"] <- 100*tab[,"VC"]/tab["total", "VC"]
+	obj$aov.tab <- tab
+	obj
+}
+
+
 #' Summarize Outcome of a Variance Component Analysis.
 #' 
 #' If a single 'VCA'-object is passed, the first step is to call 'VCAinference' for CI
@@ -1001,7 +1103,7 @@ fixef.VCA <- function(object, type=c("simple", "complex"), ddfm=c("contain", "re
 		nam0 <- deparse(Call$object)
 		
 		nam1 <- sub("\\[.*", "", nam0)			# remove any index-operators 
-
+		
 		if(length(nam1) == 1 && nam1 %in% names(as.list(.GlobalEnv)))
 		{
 			expr <- paste(nam0, "<<- obj")		# update object missing MME results
@@ -1561,13 +1663,14 @@ as.matrix.VCAinference <- function(x, what=c("VC", "SD", "CV"), digits=6, ...)
 #'@examples 
 #'
 #'\dontrun{
+#' \donttest{
 #'data(dataEP05A2_2)
 #'res <- anovaVCA(y~day/run, dataEP05A2_2)
-#'VCA:::SattDF(res$aov.tab[-1,"MS"], getMat(res, "Ci.MS"), res$aov.tab[-1,"DF"], type="tot")
+#'VCA::SattDF(res$aov.tab[-1,"MS"], getMat(res, "Ci.MS"), res$aov.tab[-1,"DF"], type="tot")
 #'
 #'# now approximating individual DF for variance components
-#'VCA:::SattDF(res$aov.tab[-1,"MS"], getMat(res, "Ci.MS"), res$aov.tab[-1,"DF"], type="i")
-#'}
+#'VCA::SattDF(res$aov.tab[-1,"MS"], getMat(res, "Ci.MS"), res$aov.tab[-1,"DF"], type="i")
+#'}}
 
 SattDF <- function(MS, Ci, DF, type=c("total", "individual"))
 {
@@ -1994,7 +2097,7 @@ lsmeans <- function(obj, var=NULL, type=c("simple", "complex"), ddfm=c("contain"
 		dat.class <- attr(T, "var.class")
 		
 		nam <- names(at)
-
+		
 		T2  <- T
 		cnT <- colnames(T)
 		fe.terms <- attr(obj$fe.assign, "terms")

@@ -243,7 +243,7 @@ protectedCall <- function(expr, ErrorType=c("Simple", "Detailed")){
 		form <- args[1]
 	else
 		form <- sub("form=", "", form)
-
+	
 	form <- as.formula(form)
 	
 	Data <- args[which(sapply(args, grepl, pattern="Data"))]	

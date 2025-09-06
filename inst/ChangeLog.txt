@@ -1,3 +1,10 @@
+Version 1.5.2
+-------------
+
+- fixed CRAN issues with \link{} and author@R
+
+
+
 Version 1.5.1
 -------------
 

@@ -2,7 +2,7 @@
 % Please edit documentation in R/reml.R
 \name{lmerSummary}
 \alias{lmerSummary}
-\title{Derive VCA-Summary Table from an Object Fitted via Function \code{\link{lmer}}}
+\title{Derive VCA-Summary Table from an Object Fitted via Function \code{\link[lme4]{lmer}}}
 \usage{
 lmerSummary(
   obj,
@@ -15,7 +15,7 @@ lmerSummary(
 )
 }
 \arguments{
-\item{obj}{(lmerMod) object as returned by function \code{\link{lmer}}}
+\item{obj}{(lmerMod) object as returned by function \code{\link[lme4]{lmer}}}
 
 \item{VarVC}{(logical) TRUE = the variance-covariance matrix of variance components will be approximated
 following the Giesbrecht & Burns approach, FALSE = it will not be approximated}
@@ -37,7 +37,7 @@ be automatically set to 'FALSE' (see details)}
 }
 \description{
 This function builds a variance components analysis (VCA) table
-from an object representing a model fitted by function \code{\link{lmer}}
+from an object representing a model fitted by function \code{\link[lme4]{lmer}}
 of the \code{lme4} R-package.
 }
 \details{
@@ -47,7 +47,7 @@ information to approximate the degrees of freedom according to Satterthwaite
 (see SAS PROC MIXED documentation option 'CL').
 
 This function can be used to create a VCA-results table from almost any fitted 'lmerMod'-object, i.e. one can
-apply it to a model fitted via function \code{\link{lmer}} of the \code{lme4}-package. The only 
+apply it to a model fitted via function \code{\link[lme4]{lmer}} of the \code{lme4}-package. The only 
 additional argument that needs to be used is 'tab.only' (see examples).
 }
 \examples{

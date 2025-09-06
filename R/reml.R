@@ -4,7 +4,7 @@
 #'Function performs a Variance Component Analysis (VCA) using Restricted Maximum Likelihood (REML)
 #'to fit the random model, i.e. a linear mixed model (LMM) where the intercept is the only fixed effect.
 #'
-#'Here, a variance component model is fitted by REML using the \code{\link{lmer}} function of the
+#'Here, a variance component model is fitted by REML using the \code{\link[lme4]{lmer}} function of the
 #'\code{lme4}-package. For all models the Giesbrechnt & Burns (1985) approximation of the variance-covariance
 #'matrix of variance components (VC) is applied. A Satterthwaite approximation of the degrees of freedom
 #'for all VC and total variance is based on this approximated matrix using \eqn{df=2Z^2}, where
@@ -31,7 +31,7 @@
 #'will remain as is 
 #'
 #'@seealso \code{\link{remlMM}}, \code{\link{VCAinference}}, \code{\link{ranef.VCA}}, \code{\link{residuals.VCA}},
-#'\code{\link{anovaVCA}}, \code{\link{anovaMM}}, \code{\link{plotRandVar}}, \code{\link{lmer}}
+#'\code{\link{anovaVCA}}, \code{\link{anovaMM}}, \code{\link{plotRandVar}}, \code{\link[lme4]{lmer}}
 #'
 #'@author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #'
@@ -276,7 +276,7 @@ remlVCA <- function(form, Data, by=NULL, VarVC=TRUE, quiet=FALSE, order.data=TRU
 #'i.e. they may not start with a dot and may then only consist of alpha-numeric characters, 
 #'dot and underscore. Otherwise, an error will be issued.
 #'
-#'Here, a LMM is fitted by REML using the \code{\link{lmer}} function of the \code{lme4}-package. 
+#'Here, a LMM is fitted by REML using the \code{\link[lme4]{lmer}} function of the \code{lme4}-package. 
 #'For all models the Giesbrechnt & Burns (1985) approximation of the variance-covariance
 #'matrix of variance components (VC) can be applied ('VarVC=TRUE'). A Satterthwaite approximation of the degrees of freedom
 #'for all VC and total variance is based on this approximated matrix using \eqn{df=2Z^2}, where
@@ -285,7 +285,7 @@ remlVCA <- function(form, Data, by=NULL, VarVC=TRUE, quiet=FALSE, order.data=TRU
 #'up all elements of the variance-covariance matrix of the VC.
 #'One can constrain the variance-covariance matrix of random effects \eqn{G} to be either diagonal ('cov=FALSE'), i.e.
 #'all random effects are indpendent of each other (covariance is 0). If 'cov=TRUE' (the default) matrix \eqn{G} will be
-#'constructed as implied by the model returned by function \code{\link{lmer}}. 
+#'constructed as implied by the model returned by function \code{\link[lme4]{lmer}}. 
 #'
 #'As for objects returned by function \code{\link{anovaMM}} linear hypotheses of fixed effects or LS Means can be
 #'tested with functions \code{\link{test.fixef}} and \code{\link{test.lsmeans}}. Note, that option "contain" does
@@ -315,7 +315,7 @@ remlVCA <- function(form, Data, by=NULL, VarVC=TRUE, quiet=FALSE, order.data=TRU
 #'
 #'@seealso \code{\link{remlVCA}}, \code{\link{VCAinference}}, \code{\link{ranef.VCA}}, \code{\link{residuals.VCA}},
 #'\code{\link{anovaVCA}}, \code{\link{anovaMM}}, \code{\link{plotRandVar}},  \code{\link{test.fixef}},  
-#'\code{\link{test.lsmeans}}, \code{\link{lmer}}
+#'\code{\link{test.lsmeans}}, \code{\link[lme4]{lmer}}
 #'
 #'@author Andre Schuetzenmeister \email{andre.schuetzenmeister@@roche.com}
 #'
@@ -732,7 +732,7 @@ lmerG <- function(obj, cov=FALSE)
 #'Derive and Compute Matrices for Objects Fitted by Function 'lmer'
 #'
 #'Function derives and computes all matrices required for down-stream
-#'analyses of VCA-objects fitted with REML via function \code{\link{lmer}}.
+#'analyses of VCA-objects fitted with REML via function \code{\link[lme4]{lmer}}.
 #'
 #'Mixed Model Equations (MME) are solved for fixed and random effects applying the same
 #'constraints as in \code{\link{anovaMM}}. 
@@ -749,8 +749,8 @@ lmerG <- function(obj, cov=FALSE)
 #'@param tab		(data.frame) representing the basic VCA-table
 #'@param terms		(character) vector used for ordering variance components
 #'@param cov		(logical) take non-zero covariances among random effects into account (TRUE) or
-#'not (FALSE), the latter is the default in this package and also implemented in
-#'\code{\link{remlVCA}}, \code{\link{anovaVCA}}, and \code{\link{anovaMM}}.
+#'                  not (FALSE), the latter is the default in this package and also implemented in
+#'                  \code{\link{remlVCA}}, \code{\link{anovaVCA}}, and \code{\link{anovaMM}}.
 #'@param X			(matrix) design matrix of fixed effects as constructed to meet VCA-package requirements
 #'
 #'@return (list), a premature 'VCA' object
@@ -888,10 +888,10 @@ lmerMatrices <- function(obj, tab=NULL, terms=NULL, cov=FALSE, X=NULL)
 	res
 }
 
-#'Derive VCA-Summary Table from an Object Fitted via Function \code{\link{lmer}}
+#'Derive VCA-Summary Table from an Object Fitted via Function \code{\link[lme4]{lmer}}
 #'
 #'This function builds a variance components analysis (VCA) table
-#'from an object representing a model fitted by function \code{\link{lmer}}
+#'from an object representing a model fitted by function \code{\link[lme4]{lmer}}
 #'of the \code{lme4} R-package. 
 #'
 #'It applies the approximation of the variance-covariance
@@ -900,10 +900,10 @@ lmerMatrices <- function(obj, tab=NULL, terms=NULL, cov=FALSE, X=NULL)
 #'(see SAS PROC MIXED documentation option 'CL').
 #'
 #'This function can be used to create a VCA-results table from almost any fitted 'lmerMod'-object, i.e. one can
-#'apply it to a model fitted via function \code{\link{lmer}} of the \code{lme4}-package. The only 
+#'apply it to a model fitted via function \code{\link[lme4]{lmer}} of the \code{lme4}-package. The only 
 #'additional argument that needs to be used is 'tab.only' (see examples).
 #'
-#'@param obj		(lmerMod) object as returned by function \code{\link{lmer}}
+#'@param obj		(lmerMod) object as returned by function \code{\link[lme4]{lmer}}
 #'@param VarVC		(logical) TRUE = the variance-covariance matrix of variance components will be approximated
 #'					following the Giesbrecht & Burns approach, FALSE = it will not be approximated	
 #'@param terms		(character) vector, optionally defining the order of variance terms to be used

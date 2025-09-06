@@ -1,9 +1,13 @@
 Package: VCA
-Version: 1.5.1
-Date: 2024-02-07
+Version: 1.5.2
+Date: 2025-09-05
 Title: Variance Component Analysis
-Author: Andre Schuetzenmeister [aut, cre], Florian Dufey [aut]
-Maintainer: Andre Schuetzenmeister <andre.schuetzenmeister@roche.com>
+Authors@R: c(person("Andre", "Schuetzenmeister", role = c("aut", "cre"),
+                    email = "andre.schuetzenmeister@roche.com",
+                    comment = c(ORCID = "0000-0002-2964-5502")),
+             person("Florian", "Dufey", role = "aut",
+                    email = "florian.dufey@roche.com",
+                    comment = c(ORCID = "0000-0001-6467-8556")))
 Depends: R (>= 3.0.0)
 Imports: stats, graphics, grDevices, lme4, Matrix, methods, numDeriv
 Suggests: VFP, STB, knitr, rmarkdown, prettydoc, RUnit
@@ -23,6 +27,10 @@ License: GPL (>= 3)
 VignetteBuilder: knitr, rmarkdown
 RoxygenNote: 7.2.3
 NeedsCompilation: yes
-Packaged: 2024-03-07 16:13:19 UTC; schueta6
+Packaged: 2025-09-05 13:46:17 UTC; schueta6
+Author: Andre Schuetzenmeister [aut, cre] (ORCID:
+    <https://orcid.org/0000-0002-2964-5502>),
+  Florian Dufey [aut] (ORCID: <https://orcid.org/0000-0001-6467-8556>)
+Maintainer: Andre Schuetzenmeister <andre.schuetzenmeister@roche.com>
 Repository: CRAN
-Date/Publication: 2024-03-07 17:10:02 UTC
+Date/Publication: 2025-09-06 05:12:08 UTC

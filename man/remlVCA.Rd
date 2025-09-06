@@ -29,7 +29,7 @@ Function performs a Variance Component Analysis (VCA) using Restricted Maximum L
 to fit the random model, i.e. a linear mixed model (LMM) where the intercept is the only fixed effect.
 }
 \details{
-Here, a variance component model is fitted by REML using the \code{\link{lmer}} function of the
+Here, a variance component model is fitted by REML using the \code{\link[lme4]{lmer}} function of the
 \code{lme4}-package. For all models the Giesbrechnt & Burns (1985) approximation of the variance-covariance
 matrix of variance components (VC) is applied. A Satterthwaite approximation of the degrees of freedom
 for all VC and total variance is based on this approximated matrix using \eqn{df=2Z^2}, where
@@ -131,7 +131,7 @@ fit3
 }
 \seealso{
 \code{\link{remlMM}}, \code{\link{VCAinference}}, \code{\link{ranef.VCA}}, \code{\link{residuals.VCA}},
-\code{\link{anovaVCA}}, \code{\link{anovaMM}}, \code{\link{plotRandVar}}, \code{\link{lmer}}
+\code{\link{anovaVCA}}, \code{\link{anovaMM}}, \code{\link{plotRandVar}}, \code{\link[lme4]{lmer}}
 }
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}

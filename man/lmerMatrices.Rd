@@ -24,7 +24,7 @@ not (FALSE), the latter is the default in this package and also implemented in
 }
 \description{
 Function derives and computes all matrices required for down-stream
-analyses of VCA-objects fitted with REML via function \code{\link{lmer}}.
+analyses of VCA-objects fitted with REML via function \code{\link[lme4]{lmer}}.
 }
 \details{
 Mixed Model Equations (MME) are solved for fixed and random effects applying the same

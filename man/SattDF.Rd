@@ -36,13 +36,14 @@ Option 'type="individual"' is used in function \code{\link{VCAinference}} when c
 \examples{
 
 \dontrun{
+\donttest{
 data(dataEP05A2_2)
 res <- anovaVCA(y~day/run, dataEP05A2_2)
-VCA:::SattDF(res$aov.tab[-1,"MS"], getMat(res, "Ci.MS"), res$aov.tab[-1,"DF"], type="tot")
+VCA::SattDF(res$aov.tab[-1,"MS"], getMat(res, "Ci.MS"), res$aov.tab[-1,"DF"], type="tot")
 
 # now approximating individual DF for variance components
-VCA:::SattDF(res$aov.tab[-1,"MS"], getMat(res, "Ci.MS"), res$aov.tab[-1,"DF"], type="i")
-}
+VCA::SattDF(res$aov.tab[-1,"MS"], getMat(res, "Ci.MS"), res$aov.tab[-1,"DF"], type="i")
+}}
 }
 \author{
 Andre Schuetzenmeister \email{andre.schuetzenmeister@roche.com}
